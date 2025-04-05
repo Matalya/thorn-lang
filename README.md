@@ -23,6 +23,7 @@ Thorn blends the elegance of symbolic languages with the familiarity of C-style 
 - ✅ Type conversion, introspection, and basic error signaling
 
 Full grammar specs coming soon!
+
 ---
 ## Examples
 
@@ -44,15 +45,21 @@ if (i > 6) {
 ```
 ---
 ## Requirements
+
 - Python 3.10+
 - UTF-8 capable terminal (For proper rune display)
 - A love for strong typing and strange symbols
+
 ---
 ## Contributing
+
 Contributions and participation are warmly welcomed. Shoot up a message, file an issue or open up a PR. Forks are welcomed.
+
 ---
 ## License
+
 The Thorn Programming Language is provided under the MIT license. See [LICENSE](./LICENSE) for full terms.
+
 ---
 ## Ethics clause
 Thorn is offered freely and openly to all — but with an earnest request:
