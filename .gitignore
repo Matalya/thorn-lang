@@ -1,0 +1,21 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# Internal circulation
+samples/
+thorn runic specs.txt
+thorn specs.txt
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Editor backups
+*.swp
+*.swo
+
+# AI/Design files
+*.ai
+*.psd
+*.png
