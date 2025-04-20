@@ -144,7 +144,6 @@ LITERALS = (
     TokenKind.INTEGER,
     TokenKind.DECIMAL,
     TokenKind.STRING,
-    TokenKind.COMPOSITE_STR,
     TokenKind.TRUE,
     TokenKind.FALSE,
 )

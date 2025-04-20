@@ -20,7 +20,7 @@ class Lexer:
             if token != None:
                 token.debug()
             else:
-                print(None)
+                print("None")
     
     def add(self, token: Token):
         if isinstance(token, Token):
@@ -195,3 +195,11 @@ class Lexer:
                         self.add(TK.DEBUG_UNKNOWN)
                 self.advance()
         self.add(TK.EOF_KIND)
+
+def main():
+    lexer = Lexer("int a = 5 + 3;")
+    lexer.Tokenize()
+    lexer.printTokens(printSource = True)
+
+if __name__ == "__main__":
+    main()
