@@ -195,8 +195,3 @@ class Lexer:
                         self.add(TK.DEBUG_UNKNOWN)
                 self.advance()
         self.add(TK.EOF_KIND)
-with open("./samples/sample.ᚦ", encoding="utf8") as file:
-    lexer = Lexer(file.read())
-    lexer.Tokenize()
-
-    lexer.printTokens(printSource=True)

@@ -119,3 +119,32 @@ class Token:
 
 def newToken(kind: TokenKind, value: str):
     return Token(kind, value)
+
+TYPES: TokenKind = (
+    TokenKind.INT,
+    TokenKind.STR,
+    TokenKind.FLOAT,
+    TokenKind.BOOL,
+    TokenKind.CHAR,
+    TokenKind.ANY,
+    TokenKind.NIL
+)
+
+CONTROL_FLOW = (
+    TokenKind.IF,
+    TokenKind.ELSE,
+    TokenKind.ELSIF,
+    TokenKind.WHILE,
+    TokenKind.UNTIL,
+    TokenKind.FOR,
+    TokenKind.FOREACH
+)
+
+LITERALS = (
+    TokenKind.INTEGER,
+    TokenKind.DECIMAL,
+    TokenKind.STRING,
+    TokenKind.COMPOSITE_STR,
+    TokenKind.TRUE,
+    TokenKind.FALSE,
+)
