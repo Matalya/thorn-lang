@@ -44,7 +44,7 @@ class Node:
     pass
 
 class Program(Node):
-    def __init__(self, statements: list):
+    def __init__(self, statements: list = []):
         self.statements: list = statements
     
     def __repr__(self):
@@ -53,29 +53,82 @@ class Program(Node):
     def represent(self, depth = 5):
         preview = "\n    ".join(repr(stmt) for stmt in self.statements[:depth])
         more = "..." if len(self.statements) > depth else ""
-        return f"Program:\n    {preview}\n    {more}"
+        if not self.statements:
+            print("Program empty")
+        else:
+            print(f"Program:\n    {preview}\n    {more}")
+    
+    def addNode(self, node: Node):
+        self.statements.append(node)
 
-class varDeclaration(Node):
+############################################ NODES ############################################
+
+class VarDeclaration(Node):
     def __init__(self, varType : Type, varName: str, varValue: str = None):
         self.varType = varType
         self.varName = varName
         self.varValue = varValue
     
-    def __str__(self):
+    def __repr__(self):
         value = "" if self.varValue is UNINITIALIZED else f" = {self.varValue}"
         return f"varDeclaration: {self.varType.name.lower()} {self.varName}{value};"
 
 class Literal(Node):
     def __init__(self, litType: Type, litValue: str):
-        self.litType = litType
-        self.litValue = litValue
+        self.litType: Type = litType
+        self.litValue: str = litValue
     
-    def __str__(self):
+    def __repr__(self):
         return f"Literal: {self.litValue} ({self.litType})"
+
+class CST(Enum):
+    STRING_COMPONENT = auto()
+    EVALUATION_COMPONENT = auto()
+
+class stringComponent(Node):
+    def __init__(self, type: CST, value: str):
+        self.type = type
+        self.value = value
+
+class CompositeString(Node):
+    def __init__(self, string: str):
+        
+        def show_context(string: str, index: int, padding: int = 5):
+            lower = index - padding
+            upper = index + padding
+            if lower > 0 and upper < len(string):
+                return string[lower : upper]
+            else:
+                return string
+            
+        self.components: list[str] = list()
+        acc: str = str()
+        evalMode: bool = False
+        openbraceindex = 0
+        for i in range(len(string)):
+            if string[i] == "\"":
+                continue
+            elif string[i] == "{":
+                evalMode = True
+                if acc:
+                    self.components.append(stringComponent(CST.STRING_COMPONENT, acc))
+                acc = ""
+                openbraceindex = i
+            elif string[i] == "}":
+                evalMode = False
+                self.components.append(stringComponent(CST.EVALUATION_COMPONENT, acc))
+                acc = ""
+            else:
+                acc += string[i]
+        if acc:
+            self.components.append(stringComponent(CST.STRING_COMPONENT, acc)) # assumed string cuz if it was an eval it would've gotten flushed by "}"
+        if evalMode:
+            raise SyntaxWarning(f"Unclosed brace @ {openbraceindex}: …{show_context(string, openbraceindex)}…")
+
 
 class Uninitialized(Node):
     def __init__(self, type: Type = Type.UNINITIALIZED):
-        self.type = type
+        self.type: Type = type
     
     def __repr__(self):
         return "<uninitialized>"
@@ -98,6 +151,8 @@ class Parser:
     # Helper functions
     def advance(self):
         self.pos += 1
+        print("Advanced; current:", end = " ")
+        self.current().debug()
     
     def current(self) -> Token | None:
         return self.tokens[self.pos] if self.pos < self.tokenCount else None
@@ -125,52 +180,55 @@ class Parser:
         token = self.match(kind)
         if token == None:
             raise SyntaxError(f"{message}: expected {kind}, got {self.current().kind}")
-        return Token
+        return token
+
+    def parse_instruction(self, current: Token):
+        pass
     
     def parse_evaluation(self):
         current = self.current()
         if self.current_is(TK.COMPOSITE_STR):
             self.advance() #current after this should be a string
-            pass
+            if current == TK.STRING:
+                self.advance()
+                return CompositeString(current.value)
         elif current.kind in LITERALS: # then it's a literal
+            self.advance()
             return Literal(extractTypeFromLitToken(current.kind), current.value)
         else: # it's probably an operation or other kind of compound evaluation
             pass
 
-            
-        
-    def parse_instruction(self):
-        pass
-
-    def parse_assignment(self, type: Token):
-        current = self.current()
-        next = self.peek()
+    def parse_varDeclaration(self, type: Token):
         varType = mapTKtoType(type.kind)
-        varName = self.expect(TK.IDENTIFIER)
-        if current.kind == TK.ASSIGN:
+        varName = self.expect(TK.IDENTIFIER).value
+        if self.current().kind == TK.ASSIGN:
             self.advance()
-            self.parse_evaluation()
+            varValue = self.parse_evaluation()
         elif self.current().kind == TK.SEMICOLON:
             varValue = UNINITIALIZED
             self.advance()
+        elif not (self.current_is(TK.ASSIGN) or self.current_is(TK.SEMICOLON)):
+            raise SyntaxError("Expected semicolon or assignment at variable declaration")
+        else:
+            raise SyntaxError(f"Unknown token at variable declaration: {self.current()}")
+        return VarDeclaration(varType, varName, varValue)
         
     
     # Parsing logic
     def parse(self) -> Program:
+        self.current().debug()
+        program = Program()
         for token in self.tokens:
             if token == None:
                 raise SyntaxError("Unexpected value: None")
-            if self.match(*TYPES):
-                current = self.current()
-                self.advance()
-                self.parse_instruction(current)
-            elif self.match():
-                pass
+            if current := self.match(*TYPES):
+                program.addNode(self.parse_varDeclaration(current))
+        return program
             
-"""
+
 with open("./samples/lexer-test.ᚦ", encoding="utf8") as file:
     lexer = Lexer(file.read())
     lexer.Tokenize()
     parser = Parser(lexer.tokens)
-    ast = parser.parse()
-"""
+    program = parser.parse()
+    program.represent()
