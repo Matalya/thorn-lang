@@ -111,6 +111,9 @@ class Token:
         self.value = value
         self.index = index
     
+    def __repr__(self):
+        return f"{self.kind.Name()} ({self.value})"
+    
     def is_a(self, *options):
         return self.kind in options
     
