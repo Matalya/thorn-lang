@@ -1,0 +1,430 @@
+# links
+https://valhyr.com/pages/rune-converter english to runes converter
+https://www.harysdalvi.com/futhorc webapp runes keyboard
+
+# Quick rundown
+## Types
+- `ᛁᚾᛏ`, `ᚠᛚᚩᛏ`, `ᚳᚻᚪᚱ`, `ᛋᛏᚱ ᛥᚱ`, `ᛒᚣᛚ`, `ᛖᚾᛁ`, `ᚾᛁᛚ`
+## Collections
+- `ᛚᛁᛋᛏ(t) ᛚᛁᛥ(t) [1, 2, 3]`
+- `ᚪᚱ(t, n) <1, 2, 3>`
+- `ᛋᛖᛏ(t) (1, 2, 3)`
+- `ᛁᚾᚣᛗ(t) my_var = (NAME = ?value;)`
+- `ᛋᛏᚱᚢᚳᛏ MyType = {?const type field = ?value;}`
+## Operators
+- `+`, `-`, `*`, `/`, `**` `^`, `%`, `//`
+- `==`, `!= ≠`, `>`, `<`, `>= ≥`, `<= ≤`
+- `ᚫᚾᛞ`, `ᛟᚱ`, `ᛉᛟᚱ`, `ᚾᛟᚱ`, `ᚾᚫᚾᛞ`
+## Control flow
+- `ᛁᚠ () {} ᛖᛚᛁᚠ () {} ᛖᛚᛋ {this always runs}`
+- `for (i from a to b) {}`
+- `foreach (item in collection) {}`
+- `ᚹᛠᛚ () {}`
+- `ᚢᚾᛏᛁᛚ () {}`
+## Assignment
+- `?new ?global ?const type my_var = value;`
+
+# types:
+- **integer**: `ᛁᚾᛏ` 1 2 5 67
+- **character**: `ᚳᚻᚪᚱ` 'a' 'B' '1' '!'
+- **string**: `ᛋᛏᚱ` "hello" "oh" "why me"
+    - alternative: `ᛥᚱ`
+- **composite strings**: with a `ᚳ` prefix, you can put variables between curly brackets and they won't be treated as string literals. Example:
+    ```
+    ᛋᛏᚱ ah = "Hello"
+    ᛈᚱᛁᚾᛏ("{ah}, world", end = " ")
+    ᛈᚱᛁᚾᛏ(ᚳ"{ah}, world")
+    >> {ah}, world Hello, world
+    ```
+- **floating point number**: `ᚠᛚᚩᛏ` 1.0 2.5 0.30000002
+- **boolean number**: `ᛒᚣᛚ` `ᛏᚱᚣ` `ᚠᛟᛚᛋ`
+- **type-flexible**: `ᛖᚾᛁ`
+- **null**, **none**, **nothing**: `ᚾᛁᛚ`
+
+## falsy behavior:
+- any value other than the ones stated are evaluated to true
+- **integer**: `0`
+- **character** `''`
+- **string** `""`
+- **float** `0.0`
+- **boolean** `ᚠᛟᛚᛋ`
+- **list** `[]`
+- **array** `<>`
+- **set** `()`
+- `ᚾᛁᛚ`
+- *notes: alternatively, trying to truth ᚾᛁᛚ could be made into erroring. As a consequence:
+- `ᛁᚠ (ᚾᛁᛚ) {this never runs} ᛖᛚᛋ {this always runs}` however
+- `ᛁᚠ (ᚾᛁᛚ == ᛏᚱᚣ) {this never runs} ᛖᛚᛁᚠ (ᚾᛁᛚ == ᚠᛟᛚᛋ) {this doesn't run either}`, also
+- `ᛒᚣᛚ(ᚾᛁᛚ)` crashes the program (throws an error)
+- `ᚹᛠᛚ(ᚾᛁᛚ) {will never run}`
+- `ᚢᚾᛏᛁᛚ(ᚾᛁᛚ) {will run forever}`
+
+## collections:
+- list: `ᛚᛁᛋᛏ(type)` [1, 2, 3] (mutable, dynamically resizable)
+  - alternative: `ᛚᛁᛥ`
+- array: `ᚪᚱ(t, n)` <1, 2, 3> (mutable, non-dynamically resizable)
+- set: `ᛋᛖᛏ(t)` (1, 2, 3) (inmutable)
+- item: `collection[n]`
+- slicing: `collection[a:b]` (zero-index, b-exclusive)
+
+- *mutable: can the items of the collection be changed/added upon?*
+- *resizable: can the collection be dynamically resized with each insertion and deletion?*
+- *rebindable: can the variable be reassigned to something else?*
+```
+          |mutable|resizable|rebindable
+ᛚᛁᛋᛏ       |   ✅  |   ✅   |   ✅
+ᚳᛟᚾᛋᛏ ᛚᛁᛋᛏ  |   ✅  |   ✅   |   ❌
+ᚪᚱ        |   ✅  |   ❌   |   ✅ 
+ᚳᛟᚾᛋᛏ ᚪᚱ   |   ✅  |   ❌   |   ❌
+ᛋᛖᛏ       |   ❌  |   ❌   |   ✅ 
+ᚳᛟᚾᛋᛏ ᛋᛖᛏ  |   ❌  |   ❌   |   ❌
+```
+
+## typed arrays
+Typed arrays are arrays that can store multiple types of data in an ordered manner. Their minimum length is determined by the amount of types specified. A typed array is, syntactically, an array whose type passed is a list of types.
+
+### unnumbered types
+`ᚪᚱ([ᛁᚾᛏ, ᛋᛏᚱ, float], 3)`: this type can hold 3 items, and the order in which they're held must match that of their definition. As such, `[1, "a", 1.5]` is a valid form, but `["a", 1, 1.0]` isn't.
+
+However, if we change it to `ᚪᚱ([] ᛁᚾᛏ, ᛋᛏᚱ, float, 4)`, now you'll see that there are more items than there are types. This allows you to put more than one, as long as the order is preserved and all types are covered. As such, all of the following are valid
+```
+[1, "a", 1.0]
+[1, 2, "a", 1.0]
+[1, "a", "b", 1.0]
+[1, "a", 1.0, 2.0]
+```
+###numbered types
+
+No number next to the type means "any amount". However, a number means "this exact amount, no more, no less". For example: `ᚪᚱ([ᛋᛏᚱ, ᛁᚾᛏ3], 10)` represents an array that contains between 1 and 7 strings, and exactly 3 integers, and `ᚪᚱ([ᛋᛏᚱ1, ᛁᚾᛏ3], 4)` *has* to contain one string and 3 integers. This is similar to Rust's tuple structs. It goes without saying that, if the length of the array doesn't match the amount expressed in the types, the program will error. However, it can be left empty and the interpreter will automatically pre-compute the correct minimal amount, which for numbered type arrays, is in fact the recommended approach to keep typoes and confusions from causing errors.
+
+## Structs
+Structs (`ᛋᛏᚱᚢᚳᛏ` or `ᛥᚱᚢᚳᛏ`) are named custom types that bundle an assortment of declared variable fields with their own types. A `ᛋᛏᚱᚢᚳᛏ` can hold data of any type. Example:
+
+### Declaration and instantiation
+```
+ᛋᛏᚱᚢᚳᛏ Person {
+    ᛋᛏᚱ name;
+    ᛁᚾᛏ age;
+    ᛋᛏᚱ citizen;
+    ᛁᚾᛏ height;
+    float weight;
+    list(ᛋᛏᚱ) interests;
+}
+
+Person Lucas = {
+    name = "Lucas";
+    age = 17;
+    citizen = "Argentine";
+    height = 175;
+    weight = 82.9;
+    ["rock", "pc gaming", "football", "girls"];
+}
+```
+Notice how the named type for the aggregated data isn't one of the contained field types but a custom-named one. This access to the type checker is the biggest offer structs have.
+### Accessing
+```
+print(Lucas.age)
+print(Lucas.interests[1])
+>> 17
+pc gaming
+```
+### Default, constant and mandatory fields
+```
+ᛁᚾᚣᛗ Clearance = (
+    LEVEL_ONE;
+    LEVEL_TWO;
+    LEVEL_THREE;
+    LEVEL_FOUR;
+    MAXIMUM_LEVEL;
+)
+
+ᛋᛏᚱᚢᚳᛏ Employee {
+    ᛋᛏᚱ name;
+    const ᛁᚾᛏ id;
+    Clearance clearance = LEVEL_ONE;
+    const ᛋᛏᚱ manual = EMPLOYEE_MANUAL;
+}
+
+Employee johnSmith = {
+    name = "John Smith";
+    id = 25684978
+}
+```
+The ID cannot be changed because it's a security measure, so it's assigned as a constant. This constant, in turn, is initialized upon instanciation. Clearance level is assumed to be the lowest possible unless stated otherwise. Finally, all employees must carry the employee manual, so it is assigned automatically and cannot be reassigned.
+
+## Enumerations
+Enumerations (Abbreviated as enums) are a closed collection of discrete data instances related by their custom named type.
+```
+ᛁᚾᚣᛗ(ᛁᚾᛏ) Directions = (
+    UP = 0;
+    DOWN = 1;
+    LEFT = 2;
+    RIGHT = 3;
+)
+```
+All of them have a unified type of ᛁᚾᛏ so they don't need to have it specified inline.
+
+Enums support auto-incremented values. To do this, you have to not define a value on all fields, and they'll be initialized with + 1 from the previous one. By default the first field will start at 0, but you can define the initial value instead. Enums are always constants and cannot be reassigned, even with the `ᚾᛄᚣ` keyword.
+```
+ᛁᚾᚣᛗ(ᛁᚾᛏ) Positions = (
+    FIRST = 1;
+    SECOND; //2
+    THIRD; //3
+    FOURTH; //4
+    FIFTH; //5
+)
+
+ᛁᚾᚣᛗ(ᛁᚾᛏ) Weather = (
+    SUNNY; //0
+    RAINY; //1
+    STORMY; //2
+)
+
+ᛁᚾᚣᛗ(ᛋᛏᚱ) Color = (
+    YELLOW = "yellow";
+    BLACK = "black";
+    GREEN = "green";
+    RED = "red";
+    BLUE = "blue"
+)
+```
+In a similar vein, enums create a custom type whose valid values can be checked up against the known valid values specified at the enum definition. This way: `Weather CLOUDY = 3;` will result in an error, becaus even though it's an ᛁᚾᛏ as specified, it's an invalid value for the `Weather` type.
+
+# Operators
+## arithmetic operators:
+- `+`: addition
+- `-`: substraction
+- `*`: multiplication
+- `/`: division
+- `**` (`^`): exponentiation
+- `%`: modulo, division reminder
+- `//`: integer division, floored division
+
+## boolean operators:
+- `==`: equals (No type coercion)
+- `!=` (`≠`): does not equal (No type coercion)
+- `>`: greater than
+- `<`: less than
+- `>=` (`≥`): greater or equal than
+- `<=` (`≤`): less or equal than
+```
+       A|B|AB A|B|AB A|B|AB A|B|AB
+`ᚫᚾᛞ`  0|0|0; 1|0|0; 0|1|0; 1|1|1
+`ᛟᚱ`   0|0|0; 1|0|1; 0|1|1; 1|1|1
+`ᛉᛟᚱ`  0|0|0; 1|0|1; 0|1|1; 1|1|0
+`ᚾᛟᚱ`  0|0|1; 1|0|0; 0|1|0; 1|1|0
+`ᚾᚫᚾᛞ` 0|0|1; 1|0|1; 0|1|1; 1|1|0
+```
+
+# flow control:
+- `ᛁᚠ(cond){} ᛖᛚᛁᚠ(cond) {} ᛖᛚᛋ{}`
+- `ᚹᛠᛚ(star/cont_cond){}` (checks bef exe)
+- `ᚢᚾᛏᛁᛚ(stop_cond){}` (checks aft exe)
+- `ᚠᛟ (i ᚠᚱᛟᛗ a ᛏᚣ b){}` (b-exclusive)
+- `ᚠᛟᚱᛁᛁᚳᚻ(item ᛁᚾ collection){}`
+- ⚠️ each item is an object with its index attached, so even two identical items can be indexed. It's not identical to `ᚠᛟ (i ᚠᚱᛟᛗ 0 ᛏᚣ ᛚᛖᛝᚦ(collection)){collection[i]}` as that simply returns the item. The object behaves otherwise like its value, except that certain functions like `ᛁᚾᛞᛖᛉ()` can extract and return the index
+
+# functions:
+- `f(x)`: function `f(x)` call
+- `t f(x){}`: function `f(x)` definition, with a return of type t
+- `ᚱᛖᛏᚢᚱᚾ [expression]`: return statement
+
+
+# assignment:
+- `ᛁᚾᛏ i = 5;`
+- `ᚳᚻᚪᚱ c = 'c';`
+- `ᛋᛏᚱ hello = "hello";`
+- `ᛚᛁᛋᛏ(int) int_list = [1, 2, 3];`
+- `ᛚᛁᛋᛏ(ᚳᚻᚪᚱ) char_list = ['h','e','l','l','o'];`
+- `ᚪᚱ(str, 3) names = <"john", "sarah", "arthur">;`
+- `ᛋᛖᛏ(ᛁᚾᛏ) magic_numbers = (35, 55, 75)`
+- `ᚳᛟᚾᛋᛏ` ~: prevents the variable from being reassigned (Though mutable collections can still be edited)
+- `ᚾᛄᚣ` ~: allows for variale redeclaration. Example:
+```
+ᛁᚾᛏ x = 5;
+//x = "hi" error: cannot assign type string to int x
+//ᛋᛏᚱ x = "hi" error: cannot redeclare variable
+ᚾᛄᚣ ᛋᛏᚱ x = "hi"; //this works
+```
+  - attempting to redeclare constants results in a warning.
+  - to silence it, you can write it with a new-star instead: `ᚾᛄᚣ* ?ᚷᛚᚩᛒᚢᛚ const`
+- `ᚷᛚᚩᛒᚢᛚ ~`: allows the variable to ignore scope precedence
+```
+ᚾᛁᛚ f(){
+    a += 1;
+//  b += 1;
+    ᛁᚾᛏ b = 6;
+    ᛈᚱᛁᚾᛏ(c"b: {b}");
+    ᚷᛚᚩᛒᚢᛚ ᛁᚾᛏ c = 7;
+}
+
+ᚷᛚᚩᛒᚢᛚ ᛁᚾᛏ a = 4
+ᛁᚾᛏ b = 5
+f()  //a becomes 5, b would error @ line 3 if it wasn't commented
+ᛈᚱᛁᚾᛏ(c"{a}, {c}")
+>> b: 6
+5, 7
+```
+  - the order of all four assignment keywords is `ᚾᛄᚣ ᚷᛚᚩᛒᚢᛚ const int var_name
+
+# built-ins:
+## non-mutating conversion functions:
+- `ᛁᚾᛏ ᛁᚾᛏ(ᛖᚾᛁ ?value)`
+  - ⚠️ optional value argument. Returns `0` if empty
+- `ᚳᚻᚪᚱ ᚳᚻᚪᚱ(ᛖᚾᛁ ?value)`
+  - ⚠️ optional value argument. Returns `''` if empty
+- `ᛋᛏᚱ ᛋᛏᚱ(ᛖᚾᛁ ?value)`
+  - ⚠️ optional value argument. Returns `""` if empty
+- `ᚠᛚᚩᛏ ᚠᛚᚩᛏ(ᛖᚾᛁ ?value)`
+  - ⚠️ optional value argument. Returns `0.0` if empty
+- `ᛒᚣᛚ ᛒᚣᛚ(ᛖᚾᛁ value)`
+  - ⚠️ converts based on truthiness
+- `ᛚᛁᛋᛏ ᛚᛁᛋᛏ(type type, ᛖᚾᛁ ?value)`
+  - ⚠️ optional value argument. Returns `[]` if empty
+- `ᚪᚱ ᚪᚱ(type type, ᛖᚾᛁ ?value, int ?length)`
+  - ⚠️ optional value argument. Returns `<>` if empty. Optional length argument. if ᛚᛖᛝᚦ(value) > length, it'll clip it. If <, it'll leave empty space. ᚪᚱ(length = value_above_zero) returns an empty array with unused space.
+- `ᛋᛖᛏ ᛋᛖᛏ(type type, ᛖᚾᛁ ?value)`
+  - ⚠️ optional value argument. Returns `()` if empty
+## mutating conversion functions
+- `ᚾᛁᛚ ᛏᚣ_ᛁᚾᛏ(ᛖᚾᛁ value)`
+- `ᚾᛁᛚ ᛏᚣ_ᚳᚻᚪᚱ(ᛖᚾᛁ value)`
+- `ᚾᛁᛚ ᛏᚣ_ᛋᛏᚱ(ᛖᚾᛁ value)`
+- `ᚾᛁᛚ ᛏᚣ_ᚠᛚᚩᛏ(ᛖᚾᛁ value)`
+- `ᚾᛁᛚ ᛏᚣ_ᛒᚣᛚ(ᛖᚾᛁ value)`
+- `ᚾᛁᛚ ᛏᚣ_ᛚᛁᛋᛏ(ᛖᚾᛁ value)`
+- `ᚾᛁᛚ ᛏᚣ_ᚪᚱ(ᛖᚾᛁ value, ᛁᚾᛏ ?length)` ⚠️ optional length argument. If `ᛚᛖᛝᚦ(value) > length`, it'll clip it. If `<`, it'll leave empty space to add later
+## verification functions
+- `ᛒᚣᛚ ᛁᛋ_ᛁᚾᛏ(ᛖᚾᛁ value)`
+- `ᛒᚣᛚ ᛁᛋ_ᚳᚻᚪᚱ(ᛖᚾᛁ value)`
+- `ᛒᚣᛚ ᛁᛋ_ᛋᛏᚱ(ᛖᚾᛁ value)`
+- `ᛒᚣᛚ ᛁᛋ_ᚠᛚᚩᛏ(ᛖᚾᛁ value)`
+- `ᛒᚣᛚ ᛁᛋ_ᛒᚣᛚ(ᛖᚾᛁ value)`
+- `ᛒᚣᛚ ᛁᛋ_ᛚᛁᛋᛏ(ᛖᚾᛁ value)`
+- `ᛒᚣᛚ ᛁᛋ_ᚪᚱ(ᛖᚾᛁ value)`
+- `ᛒᚣᛚ ᛁᛋ_ᛋᛖᛏ(ᛖᚾᛁ value)`
+- `ᛒᚣᛚ ᛁᛋ_ᛖᛗᛈᛏᛁ(ᛖᚾᛁ collec)`
+  - ⚠️ returns an error if collec is not a collection
+- `ᛒᚣᛚ ᛁᛋ_ᚠᚣᛚ(ᚪᚱ collec)`
+## integer methods:
+- `ᛒᚣᛚ ᚷᚦ(ᛁᚾᛏ value)`
+  - returns whether it's greather than
+- `ᛒᚣᛚ ᛚᚦ(ᛁᚾᛏ value)`
+  - returns whether it's less than
+- `ᛒᚣᛚ ᛒᛁᛏᚹᛁᛁᚾ(ᛖᚾᛁ lower, ᛖᚾᛁ upper)`
+  - returns whether it's between two values. if lower or higher are integers, the boundary is inclusive; if they're strings, the boundary is exclusive
+    ```
+    5.ᛒᛁᛏᚹᛁᛁᚾ(1, 6) = [1, 6] = 1 ≤ 5 ≤ 6
+    5.ᛒᛁᛏᚹᛁᛁᚾ("1", 6) = (1, 6] = 1 < 5 ≤ 6
+    5.ᛒᛁᛏᚹᛁᛁᚾ(1, "6") = [1, 6) = 1 ≤ 5 < 6
+    5.ᛒᛁᛏᚹᛁᛁᚾ("1", "6") = (1, 6) = 1 < 5 < 6
+    ```
+## list methods
+- `ᚾᛁᛚ ᚢᛈᛖᚾᛞ(ᛖᚾᛁ item)`
+  - adds item to end of list
+- `ᚾᛁᛚ ᛁᚾᛋᚢᚱᛏ(ᛖᚾᛁ item, int index)`
+  - adds item at index, shifts everything after one place
+  - if `index > ᛚᛖᛝᚦ(list)` fills the index gap with ᚾᛁᛚ's and shows a warning
+- `ᚾᛁᛚ ᛈᚱᛁᛈᛖᚾᛞ(ᛖᚾᛁ item)`
+  - adds item to first index, shifts everything one place
+- `ᛖᚾᛁ ᚱᛁᛈᛚᛠᛋ_ᚫᛏ(ᛁᚾᛏ index)`
+  - reassigns item at index to new value, returns the old value
+- `ᛚᛁᛋᛏ ᛋᚻᛟᛏᛖᚾ(ᛁᚾᛏ amount = 1)`
+  - clips list by given amount. Returns a list with removed items
+- `ᛖᚾᛁ ᚱᛁᛗᚣᚠ_ᚫᛏ(ᛁᚾᛏ index)`
+  - removes item from given item, shifts everything after it one place down. Returns removed item
+- `ᛚᛁᛋᛏ ᛋᚻᛠᚠ(ᛁᚾᛏ amount = 1)`
+  - removes the specified amount of items from the beginning, shifts everything in front of it backwards and returns a list of the shaved off items
+- `ᛁᚾᛏ ᛚᛖᛝᚦ()`
+  - returns the length of the list
+- `ᛁᚾᛏ ᚠᛠᚾᛞ_ᚠᚢᛋᛏ(ᛖᚾᛁ item)`
+  - returns index of first instance of item
+  - alternative: `ᚠᛠᚾᛞ_ᚠᚢᚱᛥ`
+- `ᛁᚾᛏ ᚠᛠᚾᛞ_ᚾᚦ(ᛖᚾᛁ item, ᛁᚾᛏ number)`
+  - returns index of nth instance of item
+- `ᛁᚾᛏ ᚠᛠᚾᛞ_ᛚᚫᛋᛏ(ᛖᚾᛁ item)`
+  - returns index of last instance of item
+  - alternative: `ᚠᛠᚾᛞ_ᛚᚫᛥ`
+- `ᛖᚾᛁ ᛚᚪᚳᛠᛏ(ᛁᚾᛏ index)`
+  - returns item at given index
+- `ᚾᛁᛚ ᚳᚢᛗᛈᚱᛖᛋ()`
+  - removes all ᚾᛁᛚ's from a list
+    ```
+    [1, 2, 3, ᚾᛁᛚ, 4, ᚾᛁᛚ, 5]
+    ↓
+    [1, 2, 3, 4, 5]
+    ```
+- `ᛚᛁᛋᛏ ᚳᚪᛈᛁᛁ(ᛚᛁᛋᛏ collec)`
+  - returns a deep copy of the list
+## array methods
+- all of the following methods error upon interacting with indices higher than the capacity
+- `ᚾᛁᛚ ᚱᛁᛋᛠᛋ(ᛁᚾᛏ new_size)`
+  - changes the capacity size of the array
+- `ᛁᚾᛏ ᛚᛖᛝᚦ()`
+  - returns the item count of the array
+- `ᛁᚾᛏ ᚳᚢᛈᛋᛁᛏᛁᛁ()`
+  - returns the capacity of the array
+- `ᚾᛁᛚ ᚢᛈᛖᚾᛞ(ᛖᚾᛁ item)`
+  - adds item to end of array
+- `ᚾᛁᛚ ᛁᚾᛋᚢᚱᛏ(ᛖᚾᛁ item, ᛁᚾᛏ index)`
+  - adds item at index, shifts everything after one place
+  - if index > length(list) fills the index gap with ᚾᛁᛚ's and shows a warning
+- `ᚾᛁᛚ ᛈᚱᛁᛈᛖᚾᛞ(ᛖᚾᛁ item)`
+  - adds item to first index, shifts everything one place
+- `ᛖᚾᛁ ᚱᛁᛗᚣᚠ_ᚫᛏ(ᛁᚾᛏ index)`
+  - reassigns item at index to new value, returns the old value
+- `ᚪᚱ ᛋᚻᛠᚠ(ᛁᚾᛏ amount = 1)`
+  - clips list by given amount. Returns a list with removed items
+- `ᛖᚾᛁ ᚱᛁᛗᚣᚠ_ᚫᛏ(ᛁᚾᛏ index)`
+  - removes item from given index, shifts everything after it one place down. Returns removed item
+- `ᚪᚱ ᛋᚻᛠᚠ(ᛁᚾᛏ amount = 1)`
+  - removes the specified amount of items from the beginning, shifts everything in front of it backwards and returns a list of the shaved off items
+- `ᛁᚾᛏ ᚠᛠᚾᛞ_ᚠᚢᛋᛏ(ᛖᚾᛁ item)`
+  - returns index of first instance of item
+  - alternative: `ᚠᛠᚾᛞ_ᚠᚢᚱᛥ`
+- `ᛁᚾᛏ ᚠᛠᚾᛞ_ᚾᚦ(ᛖᚾᛁ item, ᛁᚾᛏ number)`
+  - returns index of nth instance of item
+- `ᛁᚾᛏ ᚠᛠᚾᛞ_ᛚᚫᛋᛏ(ᛖᚾᛁ item)`
+  - returns index of last instance of item
+  - alternative: ᚠᛠᚾᛞ_ᛚᚫᛥ`
+- `ᛖᚾᛁ ᛚᚪᚳᛠᛏ(ᛁᚾᛏ index)`
+  - returns item at given index
+- `ᚾᛁᛚ ᚳᚢᛗᛈᚱᛖᛋ()`
+  - removes all `ᚾᛁᛚ`'s from an array
+  - <1, 2, 3, ᚾᛁᛚ, 4, ᚾᛁᛚ, 5>
+  - ↓
+  - <1, 2, 3, 4, 5>
+- `ᚪᚱ ᚳᚪᛈᛁᛁ(ᚪᚱ collec)`
+  - returns a deep copy of the array
+- `ᚾᛁᛚ ᚠᛁᛚ(ᛖᚾᛁ value)`
+  - fills all available items with the specified value. Throws error if type does not match. Example:
+```
+ᚪᚱ(ᛁᚾᛏ, 5) array = <1, 2, 3>
+array.fill("1")
+expected behavior: <1, 2, 3, "1", "1">
+real behavior: error: "ᚪᚱ type array can only contain items of type ᛁᚾᛏ, not ᛋᛏᚱ"
+```
+- `ᚾᛁᛚ ᛋᚳᛁᚾᛏᛠᛏ()`
+  - reduces capacity such that it equals length. Throws warning: "warning: using internal name "ᛋᚳᛁᚾᛏᛠᛏ". Consider "ᛋᚻᚱᛁᛝᚳ_ᛏᚣ_ᚠᛁᛏ()" instead, weirdo".
+- `ᚾᛁᛚ ᛋᚻᚱᛁᛝᚳ_ᛏᚣ_ᚠᛁᛏ()`
+  - reduces capacity such that it equals length. Doesn't throw sassy warning.
+## set methods
+- `ᛁᚾᛏ ᛚᛖᛝᚦ()`
+  - returns the length of the set
+- `ᛁᚾᛏ ᚠᛠᚾᛞ_ᚠᚢᛋᛏ(ᛖᚾᛁ item)`
+  - returns index of first instance of item
+  - alternative: `ᚠᛠᚾᛞ_ᚠᚢᚱᛥ`
+- `ᛁᚾᛏ ᚠᛠᚾᛞ_ᚾᚦ(ᛖᚾᛁ item, ᛁᚾᛏ number)`
+  - returns index of nth instance of item
+- `ᛁᚾᛏ ᚠᛠᚾᛞ_ᛚᚫᛋᛏ(ᛖᚾᛁ item)`
+  - returns index of last instance of item
+  - alternative: `ᚠᛠᚾᛞ_ᛚᚫᛥ`
+- `ᛖᚾᛁ ᛚᚪᚳᛠᛏ(ᛁᚾᛏ index)`
+  - returns item at given index
+- `ᛋᛖᛏ ᚳᚪᛈᛁᛁ()`
+  - returns a copy of the set
+## functional
+- `ᛁᚾᛏ ᛁᚾᛞᛖᛉ(ᛖᚾᛁ item)`
+  - extracts the index of an item obtained through a `ᚠᚪᚱᛁᛁᚳᚻ`
+- `ᛋᛏᚱ ᛁᚾᛈᚣᛏ(ᛋᛏᚱ ?preview)`
+  - returns the contents of the standard input after printing the optional string preview
+- `ᚾᛁᛚ ᛈᚱᛁᚾᛏ(str output, end = "\n")`

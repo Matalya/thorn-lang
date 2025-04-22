@@ -1,0 +1,427 @@
+# links
+https://valhyr.com/pages/rune-converter english to runes converter
+https://www.harysdalvi.com/futhorc webapp runes keyboard
+
+# Quick rundown
+## Types
+- `int`, `float`, `char`, `str`, `bool`, `any`, `nil`, `uninitialized`
+## Collections
+- `list(t) [1, 2, 3]`
+- `arr(t, n) <1, 2, 3>`
+- `set(t) (1, 2, 3)`
+- `enum(t) my_var = (NAME = ?value;)`
+- `struct MyType = {?const type field = ?value;}`
+## Operators
+- `+`, `-`, `*`, `/`, `** ^`, `%`, `//`
+- `==`, `!= ≠`, `>`, `<`, `>= ≥`, `<= ≤`
+- `and`, `or`, `xor`, `nor`, `nand`
+## Control flow
+- `if () {} elsif () {} else {}`
+- `for (i from a to b) {}`
+- `foreach (item in collection) {}`
+- `while () {}`
+- `until () {}`
+## Assignment
+- `?new ?global ?const type my_var = value;`
+
+# Types:
+- **integer**: `int` 1 2 5 67
+- **character**: `char` 'a' 'B' '1' '!'
+- **string**: `str` "hello" "oh" "why me"
+- **composite strings**: with a `c` prefix, you can put variables between curly brackets and they won't be treated as string literals. Example:
+    ```
+    str ah = "Hello"
+    print("{ah}, world", end = " ")
+    print(c"{ah}, world")
+    >> {ah}, world Hello, world
+    ```
+- **floating point number**: `float` 1.0 2.5 0.30000002
+- **boolean number**: `bool` `true` `false`
+- **type-flexible**: `any`
+- **null**, **none**, **nothing**: `nil`
+- **uninitialized**: `uninitialized`
+    - special meta-type to mark variables as uninitialized and enable special behavior and circumvent the type checker
+
+## Falsy behavior:
+- any value other than the ones stated are evaluated to true
+- **integer**: `0`
+- **character** `''`
+- **string** `""`
+- **float** `0.0`
+- **boolean** `false`
+- **list** `[]`
+- **array** `<>`
+- **set** `()`
+- `nil`
+- *notes: alternatively, trying to truth nil could be made into erroring. As a consequence:
+- `if (nil) {this never runs} else {this always runs}` however
+- `if (nil == true) {this never runs} elsif (nil == false) {this doesn't run either}`, also
+- `bool(nil)` crashes the program (throws an error)
+- `while(nil) {will never run}`
+- `until(nil) {will run forever}`
+
+## Collections:
+- list: `list(type)` [1, 2, 3] (mutable, dynamically resizable)
+- array: `arr(t, n)` <1, 2, 3> (mutable, non-dynamically resizable)
+- set: `set(t)` (1, 2, 3) (inmutable)
+- item: `collection[n]`
+- slicing: `collection[a:b]` (zero-index, b-exclusive)
+
+- *mutable: can the items of the collection be changed/added upon?*
+- *resizable: can the collection be dynamically resized with each insertion and deletion?*
+- *rebindable: can the variable be reassigned to something else?*
+```
+           |mutable|resizable|rebindable
+list       |   ✅  |   ✅   |   ✅
+const list |   ✅  |   ✅   |   ❌
+arr        |   ✅  |   ❌   |   ✅ 
+const arr  |   ✅  |   ❌   |   ❌
+set        |   ❌  |   ❌   |   ✅ 
+const set  |   ❌  |   ❌   |   ❌
+```
+
+## Typed arrays
+Typed arrays are arrays that can store multiple types of data in an ordered manner. Their minimum length is determined by the amount of types specified. A typed array is, syntactically, an array whose type passed is a list of types.
+
+### Unnumbered types
+`arr([int, str, float], 3)`: this type can hold 3 items, and the order in which they're held must match that of their definition. As such, `[1, "a", 1.5]` is a valid form, but `["a", 1, 1.0]` isn't.
+
+However, if we change it to `arr([] int, str, float, 4)`, now you'll see that there are more items than there are types. This allows you to put more than one, as long as the order is preserved and all types are covered. As such, all of the following are valid
+```
+[1, "a", 1.0]
+[1, 2, "a", 1.0]
+[1, "a", "b", 1.0]
+[1, "a", 1.0, 2.0]
+```
+### Numbered types
+
+No number next to the type means "any amount". However, a number means "this exact amount, no more, no less". For example: `arr([str, int3], 10)` represents an array that contains between 1 and 7 strings, and exactly 3 integers, and `arr([str1, int3], 4)` *has* to contain one string and 3 integers. This is similar to Rust's tuple structs. It goes without saying that, if the length of the array doesn't match the amount expressed in the types, the program will error. However, it can be left empty and the interpreter will automatically pre-compute the correct minimal amount, which for numbered type arrays, is in fact the recommended approach to keep typoes and confusions from causing errors.
+
+## Structs
+Structs are named custom types that bundle an assortment of declared variable fields with their own types. A `struct` can hold data of any type. Example:
+
+### Declaration and instantiation
+```
+struct Person {
+    str name;
+    int age;
+    str citizen;
+    int height;
+    float weight;
+    list(str) interests;
+}
+
+Person Lucas = {
+    name = "Lucas";
+    age = 17;
+    citizen = "Argentine";
+    height = 175;
+    weight = 82.9;
+    ["rock", "pc gaming", "football", "girls"];
+}
+```
+Notice how the named type for the aggregated data isn't one of the contained field types but a custom-named one. This access to the type checker is the biggest offer structs have.
+### Accessing
+```
+print(Lucas.age)
+print(Lucas.interests[1])
+>> 17
+pc gaming
+```
+### Default, constant and mandatory fields
+```
+enum Clearance = (
+    LEVEL_ONE;
+    LEVEL_TWO;
+    LEVEL_THREE;
+    LEVEL_FOUR;
+    MAXIMUM_LEVEL;
+)
+
+struct Employee {
+    str name;
+    const int id;
+    Clearance clearance = LEVEL_ONE;
+    const str manual = EMPLOYEE_MANUAL;
+}
+
+Employee johnSmith = {
+    name = "John Smith";
+    id = 25684978
+}
+```
+The ID cannot be changed because it's a security measure, so it's assigned as a constant. This constant, in turn, is initialized upon instanciation. Clearance level is assumed to be the lowest possible unless stated otherwise. Finally, all employees must carry the employee manual, so it is assigned automatically and cannot be reassigned.
+
+## Enumerations
+Enumerations (Abbreviated as enums) are a closed collection of discrete data instances related by their custom named type.
+```
+enum(int) Directions = (
+    UP = 0;
+    DOWN = 1;
+    LEFT = 2;
+    RIGHT = 3;
+)
+```
+All of them have a unified type of int so they don't need to have it specified inline.
+
+Enums support auto-incremented values. To do this, you have to not define a value on all fields, and they'll be initialized with + 1 from the previous one. By default the first field will start at 0, but you can define the initial value instead. Enums are always constants and cannot be reassigned, even with the `new` keyword.
+```
+enum(int) Positions = (
+    FIRST = 1;
+    SECOND; //2
+    THIRD; //3
+    FOURTH; //4
+    FIFTH; //5
+)
+
+enum(int) Weather = (
+    SUNNY; //0
+    RAINY; //1
+    STORMY; //2
+)
+
+enum(str) Color = (
+    YELLOW = "yellow";
+    BLACK = "black";
+    GREEN = "green";
+    RED = "red";
+    BLUE = "blue"
+)
+```
+In a similar vein, enums create a custom type whose valid values can be checked up against the known valid values specified at the enum definition. This way: `Weather CLOUDY = 3;` will result in an error, becaus even though it's an int as specified, it's an invalid value for the `Weather` type.
+
+# Operators
+## Arithmetic operators:
+- `+`: addition
+- `-`: substraction
+- `*`: multiplication
+- `/`: division
+- `**` (`^`): exponentiation
+- `%`: modulo, division reminder
+- `//`: integer division, floored division
+
+## Boolean operators:
+- `==`: equals (No type coercion)
+- `!=` (`≠`): does not equal (No type coercion)
+- `>`: greater than
+- `<`: less than
+- `>=` (`≥`): greater or equal than
+- `<=` (`≤`): less or equal than
+```
+       A|B|AB A|B|AB A|B|AB A|B|AB
+`and`  0|0|0; 1|0|0; 0|1|0; 1|1|1
+`or`   0|0|0; 1|0|1; 0|1|1; 1|1|1
+`xor`  0|0|0; 1|0|1; 0|1|1; 1|1|0
+`nor`  0|0|1; 1|0|0; 0|1|0; 1|1|0
+`nand` 0|0|1; 1|0|1; 0|1|1; 1|1|0
+```
+
+# Flow control:
+- `if(cond){} elsif(cond) {} else{}`
+- `while(star/cont_cond){}` (checks bef exe)
+- `until(stop_cond){}` (checks aft exe)
+- `for (i from a to b){}` (b-exclusive)
+- `foreach(item in collection){}`
+- ⚠️ each item is an object with its index attached. It's not identical to `for (i from 0 to length(collection)){collection[i]}` as that simply returns the item. The object behaves otherwise like its value, except that certain functions like `index()` can extract and return the index
+
+# Functions:
+- `f(x)`: function `f(x)` call
+- `t f(x){}`: function `f(x)` definition, with a return of type t
+- `return [expression]`: return statement
+
+
+# Assignment:
+- `int i = 5;`
+- `char c = 'c';`
+- `str hello = "hello";`
+- `list(int) int_list = [1, 2, 3];`
+- `list(char) char_list = ['h','e','l','l','o'];`
+- `arr(str, 3) names = <"john", "sarah", "arthur">;`
+- `set(int) magic_numbers = (35, 55, 75)`
+- `const ~`: prevents the variable from being reassigned (Though mutable collections can still be edited)
+- `new ~`: allows for variale redeclaration. Example:
+```
+int x = 5;
+//x = "hi" error: cannot assign type string to int x
+//str x = "hi" error: cannot redeclare variable
+new str x = "hi"; //this works
+```
+  - attempting to redeclare constants results in a warning.
+  - to silence it, you can write it with a new-star instead: `new* ?global const`
+- `global ~`: allows the variable to ignore scope precedence
+```
+nil f(){
+    a += 1;
+//  b += 1;
+    int b = 6;
+    print(c"b: {b}");
+    global int c = 7;
+}
+
+global int a = 4
+int b = 5
+f()  //a becomes 5, b would error @ line 3 if it wasn't commented
+print(c"{a}, {c}")
+>> b: 6
+5, 7
+```
+  - the order of all four assignment keywords is `new global const int var_name
+
+# Built-ins:
+## Non-mutating conversion functions:
+- `int int(any ?value)`
+  - ⚠️ optional value argument. Returns `0` if empty
+- `char char(any ?value)`
+  - ⚠️ optional value argument. Returns `''` if empty
+- `str str(any ?value)`
+  - ⚠️ optional value argument. Returns `""` if empty
+- `float float(any ?value)`
+  - ⚠️ optional value argument. Returns `0.0` if empty
+- `bool bool(any value)`
+  - ⚠️ converts based on truthiness
+- `list list(type type, any ?value)`
+  - ⚠️ optional value argument. Returns `[]` if empty
+- `arr arr(type type, any ?value, int ?length)`
+  - ⚠️ optional value argument. Returns `<>` if empty. Optional length argument. if length(value) > length, it'll clip it. If <, it'll leave empty space. arr(length = value_above_zero) returns an empty array with unused space.
+- `set set(type type, any ?value)`
+  - ⚠️ optional value argument. Returns `()` if empty
+## Mutating conversion functions
+- `nil to_int(any value)`
+- `nil to_char(any value)`
+- `nil to_str(any value)`
+- `nil to_float(any value)`
+- `nil to_bool(any value)`
+- `nil to_list(any value)`
+- `nil to_arr(any value, int ?length)` ⚠️ optional length argument. If `length(value) > length`, it'll clip it. If `<`, it'll leave empty space to add later
+## Verification functions
+- `bool is_int(any value)`
+- `bool is_char(any value)`
+- `bool is_str(any value)`
+- `bool is_float(any value)`
+- `bool is_bool(any value)`
+- `bool is_list(any value)`
+- `bool is_arr(any value)`
+- `bool is_set(any value)`
+- `bool is_empty(any collec)`
+  - ⚠️ returns an error if collec is not a collection
+- `bool is_full(arr collec)`
+  - returns whether `array.length() == array.capacity()`
+## Integer methods:
+- `bool gt(int value)`
+  - returns whether it's greather than
+- `bool lt(int value)`
+  - returns whether it's less than
+- `bool between(any lower, any upper)`
+  - returns whether it's between two values. if lower or higher are integers, the boundary is inclusive; if they're strings, the boundary is exclusive
+    ```
+    5.between(1, 6) = [1, 6] = 1 ≤ 5 ≤ 6
+    5.between("1", 6) = (1, 6] = 1 < 5 ≤ 6
+    5.between(1, "6") = [1, 6) = 1 ≤ 5 < 6
+    5.between("1", "6") = (1, 6) = 1 < 5 < 6
+    ```
+## List methods
+- `nil append(any item)`
+  - adds item to end of list
+- `nil insert(any item, int index)`
+  - adds item at index, shifts everything after one place
+  - if `index > length(list)` fills the index gap with nil's and shows a warning
+- `nil prepend(any item)`
+  - adds item to first index, shifts everything one place
+- `any replace_at(int index)`
+  - reassigns item at index to new value, returns the old value
+- `list shorten(int amount = 1)`
+  - clips list by given amount. Returns a list with removed items
+- `any remove_at(int index)`
+  - removes item from given item, shifts everything after it one place down. Returns removed item
+- `list shave(int amount = 1)`
+  - removes the specified amount of items from the beginning, shifts everything in front of it backwards and returns a list of the shaved off items
+- `int length()`
+  - returns the length of the list
+- `int find_first(any item)`
+  - returns index of first instance of item
+- `int first_nth(any item, int number)`
+  - returns index of nth instance of item
+- `int find_last(any item)`
+  - returns index of last instance of item
+- `any locate(int index)`
+  - returns item at given index
+- `nil compress()`
+  - removes all nil's from a list
+    ```
+    [1, 2, 3, nil, 4, nil, 5]
+    ↓
+    [1, 2, 3, 4, 5]
+    ```
+- `list copy(list collec)`
+  - returns a deep copy of the list
+## Array methods
+- all of the following methods error upon interacting with indices higher than the capacity
+- `nil resize(int new_size)`
+  - changes the capacity size of the array
+- `int length()`
+  - returns the item count of the array
+- `int capacity()`
+  - returns the capacity of the array
+- `nil append(any item)`
+  - adds item to end of array
+- `nil insert(any item, int index)`
+  - adds item at index, shifts everything after one place
+  - if index > length(list) fills the index gap with nil's and shows a warning
+- `nil prepend(any item)`
+  - adds item to first index, shifts everything one place
+- `any remove_at(int index)`
+  - reassigns item at index to new value, returns the old value
+- `arr shave(int amount = 1)`
+  - clips list by given amount. Returns a list with removed items
+- `any remove_at(int index)`
+  - removes item from given index, shifts everything after it one place down. Returns removed item
+- `arr shave(int amount = 1)`
+  - removes the specified amount of items from the beginning, shifts everything in front of it backwards and returns a list of the shaved off items
+- `int find_first(any item)`
+  - returns index of first instance of item
+- `int first_nth(any item, int number)`
+  - returns index of nth instance of item
+- `int find_last(any item)`
+  - returns index of last instance of item
+- `any locate(int index)`
+  - returns item at given index
+- `nil compress()`
+  - removes all `nil`'s from an array
+    ```
+    <1, 2, 3, nil, 4, nil, 5>
+    ↓
+    <1, 2, 3, 4, 5>
+    ```
+- `arr copy(arr collec)`
+  - returns a deep copy of the array
+- `nil fill(any value)`
+  - fills all available items with the specified value. Throws error if type does not match. Example:
+```
+arr(int, 5) array = <1, 2, 3>
+array.fill("1")
+expected behavior: <1, 2, 3, "1", "1">
+real behavior: error: "arr type array can only contain items of type int, not str"
+```
+- `nil skintight()`
+  - reduces capacity such that it equals length. Throws warning: "warning: using internal name "skintight". Consider "shrink_to_fit()" instead, weirdo".
+- `nil shrink_to_fit()`
+  - reduces capacity such that it equals length. Doesn't throw sassy warning.
+## Set methods
+- `int length()`
+  - returns the length of the set
+- `int find_first(any item)`
+  - returns index of first instance of item
+- `int first_nth(any item, int number)`
+  - returns index of nth instance of item
+- `int find_last(any item)`
+  - returns index of last instance of item
+- `any locate(int index)`
+  - returns item at given index
+- `set copy()`
+  - returns a copy of the set
+## Functional
+- `int index(any item)`
+  - extracts the index of an item obtained through a `foreach`
+- `str input(str ?preview)`
+  - returns the contents of the standard input after printing the optional string preview
+- `nil print(str output, end = "\n")`
