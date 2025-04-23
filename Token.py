@@ -102,6 +102,8 @@ def symbolize(tokenKind):
             return "]"
         case TokenKind.SEMICOLON:
             return ";"
+        case TokenKind.COMPOSITE_STR:
+            return "c"
         case _:
             return "unmatched symbol"
 

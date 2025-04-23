@@ -78,8 +78,10 @@ class Literal(Node):
         self.litType: Type = litType
         self.litValue: str = litValue
     
+    def strfy(self):
+        return "\"" if self.litType == Type.STR else ""
     def __repr__(self):
-        return f"Literal({self.litType} {self.litValue})"
+        return f"Literal({self.litType}:{self.strfy()}{self.litValue}{self.strfy()})"
 
 class CST(Enum):
     STRING_COMPONENT = auto()
@@ -87,8 +89,10 @@ class CST(Enum):
 
 class stringComponent(Node):
     def __init__(self, type: CST, value: str):
-        self.type = type
-        self.value = value
+        self.type: CST = type
+        self.value: Literal = Literal(Type.STR, value) if self.type == CST.STRING_COMPONENT else value
+    def __repr__(self):
+        return f"{"EvalComp" if self.type == CST.EVALUATION_COMPONENT else ""}{self.value}"
 
 class CompositeString(Node):
     def __init__(self, string: str):
@@ -116,7 +120,7 @@ class CompositeString(Node):
                 openbraceindex = i
             elif string[i] == "}":
                 evalMode = False
-                self.components.append(stringComponent(CST.EVALUATION_COMPONENT, acc))
+                self.components.append(stringComponent(CST.EVALUATION_COMPONENT, "{" + acc + "}"))
                 acc = ""
             else:
                 acc += string[i]
@@ -126,7 +130,7 @@ class CompositeString(Node):
             raise SyntaxWarning(f"Unclosed brace @ {openbraceindex}: …{show_context(string, openbraceindex)}…")
     
     def __repr__(self):
-        return self.components
+        return str(self.components)
 
 
 class Uninitialized(Node):
@@ -189,13 +193,11 @@ class Parser:
         pass
     
     def parse_evaluation(self):
-        current = self.current()
         if self.current_is(TK.COMPOSITE_STR):
-            self.advance() #current after this should be a string
-            if current == TK.STRING:
-                self.advance()
+            self.advance()
+            if self.current_is(TK.STRING):
                 return CompositeString(self.current().value)
-        elif current.kind in LITERALS: # then it's a literal
+        elif self.current().kind in LITERALS: # then it's a literal
             self.advance()
             return Literal(extractTypeFromLitToken(self.current().kind), self.current().value)
         else: # it's probably an operation or other kind of compound evaluation
@@ -215,17 +217,21 @@ class Parser:
         else:
             raise SyntaxError(f"Unknown token at variable declaration: {self.current()}")
         return VarDeclaration(varType, varName, varValue)
+    
+    def parse_controlFlow():
+        pass
         
     
     # Parsing logic
     def parse(self) -> Program:
-        self.current().debug()
         program = Program()
         for token in self.tokens:
             if token == None:
                 raise SyntaxError("Unexpected value: None")
             if current := self.match(*TYPES):
                 program.addNode(self.parse_varDeclaration(current))
+            elif current := self.match(*CONTROL_FLOW):
+                program.addNode(self.parse_control_flow(current))
         return program
             
 

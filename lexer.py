@@ -115,6 +115,10 @@ class Lexer:
             if ch.isspace():
                 self.advance()
                 continue # Ignore dat shee
+            elif ch == "c" and self.peek() == "\"":
+                self.add(TK.COMPOSITE_STR)
+                self.advance(1)
+                self.add(self.tokenize_string())
             elif ch.isdigit():
                 self.add(self.tokenize_number())
             elif ch.isalpha():
@@ -199,9 +203,10 @@ class Lexer:
         self.add(TK.EOF_KIND)
 
 def main():
-    lexer = Lexer("str i = c\"hello\"")
-    lexer.Tokenize()
-    lexer.printTokens(printSource = True)
+    with open("./samples/lexer-test.ᚦ", encoding="utf8") as file:
+        lexer = Lexer(file.read())
+        lexer.Tokenize()
+        lexer.printTokens(printSource = True)
 
 if __name__ == "__main__":
     main()
