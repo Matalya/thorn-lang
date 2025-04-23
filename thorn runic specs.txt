@@ -14,7 +14,7 @@ https://www.harysdalvi.com/futhorc webapp runes keyboard
 ## Operators
 - `+`, `-`, `*`, `/`, `**` `^`, `%`, `//`
 - `==`, `!= ≠`, `>`, `<`, `>= ≥`, `<= ≤`
-- `ᚫᚾᛞ`, `ᛟᚱ`, `ᛉᛟᚱ`, `ᚾᛟᚱ`, `ᚾᚫᚾᛞ`
+- `ᚾᛟᛏ`, `ᚫᚾᛞ`, `ᛟᚱ`, `ᛉᛟᚱ`, `ᚾᛟᚱ`, `ᚾᚫᚾᛞ`
 ## Control flow
 - `ᛁᚠ () {} ᛖᛚᛁᚠ () {} ᛖᛚᛋ {this always runs}`
 - `for (i from a to b) {}`
@@ -208,6 +208,8 @@ In a similar vein, enums create a custom type whose valid values can be checked 
 - `>=` (`≥`): greater or equal than
 - `<=` (`≤`): less or equal than
 ```
+      i|o i|o
+`ᚾᛟᛏ` 1|0 0|1
        A|B|AB A|B|AB A|B|AB A|B|AB
 `ᚫᚾᛞ`  0|0|0; 1|0|0; 0|1|0; 1|1|1
 `ᛟᚱ`   0|0|0; 1|0|1; 0|1|1; 1|1|1
