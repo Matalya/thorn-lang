@@ -29,8 +29,8 @@ class Lexer:
             tokenKind: TokenKind = token # for better readability
             self.tokens.append(Token(tokenKind, symbolize(tokenKind), self.pos))
     
-    def advance(self):
-        self.pos += 1
+    def advance(self, amount = 1):
+        self.pos += amount
 
     def peek(self, offset: int = 1):
         if self.pos + offset >= len(self.source):
@@ -71,39 +71,41 @@ class Lexer:
         Value = self.source[start:self.pos]
         
         def lookup_alpha(alpha):
-            match alpha:
-                case "c" if self.peek() == "\"":
-                    return TK.COMPOSITE_STR
-                case "int" | "ᛁᚾᛏ":
-                    return TK.INT
-                case "str" | "ᛋᛏᚱ" | "ᛥᚱ":
-                    return TK.STR
-                case "float" | "ᚠᛚᚩᛏ":
-                    return TK.FLOAT
-                case "bool" | "ᛒᚣᛚ":
-                    return TK.BOOL
-                case "char" | "ᚳᚻᚪᚱ":
-                    return TK.CHAR
-                case "any" | "ᛖᚾᛁ":
-                    return TK.ANY
-                case "nil" | "ᚾᛁᛚ":
-                    return TK.NIL
-                case "true" | "ᛏᚱᚣ":
-                    return TK.TRUE
-                case "false" | "ᚠᛟᛚᛋ":
-                    return TK.FALSE
-                case "and" | "ᚫᚾᛞ":
-                    return TK.AND
-                case "or" | "ᛟᚱ":
-                    return TK.OR
-                case "xor" | "ᛉᛟᚱ":
-                    return TK.XOR
-                case "nor" | "ᚾᛟᚱ":
-                    return TK.NOR
-                case "nand" | "ᚾᚫᚾᛞ":
-                    return TK.NAND
-                case _:
-                    return TK.IDENTIFIER
+            if alpha == "c" and self.peek() == "\"":
+                self.advance()
+                return TK.COMPOSITE_STR
+            else:
+                match alpha:
+                    case "int" | "ᛁᚾᛏ":
+                        return TK.INT
+                    case "str" | "ᛋᛏᚱ" | "ᛥᚱ":
+                        return TK.STR
+                    case "float" | "ᚠᛚᚩᛏ":
+                        return TK.FLOAT
+                    case "bool" | "ᛒᚣᛚ":
+                        return TK.BOOL
+                    case "char" | "ᚳᚻᚪᚱ":
+                        return TK.CHAR
+                    case "any" | "ᛖᚾᛁ":
+                        return TK.ANY
+                    case "nil" | "ᚾᛁᛚ":
+                        return TK.NIL
+                    case "true" | "ᛏᚱᚣ":
+                        return TK.TRUE
+                    case "false" | "ᚠᛟᛚᛋ":
+                        return TK.FALSE
+                    case "and" | "ᚫᚾᛞ":
+                        return TK.AND
+                    case "or" | "ᛟᚱ":
+                        return TK.OR
+                    case "xor" | "ᛉᛟᚱ":
+                        return TK.XOR
+                    case "nor" | "ᚾᛟᚱ":
+                        return TK.NOR
+                    case "nand" | "ᚾᚫᚾᛞ":
+                        return TK.NAND
+                    case _:
+                        return TK.IDENTIFIER
 
         return Token(lookup_alpha(Value), Value, index = start)
     
@@ -197,7 +199,7 @@ class Lexer:
         self.add(TK.EOF_KIND)
 
 def main():
-    lexer = Lexer("int a = 5 + 3;")
+    lexer = Lexer("str i = c\"hello\"")
     lexer.Tokenize()
     lexer.printTokens(printSource = True)
 

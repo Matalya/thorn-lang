@@ -79,7 +79,7 @@ class Literal(Node):
         self.litValue: str = litValue
     
     def __repr__(self):
-        return f"Literal: {self.litValue} ({self.litType})"
+        return f"Literal({self.litType} {self.litValue})"
 
 class CST(Enum):
     STRING_COMPONENT = auto()
@@ -124,6 +124,9 @@ class CompositeString(Node):
             self.components.append(stringComponent(CST.STRING_COMPONENT, acc)) # assumed string cuz if it was an eval it would've gotten flushed by "}"
         if evalMode:
             raise SyntaxWarning(f"Unclosed brace @ {openbraceindex}: …{show_context(string, openbraceindex)}…")
+    
+    def __repr__(self):
+        return self.components
 
 
 class Uninitialized(Node):
@@ -191,10 +194,10 @@ class Parser:
             self.advance() #current after this should be a string
             if current == TK.STRING:
                 self.advance()
-                return CompositeString(current.value)
+                return CompositeString(self.current().value)
         elif current.kind in LITERALS: # then it's a literal
             self.advance()
-            return Literal(extractTypeFromLitToken(current.kind), current.value)
+            return Literal(extractTypeFromLitToken(self.current().kind), self.current().value)
         else: # it's probably an operation or other kind of compound evaluation
             pass
 
