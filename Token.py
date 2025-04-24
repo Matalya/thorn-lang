@@ -150,5 +150,52 @@ LITERALS = (
     TokenKind.DECIMAL,
     TokenKind.STRING,
     TokenKind.TRUE,
-    TokenKind.FALSE,
+    TokenKind.FALSE
+)
+
+OPERATORS = (
+    TokenKind.PLUS,
+    TokenKind.MINUS,
+    TokenKind.ASTERISK,
+    TokenKind.SLASH,
+    TokenKind.EXPONENT,
+    TokenKind.MODULO,
+    TokenKind.DOUBLE_SLASH,
+    TokenKind.EQUALS,
+    TokenKind.NOT_EQUAL,
+    TokenKind.GREATER_THAN,
+    TokenKind.LESS_THAN,
+    TokenKind.GREATER_EQUAL,
+    TokenKind.LESS_EQUAL,
+    TokenKind.AND,
+    TokenKind.OR,
+    TokenKind.XOR,
+    TokenKind.NOR,
+    TokenKind.NAND
+)
+
+ARITHETIC_OPS = (
+    TokenKind.PLUS,
+    TokenKind.MINUS,
+    TokenKind.ASTERISK,
+    TokenKind.SLASH,
+    TokenKind.EXPONENT,
+    TokenKind.MODULO,
+    TokenKind.DOUBLE_SLASH
+)
+
+COMPARISON_OPS = (
+    TokenKind.EQUALS,
+    TokenKind.NOT_EQUAL,
+    TokenKind.GREATER_THAN,
+    TokenKind.LESS_THAN,
+    TokenKind.GREATER_EQUAL,
+    TokenKind.LESS_EQUAL
+)
+LOGICAL_OPS = (
+    TokenKind.AND,
+    TokenKind.OR,
+    TokenKind.XOR,
+    TokenKind.NOR,
+    TokenKind.NAND
 )

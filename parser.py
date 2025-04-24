@@ -132,6 +132,15 @@ class CompositeString(Node):
     def __repr__(self):
         return str(self.components)
 
+class BinaryOp(Node):
+    def __init__(self, left: str|int, op: str, right: str|int):
+        self.left: str|int = left
+        self.op: str = op
+        self.right: str|int = right
+    
+    def __repr__(self):
+        return f"binOp({self.left} {self.op} {self.right})"
+
 
 class Uninitialized(Node):
     def __init__(self, type: Type = Type.UNINITIALIZED):
@@ -183,27 +192,28 @@ class Parser:
             return token
         return None
     
-    def expect(self, kind: Token, message: str = "Unexpected token") -> Token:
-        token = self.match(kind)
+    def expect(self, *kinds: Token, message: str = "Unexpected token") -> Token:
+        token = self.match(*kinds)
         if token == None:
-            raise SyntaxError(f"{message}: expected {kind}, got {self.current().kind}")
+            raise SyntaxError(f"{message}: expected {kinds}, got {self.current().kind}")
         return token
 
-    def parse_instruction(self, current: Token):
+    def parse_instruction(self):
         pass
     
-    def parse_evaluation(self):
+    def parse_evaluation(self) -> CompositeString | Literal:
         if self.current_is(TK.COMPOSITE_STR):
             self.advance()
             if self.current_is(TK.STRING):
                 return CompositeString(self.current().value)
         elif self.current().kind in LITERALS: # then it's a literal
+            current = self.current()
             self.advance()
-            return Literal(extractTypeFromLitToken(self.current().kind), self.current().value)
+            return Literal(extractTypeFromLitToken(current.kind), current.value)
         else: # it's probably an operation or other kind of compound evaluation
             pass
 
-    def parse_varDeclaration(self, type: Token):
+    def parse_varDeclaration(self, type: Token) -> VarDeclaration:
         varType = mapTKtoType(type.kind)
         varName = self.expect(TK.IDENTIFIER).value
         if self.current().kind == TK.ASSIGN:
@@ -218,6 +228,13 @@ class Parser:
             raise SyntaxError(f"Unknown token at variable declaration: {self.current()}")
         return VarDeclaration(varType, varName, varValue)
     
+    def parse_binaryOp(self):
+        left = self.parse_evaluation()
+        op = self.match(*OPERATORS)
+        right = self.parse_evaluation()
+        return BinaryOp(left, op, right)
+
+    
     def parse_controlFlow():
         pass
         
@@ -226,6 +243,8 @@ class Parser:
     def parse(self) -> Program:
         program = Program()
         for token in self.tokens:
+            program.addNode(self.parse_binaryOp())
+            return program
             if token == None:
                 raise SyntaxError("Unexpected value: None")
             if current := self.match(*TYPES):
