@@ -1,27 +1,43 @@
 from Token import *
-from Token import TYPES
 from Token import TokenKind as TK
 from enum import Enum, auto
 from lexer import Lexer
+from thast import *
 
+class TokenError(Exception):
+    pass
 
+class TokenKindError(Exception):
+    pass
 
-class Type(Enum):
-    INT = auto()
-    STR = auto()
-    CHAR = auto()
-    FLOAT = auto()
-    BOOL = auto()
-    ANY = auto()
-    NIL = auto()
-    UNINITIALIZED = auto()
+class EndOfFile(Exception):
+    pass
 
-    def __str__(self):
-        return self.name.lower()
+def mapTokenToOperator(token: Token) -> Op:
+    match token.kind:
+        # Arithmetic
+        case TK.EXPONENT: return Op.POWER
+        case TK.ASTERISK: return Op.MULT
+        case TK.SLASH: return Op.DIV
+        case TK.MODULO: return Op.MOD
+        case TK.DOUBLE_SLASH: return Op.FLOOR_DIV
+        case TK.PLUS: return Op.ADD
+        case TK.MINUS: return Op.SUB
+        # Comparison
+        case TK.EQUALS: return Op.EQUALS
+        case TK.NOT_EQUAL: return Op.NOT_EQUAL
+        case TK.MORE_THAN: return Op.MORE_THAN
+        case TK.LESS_THAN: return Op.LESS_THAN
+        case TK.MORE_EQUAL: return Op.MORE_EQUAL
+        case TK.LESS_EQUAL: return Op.LESS_EQUAL
+        # Boolean
+        case TK.NOT: return Op.NEG
+        case TK.AND: return Op.AND
+        case TK.OR: return Op.OR
+        case TK.XOR: return Op.XOR
+        case _: raise TokenKindError(f"mapTokenToOperator(): No Token Kind recognized: {token.kind}")
 
-
-
-def mapTKtoType(tokenKind: TokenKind) -> Type:
+def mapKindToType(tokenKind: TokenKind) -> Type:
     match tokenKind:
         case TK.INT: return Type.INT
         case TK.STR: return Type.STR
@@ -30,233 +46,168 @@ def mapTKtoType(tokenKind: TokenKind) -> Type:
         case TK.CHAR: return Type.CHAR
         case TK.ANY: return Type.ANY
         case TK.NIL: return Type.NIL
-        case _: raise ValueError(f"Unknown type token: {tokenKind}")
+        case _: raise TokenKindError(f"mapKindToType(): Unknown or invalid type token {tokenKind}")
 
-def extractTypeFromLitToken(literalToken: Token) -> Type:
-    match literalToken:
+def mapLiteralToType(literalToken: Token) -> Type:
+    match literalToken.kind:
         case TK.INTEGER: return Type.INT
         case TK.DECIMAL: return Type.FLOAT
         case TK.STRING: return Type.STR
         case TK.TRUE | TK.FALSE: return Type.BOOL
-        case _: raise ValueError(f"Token not recognized as literal: {literalToken}")
-
-class Node:
-    pass
-
-class Program(Node):
-    def __init__(self, statements: list = []):
-        self.statements: list = statements
-    
-    def __repr__(self):
-        return "tf you want me to say? It's the ENTIRE program, I can't print that!"
-    
-    def represent(self, depth = 5):
-        preview = "\n    ".join(repr(stmt) for stmt in self.statements[:depth])
-        more = "..." if len(self.statements) > depth else ""
-        if not self.statements:
-            print("Program empty")
-        else:
-            print(f"Program:\n    {preview}\n    {more}")
-    
-    def addNode(self, node: Node):
-        self.statements.append(node)
-
-############################################ NODES ############################################
-
-class VarDeclaration(Node):
-    def __init__(self, varType : Type, varName: str, varValue: str = None):
-        self.varType = varType
-        self.varName = varName
-        self.varValue = varValue
-    
-    def __repr__(self):
-        value = "" if self.varValue is UNINITIALIZED else f" = {self.varValue}"
-        return f"varDeclaration: {self.varType.name.lower()} {self.varName}{value};"
-
-class Literal(Node):
-    def __init__(self, litType: Type, litValue: str):
-        self.litType: Type = litType
-        self.litValue: str = litValue
-    
-    def strfy(self):
-        return "\"" if self.litType == Type.STR else ""
-    def __repr__(self):
-        return f"Literal({self.litType}:{self.strfy()}{self.litValue}{self.strfy()})"
-
-class CST(Enum):
-    STRING_COMPONENT = auto()
-    EVALUATION_COMPONENT = auto()
-
-class stringComponent(Node):
-    def __init__(self, type: CST, value: str):
-        self.type: CST = type
-        self.value: Literal = Literal(Type.STR, value) if self.type == CST.STRING_COMPONENT else value
-    def __repr__(self):
-        return f"{"EvalComp" if self.type == CST.EVALUATION_COMPONENT else ""}{self.value}"
-
-class CompositeString(Node):
-    def __init__(self, string: str):
-        
-        def show_context(string: str, index: int, padding: int = 5):
-            lower = index - padding
-            upper = index + padding
-            if lower > 0 and upper < len(string):
-                return string[lower : upper]
-            else:
-                return string
-            
-        self.components: list[str] = list()
-        acc: str = str()
-        evalMode: bool = False
-        openbraceindex = 0
-        for i in range(len(string)):
-            if string[i] == "\"":
-                continue
-            elif string[i] == "{":
-                evalMode = True
-                if acc:
-                    self.components.append(stringComponent(CST.STRING_COMPONENT, acc))
-                acc = ""
-                openbraceindex = i
-            elif string[i] == "}":
-                evalMode = False
-                self.components.append(stringComponent(CST.EVALUATION_COMPONENT, "{" + acc + "}"))
-                acc = ""
-            else:
-                acc += string[i]
-        if acc:
-            self.components.append(stringComponent(CST.STRING_COMPONENT, acc)) # assumed string cuz if it was an eval it would've gotten flushed by "}"
-        if evalMode:
-            raise SyntaxWarning(f"Unclosed brace @ {openbraceindex}: …{show_context(string, openbraceindex)}…")
-    
-    def __repr__(self):
-        return str(self.components)
-
-class BinaryOp(Node):
-    def __init__(self, left: str|int, op: str, right: str|int):
-        self.left: str|int = left
-        self.op: str = op
-        self.right: str|int = right
-    
-    def __repr__(self):
-        return f"binOp({self.left} {self.op} {self.right})"
+        case _: raise TokenKindError(f"mapLiteralToType(): {literalToken} Token not recognized as literal")
 
 
-class Uninitialized(Node):
-    def __init__(self, type: Type = Type.UNINITIALIZED):
-        self.type: Type = type
-    
-    def __repr__(self):
-        return "<uninitialized>"
-    
-    def __str__(self):
-        return "<uninitialized>"
+def safe_get_prev(tokenStream: list[Token | Node], index: int):
+    """Handles if current operand is a Token or already a nested operation"""
+    if isinstance(tokenStream[index - 1], Node):
+        return tokenStream[index - 1]
+    elif isinstance(tokenStream[index - 1], Token):
+        return tokenStream[index - 1].value
+def safe_get_next(tokenStream: list[Token | Node], index: int):
+    """Handles if current operand is a Token or already a nested operation"""
+    if isinstance(tokenStream[index + 1], Node):
+        return tokenStream[index + 1]
+    elif isinstance(tokenStream[index + 1], Token):
+        return tokenStream[index + 1].value
 
-UNINITIALIZED = Uninitialized()
-
+####################################### PARSER CLASS #######################################
 class Parser:
-    def __init__(self, tokens: list):
-        self.tokens: list = tokens
+    def __init__(self, tokenStream: list[Token]):
+        self.tokenStream: list[Token] = tokenStream
         self.pos = 0
-        self.tokenCount = len(self.tokens)
-    
+        self.tokenCount = len(self.tokenStream)
+
     def __repr__(self):
-        return f"tokens: {"yes" if self.tokens else "no"}"
-        
+        return f"tokens: {"yes" if self.tokenStream else "no"}"
     
     # Helper functions
-    def advance(self):
-        self.pos += 1
-        print("Advanced; current:", end = " ")
-        self.current().debug()
+    def current(self) -> Token:
+        """does not mutate index"""
+        if self.pos >= self.tokenCount or self.pos < 0:
+            raise IndexError(f"current(): program index {self.pos} out of bounds")
+        return self.tokenStream[self.pos]
     
-    def current(self) -> Token | None:
-        return self.tokens[self.pos] if self.pos < self.tokenCount else None
+    def previous(self) -> Token:
+        if self.pos > 0:
+            return self.tokenStream[self.pos - 1]
+        raise IndexError(f"previous(): cannot access token @ index -1")
     
-    def current_is(self, kind: TokenKind) -> bool:
-        current = self.current()
-        if current == None:
-            return False
-        return current.kind == kind
+    def current_is(self, *kinds: TokenKind) -> bool:
+        """does not mutate index"""
+        return self.current().kind in kinds
+    
+    def token_is(self, token: Token, *kinds: TokenKind) -> bool:
+        """does not mutate index"""
+        try:
+            return token.kind in kinds
+        except AttributeError:
+            raise TokenError(f"token_is(): invalid token parameter {token}")
+    
+    def advance(self, n = 1):
+        """Mutates index"""
+        if self.pos < self.tokenCount - n:
+            self.pos += n
+            print("Advanced; current:", end = " ")
+            self.current().debug()
+        elif self.current().kind == TK.EOF_KIND:
+            print("advance(): reached the end of the token stream")
+            raise EndOfFile
+        else:
+            raise IndexError(f"advance(): Cannot advance to token {self.pos + n}/{self.tokenCount}")
+    
+    def retreat(self):
+        if self.pos > 0:
+            self.pos -= 1
+            print("Retreated; current:", end = " ")
+            self.current().debug()
+        raise IndexError(f"retreat(): cannot retreat to {self.pos - 1}")
+        
     
     def peek(self, offset: int = 1) -> Token | None:
+        """does not mutate index"""
         index = self.pos + offset
-        return self.tokens[index] if index < self.tokenCount else None
-    
-    def match(self, *kinds: tuple) -> Token | None:
+        return self.tokenStream[index] if index < self.tokenCount else None
+
+    def match(self, *kinds: TokenKind) -> Token | None:
+        """mutates index after matching"""
         if isinstance(kinds[0], list):
-            raise ValueError("List passed instead of variadic arguments")
-        if self.current() and self.current().kind in kinds:
+            print("match(): List passed instead of variadic arguments, idiot")
+        current = self.current()
+        if current.kind in kinds:
             token = self.current()
             self.advance()
             return token
         return None
     
-    def expect(self, *kinds: Token, message: str = "Unexpected token") -> Token:
+    def expect(self, *kinds: TokenKind, message: str = "Unexpected token") -> Token:
+        """mutates index after matching"""
         token = self.match(*kinds)
         if token == None:
-            raise SyntaxError(f"{message}: expected {kinds}, got {self.current().kind}")
-        return token
-
-    def parse_instruction(self):
-        pass
-    
-    def parse_evaluation(self) -> CompositeString | Literal:
-        if self.current_is(TK.COMPOSITE_STR):
-            self.advance()
-            if self.current_is(TK.STRING):
-                return CompositeString(self.current().value)
-        elif self.current().kind in LITERALS: # then it's a literal
             current = self.current()
-            self.advance()
-            return Literal(extractTypeFromLitToken(current.kind), current.value)
-        else: # it's probably an operation or other kind of compound evaluation
-            pass
+            current_kind = current.kind if current else "EOF"
+            raise TokenError(f"{message}: expected {kinds}, got {current_kind}")
+        return token
+    
+    def is_operator(self, token: Token) -> bool:
+        return token.kind in OPERATORS
 
-    def parse_varDeclaration(self, type: Token) -> VarDeclaration:
-        varType = mapTKtoType(type.kind)
-        varName = self.expect(TK.IDENTIFIER).value
+    ########################################## parsing functions ##########################################
+
+    def parse_evaluation(self):
+        predecendesSet: set[int] = set()
+
+        # Get the present operators precendence
+        flatOperationsStream: list[Token | Node] = list()
+        while self.current().kind != TK.SEMICOLON:
+            flatOperationsStream.append(self.current())
+            if self.current_is(*OPERATORS):
+                predecendesSet.add(precedence(mapTokenToOperator(self.current())))
+            self.advance()
+        precendencesPresent: list[int] = list(predecendesSet)
+        precendencesPresent.sort()
+        for Precendence in precendencesPresent:
+            print(f"{Precendence}: {PRECEDENCE[Precendence]}")
+
+        # do as many passes as there are precedences
+        for currentPrecendenceIndex in range(len(precendencesPresent)):
+            currentPrecendence = precendencesPresent[currentPrecendenceIndex]
+            for i in range(len(flatOperationsStream) - 1):
+                token = flatOperationsStream[i]
+                if self.is_operator(token) and precedence(mapTokenToOperator(token)) == currentPrecendence:
+                    flatOperationsStream[i - 1 : i + 2] = [
+                        BinaryOp(
+                            safe_get_prev(flatOperationsStream, i),
+                            mapTokenToOperator(token),
+                            safe_get_next(flatOperationsStream, i)
+                        )
+                    ]
+        print(flatOperationsStream)
+
+    def parse_varDeclaration(self) -> Node:
+        varType: Type = mapKindToType(self.match(*TYPES).kind)
+        varName: str = self.expect(TK.IDENTIFIER).value
         if self.current().kind == TK.ASSIGN:
             self.advance()
-            varValue = self.parse_evaluation()
+            varValue: Node = self.parse_evaluation()
+            return VarDeclaration(varType, varName, varValue)
         elif self.current().kind == TK.SEMICOLON:
-            varValue = UNINITIALIZED
-            self.advance()
-        elif not (self.current_is(TK.ASSIGN) or self.current_is(TK.SEMICOLON)):
-            raise SyntaxError("Expected semicolon or assignment at variable declaration")
+            return VarDeclaration(varType, varName) # case type var; with no initialization, autoassigned to UNINITIALIZED type
         else:
-            raise SyntaxError(f"Unknown token at variable declaration: {self.current()}")
-        return VarDeclaration(varType, varName, varValue)
-    
-    def parse_binaryOp(self):
-        left = self.parse_evaluation()
-        op = self.match(*OPERATORS)
-        right = self.parse_evaluation()
-        return BinaryOp(left, op, right)
-
-    
-    def parse_controlFlow():
-        pass
-        
-    
+            print("what")
+            
     # Parsing logic
     def parse(self) -> Program:
-        program = Program()
-        for token in self.tokens:
-            program.addNode(self.parse_binaryOp())
+        program: Program = Program()
+        try:
+            if self.current().kind in TYPES:
+                program.addNode(self.parse_varDeclaration())
+        except EndOfFile:
             return program
-            if token == None:
-                raise SyntaxError("Unexpected value: None")
-            if current := self.match(*TYPES):
-                program.addNode(self.parse_varDeclaration(current))
-            elif current := self.match(*CONTROL_FLOW):
-                program.addNode(self.parse_control_flow(current))
-        return program
             
 
 with open("./samples/lexer-test.ᚦ", encoding="utf8") as file:
     lexer = Lexer(file.read())
     lexer.Tokenize()
-    parser = Parser(lexer.tokens)
-    program = parser.parse()
-    program.represent()
+    parser = Parser(lexer.tokenStream)
+    program: Program = parser.parse()
+    print(program)

@@ -4,6 +4,7 @@ __pycache__/
 
 # Internal circulation
 samples/
+test.py
 
 # OS generated files
 .DS_Store

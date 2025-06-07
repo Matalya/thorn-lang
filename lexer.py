@@ -4,10 +4,11 @@ from Token import TokenKind as TK
 EOF: str = "\0"
 
 class Lexer:
-    def __init__(self, src:str, pos:int = 0, tokens:list = []):
-        self.source = src
-        self.pos = pos
-        self.tokens = tokens
+    def __init__(self, src:str, pos:int = 0, tokenStream: list[Token] = []):
+        self.source: str = src
+        self.pos: int = pos
+        self.tokenStream: list[Token] = tokenStream
+
     def current(self) -> str:
         if self.pos >= len(self.source):
             return "\0"
@@ -16,20 +17,17 @@ class Lexer:
     def printTokens(self, printSource: bool = False):
         if printSource:
             print(self.source, end = "\n\n")
-        for token in self.tokens:
-            if token != None:
-                token.debug()
-            else:
-                print("None")
+        for token in self.tokenStream:
+            token.debug()
     
-    def add(self, token: Token):
+    def add(self, token: Token | TokenKind):
         if isinstance(token, Token):
-            self.tokens.append(token)
+            self.tokenStream.append(token)
         else:
             tokenKind: TokenKind = token # for better readability
-            self.tokens.append(Token(tokenKind, symbolize(tokenKind), self.pos))
+            self.tokenStream.append(Token(tokenKind, symbolize(tokenKind), self.pos))
     
-    def advance(self, amount = 1):
+    def advance(self, amount: int = 1):
         self.pos += amount
 
     def peek(self, offset: int = 1):
@@ -70,12 +68,13 @@ class Lexer:
             self.advance()
         Value = self.source[start:self.pos]
         
-        def lookup_alpha(alpha):
+        def lookup_alpha(alpha: str):
             if alpha == "c" and self.peek() == "\"":
                 self.advance()
                 return TK.COMPOSITE_STR
             else:
                 match alpha:
+                    # Type keywords
                     case "int" | "ᛁᚾᛏ":
                         return TK.INT
                     case "str" | "ᛋᛏᚱ" | "ᛥᚱ":
@@ -90,6 +89,7 @@ class Lexer:
                         return TK.ANY
                     case "nil" | "ᚾᛁᛚ":
                         return TK.NIL
+                    # Boolean algebra stuff
                     case "true" | "ᛏᚱᚣ":
                         return TK.TRUE
                     case "false" | "ᚠᛟᛚᛋ":
@@ -100,10 +100,23 @@ class Lexer:
                         return TK.OR
                     case "xor" | "ᛉᛟᚱ":
                         return TK.XOR
-                    case "nor" | "ᚾᛟᚱ":
-                        return TK.NOR
-                    case "nand" | "ᚾᚫᚾᛞ":
-                        return TK.NAND
+                    case "not" | "ᚾᛟᛏ":
+                        return TK.NOT
+                    # Control flow
+                    case "if" | "ᛁᚠ":
+                        return TK.IF
+                    case "elsif" | "ᛖᛚᛁᚠ":
+                        return TK.ELSIF
+                    case "else" | "ᛖᛚᛋ":
+                        return TK.ELSE
+                    case "while" | "ᚹᛠᛚ":
+                        return TK.WHILE
+                    case "until" | "ᚢᚾᛏᛁᛚ":
+                        return TK.UNTIL
+                    case "for" | "ᚠᛟ":
+                        return TK.FOR
+                    case "foreach" | "ᚠᛟᚱᛁᛁᚳᚻ":
+                        return TK.FOREACH
                     case _:
                         return TK.IDENTIFIER
 
@@ -181,20 +194,20 @@ class Lexer:
                         self.add(TK.NOT_EQUAL)
                     case ">":
                         if self.peek() == "=":
-                            self.add(TK.GREATER_EQUAL)
+                            self.add(TK.MORE_THAN)
                         else:
-                            self.add(TK.GREATER_THAN)
+                            self.add(TK.MORE_THAN)
                     case "<":
                         if self.peek() == "=":
                             self.add(TK.LESS_EQUAL)
                         else:
                             self.add(TK.LESS_THAN)
                     case "≥":
-                        self.add(TK.GREATER_EQUAL)
+                        self.add(TK.MORE_THAN)
                     case "≤":
                         self.add(TK.LESS_EQUAL)
-                    case "":
-                        pass
+                    case ",":
+                        self.add(TK.COMMA)
                     case "":
                         pass
                     case _:

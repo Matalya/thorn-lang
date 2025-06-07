@@ -23,18 +23,19 @@ class TokenKind(Enum):
     NIL           = auto() #✅
 
     # Flow control
-    IF            = auto() #❌
-    ELSIF         = auto() #❌
-    ELSE          = auto() #❌
-    WHILE         = auto() #❌
-    UNTIL         = auto() #❌
-    FOR           = auto() #❌
-    FOREACH       = auto() #❌
+    IF            = auto() #✅
+    ELSIF         = auto() #✅
+    ELSE          = auto() #✅
+    WHILE         = auto() #✅
+    UNTIL         = auto() #✅
+    FOR           = auto() #✅
+    FOREACH       = auto() #✅
     
     # Symbols
     ASSIGN        = auto() #✅
     DOT           = auto() #✅
     QUESTION_MARK = auto() #✅
+    COMMA         = auto() #✅
 
     # Arithmetic operators
     PLUS          = auto() #✅
@@ -48,16 +49,15 @@ class TokenKind(Enum):
     # Logical comparison
     EQUALS        = auto() #✅
     NOT_EQUAL     = auto() #✅ ✅
-    GREATER_THAN  = auto() #✅
+    MORE_THAN     = auto() #✅
     LESS_THAN     = auto() #✅
-    GREATER_EQUAL = auto() #✅ ✅
+    MORE_EQUAL    = auto() #✅ ✅
     LESS_EQUAL    = auto() #✅ ✅
     # Logical operators
+    NOT           = auto() #✅
     AND           = auto() #✅
     OR            = auto() #✅
     XOR           = auto() #✅
-    NOR           = auto() #✅
-    NAND          = auto() #✅
     # Logical literals
     TRUE          = auto() #✅
     FALSE         = auto() #✅
@@ -74,7 +74,7 @@ class TokenKind(Enum):
     def Name(self):
         return self.name.lower()
 
-def symbolize(tokenKind):
+def symbolize(tokenKind: TokenKind):
     match tokenKind:
         case TokenKind.PLUS:
             return "+"
@@ -104,11 +104,13 @@ def symbolize(tokenKind):
             return ";"
         case TokenKind.COMPOSITE_STR:
             return "c"
+        case TokenKind.COMMA:
+            return ","
         case _:
-            return "unmatched symbol"
+            return f"unmatched symbol: {tokenKind.name}"
 
 class Token:
-    def __init__(self, tokenKind: TokenKind, value: str = "", index = -1):
+    def __init__(self, tokenKind: TokenKind, value: str = "", index: int = -1):
         self.kind = tokenKind
         self.value = value
         self.index = index
@@ -116,7 +118,7 @@ class Token:
     def __repr__(self):
         return f"{self.kind.Name()} ({self.value})"
     
-    def is_a(self, *options):
+    def is_a(self, *options: tuple[TokenKind, ...]):
         return self.kind in options
     
     def debug(self):
@@ -125,7 +127,7 @@ class Token:
 def newToken(kind: TokenKind, value: str):
     return Token(kind, value)
 
-TYPES: TokenKind = (
+TYPES: list[TokenKind] = [
     TokenKind.INT,
     TokenKind.STR,
     TokenKind.FLOAT,
@@ -133,9 +135,9 @@ TYPES: TokenKind = (
     TokenKind.CHAR,
     TokenKind.ANY,
     TokenKind.NIL
-)
+]
 
-CONTROL_FLOW = (
+CONTROL_FLOW = [
     TokenKind.IF,
     TokenKind.ELSE,
     TokenKind.ELSIF,
@@ -143,17 +145,17 @@ CONTROL_FLOW = (
     TokenKind.UNTIL,
     TokenKind.FOR,
     TokenKind.FOREACH
-)
+]
 
-LITERALS = (
+LITERALS = [
     TokenKind.INTEGER,
     TokenKind.DECIMAL,
     TokenKind.STRING,
     TokenKind.TRUE,
     TokenKind.FALSE
-)
+]
 
-OPERATORS = (
+OPERATORS = [
     TokenKind.PLUS,
     TokenKind.MINUS,
     TokenKind.ASTERISK,
@@ -163,18 +165,18 @@ OPERATORS = (
     TokenKind.DOUBLE_SLASH,
     TokenKind.EQUALS,
     TokenKind.NOT_EQUAL,
-    TokenKind.GREATER_THAN,
+    TokenKind.MORE_THAN,
     TokenKind.LESS_THAN,
-    TokenKind.GREATER_EQUAL,
     TokenKind.LESS_EQUAL,
+    TokenKind.LESS_EQUAL,
+    TokenKind.NOT,
     TokenKind.AND,
     TokenKind.OR,
     TokenKind.XOR,
-    TokenKind.NOR,
-    TokenKind.NAND
-)
+    TokenKind.XOR
+]
 
-ARITHETIC_OPS = (
+ARITHMETIC_OPS = (
     TokenKind.PLUS,
     TokenKind.MINUS,
     TokenKind.ASTERISK,
@@ -187,15 +189,14 @@ ARITHETIC_OPS = (
 COMPARISON_OPS = (
     TokenKind.EQUALS,
     TokenKind.NOT_EQUAL,
-    TokenKind.GREATER_THAN,
+    TokenKind.MORE_THAN,
     TokenKind.LESS_THAN,
-    TokenKind.GREATER_EQUAL,
+    TokenKind.LESS_EQUAL,
     TokenKind.LESS_EQUAL
 )
 LOGICAL_OPS = (
+    TokenKind.NOT,
     TokenKind.AND,
     TokenKind.OR,
     TokenKind.XOR,
-    TokenKind.NOR,
-    TokenKind.NAND
 )
