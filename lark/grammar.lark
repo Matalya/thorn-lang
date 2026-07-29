@@ -1,0 +1,28 @@
+?start: instr_or_eval+
+
+instr_or_eval: instruction ";" -> do_instr
+             | evaluation ";"  -> do_eval
+
+?instruction: VAR_TYPE IDENTIFIER "=" evaluation -> var_decl
+            | IDENTIFIER "=" evaluation          -> var_assign
+
+?evaluation: evaluation "+" term   -> add
+           | evaluation "-" term   -> sub
+           | term
+
+?term: term "*" factor -> mul
+     | term "/" factor -> div
+     | factor
+
+?factor: "-" factor     -> neg
+       | INT            -> int_lit
+       | FLOAT          -> float_lit
+       | IDENTIFIER     -> var_reference
+       | "(" evaluation ")"
+
+%import common.INT
+%import common.FLOAT
+%import common.WS
+VAR_TYPE: "int" | "float"
+IDENTIFIER: /[a-zA-Z_][a-zA-Z0-9_]*/
+%ignore WS

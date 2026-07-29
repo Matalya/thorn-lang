@@ -45,9 +45,22 @@ PRECEDENCE: list[list[Op]] = [
     [Op.OR, Op.XOR]
 ]
 
+def is_unary(operator: Op) -> bool:
+    return operator in [Op.POWER, Op.NOT, Op.NEG]
+
+def associativity(operator: Op) -> str:
+    if not isinstance(operator, Op): 
+        raise TypeError(f"precedence(): Expected operator type, got {type(operator)}")
+    return "right" if operator in [Op.POWER, Op.NEG, Op.NOT] else "left"
+
+def arity(operator: Op):
+    if not isinstance(operator, Op): 
+        raise TypeError(f"precedence(): Expected operator type, got {type(operator)}")
+    return "unary" if operator in [Op.POWER, Op.NEG, Op.NOT] else "binary"
+
 def precedence(operator: Op) -> int:
     global PRECEDENCE
-    if not isinstance(operator, Op): 
+    if not isinstance(operator, Op):
         raise TypeError(f"precedence(): Expected operator type, got {type(operator)}")
     for i in range(len(PRECEDENCE)):
         if operator in PRECEDENCE[i]:
@@ -57,6 +70,7 @@ def precedence(operator: Op) -> int:
 class Node:
     pass
 
+# parent node
 class Program(Node):
     def __init__(self, statements: list[Node] = []):
         self.statements: list[Node] = statements
@@ -72,7 +86,7 @@ class Program(Node):
     def addNode(self, node: Node):
         self.statements.append(node)
 
-############################################ NODES ############################################
+########################################## NODES ##########################################
 class Uninitialized(Node):
     def __init__(self, type: Type = Type.UNINITIALIZED):
         self.type: Type = type
@@ -91,8 +105,12 @@ class VarDeclaration(Node):
         self.varValue: Node = varValue
     
     def __repr__(self):
-        value = "" if self.varValue is UNINITIALIZED else f" = {self.varValue}"
-        return f"varDeclaration: {self.varType.name.lower()} {self.varName}{value};"
+        return (
+            f"VarDeclaration("
+            f"{self.varType}, "
+            f"{self.varName!r}, "
+            f"{self.varValue})"
+        )
 
 class Literal(Node):
     def __init__(self, litType: Type, litValue: str):
@@ -104,17 +122,17 @@ class Literal(Node):
     def __repr__(self):
         return f"Literal({self.litType}:{self.strfy()}{self.litValue}{self.strfy()})"
 
-class CST(Enum):
-    """Compound String... Type?"""
+class CompositeStringType(Enum):
+    """Composite String... Type?"""
     STRING_COMPONENT = auto()
     EVALUATION_COMPONENT = auto()
 
 class stringComponent(Node):
-    def __init__(self, type: CST, value: str):
-        self.type: CST = type
-        self.value: Literal | str = Literal(Type.STR, value) if self.type == CST.STRING_COMPONENT else value
+    def __init__(self, type: CompositeStringType, value: str):
+        self.type: CompositeStringType = type
+        self.value: Literal | str = Literal(Type.STR, value) if self.type == CompositeStringType.STRING_COMPONENT else value
     def __repr__(self):
-        return f"{"EvalComp" if self.type == CST.EVALUATION_COMPONENT else ""}{self.value}"
+        return f"{"EvalComp" if self.type == CompositeStringType.EVALUATION_COMPONENT else ""}{self.value}"
 
 class CompositeString(Node):
     def __init__(self, string: str):
@@ -137,17 +155,17 @@ class CompositeString(Node):
             elif string[i] == "{":
                 evalMode = True
                 if acc:
-                    self.components.append(stringComponent(CST.STRING_COMPONENT, acc))
+                    self.components.append(stringComponent(CompositeStringType.STRING_COMPONENT, acc))
                 acc = ""
                 openbraceindex = i
             elif string[i] == "}":
                 evalMode = False
-                self.components.append(stringComponent(CST.EVALUATION_COMPONENT, "{" + acc + "}"))
+                self.components.append(stringComponent(CompositeStringType.EVALUATION_COMPONENT, "{" + acc + "}"))
                 acc = ""
             else:
                 acc += string[i]
         if acc:
-            self.components.append(stringComponent(CST.STRING_COMPONENT, acc)) # assumed string cuz if it was an eval it would've gotten flushed by "}"
+            self.components.append(stringComponent(CompositeStringType.STRING_COMPONENT, acc)) # assumed string cuz if it was an eval it would've gotten flushed by "}"
         if evalMode:
             raise SyntaxError(f"compositeString: Unclosed brace @ {openbraceindex}: …{show_context(string, openbraceindex)}…")
     
@@ -162,3 +180,45 @@ class BinaryOp(Node):
     
     def __repr__(self):
         return f"binOp({self.left}, {self.op}, {self.right})"
+
+class UnaryOp(Node):
+    def __init__(self, op: Op, right: Node):
+        self.op: Op = op
+        self.right: Node = right
+
+    def __repr__(self):
+        return f"NEG(-{self.right})" if self.op == Op.NEG else f"NOT({self.right})"
+
+class Identifier(Node):
+    def __init__(self, name: str):
+        self.name = name
+
+    def __repr__(self):
+        return f"Identifier({self.name})"
+
+
+class VarAssign(Node):
+    def __init__(self, target: Identifier, value: Node):
+        self.target = target
+        self.value = value
+
+    def __repr__(self):
+        return f"Assignment({self.target}, {self.value})"
+
+
+class FunctionCall(Node):
+    def __init__(self, callee: Identifier, arguments: list[Node]):
+        self.callee = callee
+        self.arguments = arguments
+
+    def __repr__(self):
+        arguments = ", ".join(repr(arg) for arg in self.arguments)
+        return f"FunctionCall({self.callee}, [{arguments}])"
+
+
+class ExpressionStatement(Node):
+    def __init__(self, expression: Node):
+        self.expression = expression
+
+    def __repr__(self):
+        return f"ExpressionStatement({self.expression})"

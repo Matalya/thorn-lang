@@ -1,8 +1,7 @@
 from Token import *
 from Token import TokenKind as TK
-from enum import Enum, auto
 from lexer import Lexer
-from thast import *
+from th_ast import *
 
 class TokenError(Exception):
     pass
@@ -13,7 +12,13 @@ class TokenKindError(Exception):
 class EndOfFile(Exception):
     pass
 
-def mapTokenToOperator(token: Token) -> Op:
+class UnpairedParenthesis(Exception):
+    pass
+
+class InvalidEvlauation(Exception):
+    pass
+
+def mapTokenToOperator(token: Token, isMinus: bool = False) -> Op:
     match token.kind:
         # Arithmetic
         case TK.EXPONENT: return Op.POWER
@@ -22,7 +27,7 @@ def mapTokenToOperator(token: Token) -> Op:
         case TK.MODULO: return Op.MOD
         case TK.DOUBLE_SLASH: return Op.FLOOR_DIV
         case TK.PLUS: return Op.ADD
-        case TK.MINUS: return Op.SUB
+        case TK.MINUS: return Op.SUB if isMinus else Op.NEG
         # Comparison
         case TK.EQUALS: return Op.EQUALS
         case TK.NOT_EQUAL: return Op.NOT_EQUAL
@@ -31,7 +36,7 @@ def mapTokenToOperator(token: Token) -> Op:
         case TK.MORE_EQUAL: return Op.MORE_EQUAL
         case TK.LESS_EQUAL: return Op.LESS_EQUAL
         # Boolean
-        case TK.NOT: return Op.NEG
+        case TK.NOT: return Op.NOT
         case TK.AND: return Op.AND
         case TK.OR: return Op.OR
         case TK.XOR: return Op.XOR
@@ -39,7 +44,7 @@ def mapTokenToOperator(token: Token) -> Op:
 
 def mapKindToType(tokenKind: TokenKind) -> Type:
     match tokenKind:
-        case TK.INT: return Type.INT
+        case TK.INT | TK.INTEGER | TK.DECIMAL: return Type.INT
         case TK.STR: return Type.STR
         case TK.FLOAT: return Type.FLOAT
         case TK.BOOL: return Type.BOOL
@@ -56,40 +61,22 @@ def mapLiteralToType(literalToken: Token) -> Type:
         case TK.TRUE | TK.FALSE: return Type.BOOL
         case _: raise TokenKindError(f"mapLiteralToType(): {literalToken} Token not recognized as literal")
 
-
-def safe_get_prev(tokenStream: list[Token | Node], index: int):
-    """Handles if current operand is a Token or already a nested operation"""
-    if isinstance(tokenStream[index - 1], Node):
-        return tokenStream[index - 1]
-    elif isinstance(tokenStream[index - 1], Token):
-        return tokenStream[index - 1].value
-def safe_get_next(tokenStream: list[Token | Node], index: int):
-    """Handles if current operand is a Token or already a nested operation"""
-    if isinstance(tokenStream[index + 1], Node):
-        return tokenStream[index + 1]
-    elif isinstance(tokenStream[index + 1], Token):
-        return tokenStream[index + 1].value
-
-####################################### PARSER CLASS #######################################
-class Parser:
-    def __init__(self, tokenStream: list[Token]):
-        self.tokenStream: list[Token] = tokenStream
+class TokenStream:
+    def __init__(self, tokens: list[Token]):
+        self.tokens: list[Token] = tokens
         self.pos = 0
-        self.tokenCount = len(self.tokenStream)
-
-    def __repr__(self):
-        return f"tokens: {"yes" if self.tokenStream else "no"}"
+        self.tokenCount = len(self.tokens)
     
     # Helper functions
     def current(self) -> Token:
         """does not mutate index"""
         if self.pos >= self.tokenCount or self.pos < 0:
             raise IndexError(f"current(): program index {self.pos} out of bounds")
-        return self.tokenStream[self.pos]
+        return self.tokens[self.pos]
     
     def previous(self) -> Token:
         if self.pos > 0:
-            return self.tokenStream[self.pos - 1]
+            return self.tokens[self.pos - 1]
         raise IndexError(f"previous(): cannot access token @ index -1")
     
     def current_is(self, *kinds: TokenKind) -> bool:
@@ -107,31 +94,24 @@ class Parser:
         """Mutates index"""
         if self.pos < self.tokenCount - n:
             self.pos += n
-            print("Advanced; current:", end = " ")
-            self.current().debug()
+            """print("Advanced; current:", end = " ")
+            self.current().debug()"""
         elif self.current().kind == TK.EOF_KIND:
             print("advance(): reached the end of the token stream")
             raise EndOfFile
         else:
             raise IndexError(f"advance(): Cannot advance to token {self.pos + n}/{self.tokenCount}")
-    
-    def retreat(self):
-        if self.pos > 0:
-            self.pos -= 1
-            print("Retreated; current:", end = " ")
-            self.current().debug()
-        raise IndexError(f"retreat(): cannot retreat to {self.pos - 1}")
         
     
     def peek(self, offset: int = 1) -> Token | None:
         """does not mutate index"""
         index = self.pos + offset
-        return self.tokenStream[index] if index < self.tokenCount else None
+        return self.tokens[index] if index < self.tokenCount else None
 
     def match(self, *kinds: TokenKind) -> Token | None:
         """mutates index after matching"""
         if isinstance(kinds[0], list):
-            print("match(): List passed instead of variadic arguments, idiot")
+            print("match(): List passed instead of variadic argumentokenStream, idiot")
         current = self.current()
         if current.kind in kinds:
             token = self.current()
@@ -147,67 +127,141 @@ class Parser:
             current_kind = current.kind if current else "EOF"
             raise TokenError(f"{message}: expected {kinds}, got {current_kind}")
         return token
-    
-    def is_operator(self, token: Token) -> bool:
-        return token.kind in OPERATORS
-
-    ########################################## parsing functions ##########################################
-
-    def parse_evaluation(self):
-        predecendesSet: set[int] = set()
-
-        # Get the present operators precendence
-        flatOperationsStream: list[Token | Node] = list()
-        while self.current().kind != TK.SEMICOLON:
-            flatOperationsStream.append(self.current())
-            if self.current_is(*OPERATORS):
-                predecendesSet.add(precedence(mapTokenToOperator(self.current())))
-            self.advance()
-        precendencesPresent: list[int] = list(predecendesSet)
-        precendencesPresent.sort()
-        for Precendence in precendencesPresent:
-            print(f"{Precendence}: {PRECEDENCE[Precendence]}")
-
-        # do as many passes as there are precedences
-        for currentPrecendenceIndex in range(len(precendencesPresent)):
-            currentPrecendence = precendencesPresent[currentPrecendenceIndex]
-            for i in range(len(flatOperationsStream) - 1):
-                token = flatOperationsStream[i]
-                if self.is_operator(token) and precedence(mapTokenToOperator(token)) == currentPrecendence:
-                    flatOperationsStream[i - 1 : i + 2] = [
-                        BinaryOp(
-                            safe_get_prev(flatOperationsStream, i),
-                            mapTokenToOperator(token),
-                            safe_get_next(flatOperationsStream, i)
-                        )
-                    ]
-        print(flatOperationsStream)
-
-    def parse_varDeclaration(self) -> Node:
-        varType: Type = mapKindToType(self.match(*TYPES).kind)
-        varName: str = self.expect(TK.IDENTIFIER).value
-        if self.current().kind == TK.ASSIGN:
-            self.advance()
-            varValue: Node = self.parse_evaluation()
-            return VarDeclaration(varType, varName, varValue)
-        elif self.current().kind == TK.SEMICOLON:
-            return VarDeclaration(varType, varName) # case type var; with no initialization, autoassigned to UNINITIALIZED type
-        else:
-            print("what")
             
-    # Parsing logic
+
+####################################### PARSER CLASS #######################################
+
+# START PARSER CLASS
+class Parser:
+    def __init__(self, tokenStream: TokenStream):
+        self.tokenStream = tokenStream
+
+    def __repr__(self):
+        return f"tokens: {"yes" if self.tokenStream else "no"}"
+
     def parse(self) -> Program:
-        program: Program = Program()
-        try:
-            if self.current().kind in TYPES:
-                program.addNode(self.parse_varDeclaration())
-        except EndOfFile:
-            return program
-            
+        program = Program()
+
+        while not self.tokenStream.current_is(TK.EOF_KIND):
+            program.addNode(self.parse_statement())
+
+        return program
+    def current(self):
+        return self.tokenStream.current()
+    def expect(self, *args, **kwargs):
+        return self.tokenStream.expect(*args, **kwargs)
+    def match(self, *args):
+        return self.tokenStream.match(*args)
+    def expectEqualSign(self):
+        return self.tokenStream.expect(TK.ASSIGN, message = "Equal sign not found.")
+    def expectSemicolon(self):
+        return self.tokenStream.expect(TK.SEMICOLON, message = "Semicolon not found.")
+ #################################### parsing functions ####################################
+    def parse_statement(self):
+        current = self.current()
+
+        if current.kind in DATA_TYPES:
+            return self.parseVarDecl()
+
+        if current.kind == TK.IDENTIFIER:
+            nextToken = self.tokenStream.peek()
+
+            if nextToken is None:
+                raise SyntaxError(
+                    f"Unexpected end of input after identifier '{current.value}'."
+                )
+
+            if nextToken.kind == TK.ASSIGN:
+                return self.parseVarAssign()
+
+            if nextToken.kind == TK.OPEN_PAREN:
+                return self.parseFuncCall()
+
+            raise SyntaxError(
+                f"Expected '=' or '(' after identifier '{current.value}'."
+            )
+
+        raise SyntaxError(
+            f"Unexpected token {current.kind} ({current.value!r}) "
+            f"at token index {self.tokenStream.pos}."
+        )
+
+    def parseVarDecl(self):
+        # at this point it's still on int
+        varDeclType: Token = self.expect(*DATA_TYPES, message = "Type keyword (int, str…) not found")
+        varDeclIdent: Token = self.expect(TK.IDENTIFIER, message = "Identifier not found")
+        if self.match(TK.ASSIGN):
+            varDeclVal = self.parseExpression()
+        else:
+            varDeclVal = UNINITIALIZED
+        self.expect(TK.SEMICOLON, message = "Semicolon not found")
+        return VarDeclaration(mapKindToType(varDeclType.kind), Identifier(varDeclIdent.value), varDeclVal)
+
+    def parseExpression(self):
+        token = self.expect(TK.INTEGER, TK.DECIMAL, TK.STRING, TK.TRUE, TK.FALSE, TK.IDENTIFIER, message="Literal or identifier not found."
+        )
+
+        if token.kind == TK.IDENTIFIER:
+            return Identifier(token.value)
+
+        return Literal(
+            token.kind,
+            token.value
+        )
+
+    def parseVarAssign(self):
+        varAssignIdent: Token = self.expect(TK.IDENTIFIER, message = "Identifier not found.")
+        self.expectEqualSign()
+        varAssignVal: Node = self.parseExpression()
+        self.expectSemicolon()
+
+        return VarAssign(Identifier(varAssignIdent.value), varAssignVal)
+
+    def parseFuncCall(self):
+        funcName: Token = self.expect(
+            TK.IDENTIFIER,
+            message="Function identifier not found."
+        )
+
+        self.expect(
+            TK.OPEN_PAREN,
+            message="Opening parenthesis not found after function name."
+        )
+
+        args = []
+
+        if self.current().kind != TK.CLOSE_PAREN:
+            args.append(self.parseExpression())
+
+            while self.match(TK.COMMA):
+                args.append(self.parseExpression())
+
+        self.expect(
+            TK.CLOSE_PAREN,
+            message="Closing parenthesis not found after function arguments."
+        )
+
+        self.expectSemicolon()
+
+        return FunctionCall(
+            Identifier(funcName.value),
+            args
+        )
+
+# END PARSER CLASS
 
 with open("./samples/lexer-test.ᚦ", encoding="utf8") as file:
     lexer = Lexer(file.read())
     lexer.Tokenize()
-    parser = Parser(lexer.tokenStream)
-    program: Program = parser.parse()
+
+    parserTokens = [
+        token
+        for token in lexer.tokenStream
+        if token.kind != TK.COMMENT
+    ]
+
+    tokenStream = TokenStream(parserTokens)
+    parser = Parser(tokenStream)
+    program = parser.parse()
+
     print(program)

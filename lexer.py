@@ -4,10 +4,10 @@ from Token import TokenKind as TK
 EOF: str = "\0"
 
 class Lexer:
-    def __init__(self, src:str, pos:int = 0, tokenStream: list[Token] = []):
+    def __init__(self, src:str, pos:int = 0, tokenStream: list[Token] | None = None):
         self.source: str = src
         self.pos: int = pos
-        self.tokenStream: list[Token] = tokenStream
+        self.tokenStream: list[Token] = [] if tokenStream is None else tokenStream
 
     def current(self) -> str:
         if self.pos >= len(self.source):
@@ -52,6 +52,15 @@ class Lexer:
                 return Token(TK.DECIMAL, value, start)
         value = self.source[start:self.pos]
         return Token(TK.INTEGER, value, start)
+
+    def tokenize_comment(self) -> Token:
+        start = self.pos
+
+        while self.current() not in ("\n", EOF):
+            self.advance()
+
+        value = self.source[start:self.pos]
+        return Token(TK.COMMENT, value, start)
     
     def tokenize_string(self) -> Token:
         start = self.pos
@@ -128,6 +137,10 @@ class Lexer:
             if ch.isspace():
                 self.advance()
                 continue # Ignore dat shee
+
+            elif ch == "#":
+                self.add(self.tokenize_comment())
+
             elif ch == "c" and self.peek() == "\"":
                 self.add(TK.COMPOSITE_STR)
                 self.advance(1)
@@ -136,6 +149,8 @@ class Lexer:
                 self.add(self.tokenize_number())
             elif ch.isalpha():
                 self.add(self.tokenize_alpha())
+            elif ch == "\"":
+                self.add(self.tokenize_string())
             else:
                 match ch:
                     case "+":
@@ -156,8 +171,6 @@ class Lexer:
                             self.advance()
                         else:
                             self.add(TK.SLASH)
-                    case "\"":
-                        self.add(self.tokenize_string())
                     case "!":
                         if self.peek() == "=":
                             self.advance()
@@ -203,19 +216,17 @@ class Lexer:
                         else:
                             self.add(TK.LESS_THAN)
                     case "≥":
-                        self.add(TK.MORE_THAN)
+                        self.add(TK.MORE_EQUAL)
                     case "≤":
                         self.add(TK.LESS_EQUAL)
                     case ",":
                         self.add(TK.COMMA)
-                    case "":
-                        pass
                     case _:
                         self.add(TK.DEBUG_UNKNOWN)
                 self.advance()
         self.add(TK.EOF_KIND)
 
-def main():
+def main(): 
     with open("./samples/lexer-test.ᚦ", encoding="utf8") as file:
         lexer = Lexer(file.read())
         lexer.Tokenize()

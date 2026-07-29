@@ -23,6 +23,8 @@ https://www.harysdalvi.com/futhorc webapp runes keyboard
 - `until () {}`
 ## Assignment
 - `?new ?global ?const type my_var = value;`
+## Returns
+- `return`
 
 # Types:
 - **integer**: `int` 1 2 5 67
@@ -42,23 +44,13 @@ https://www.harysdalvi.com/futhorc webapp runes keyboard
 - **uninitialized**: `uninitialized`
     - special meta-type to mark variables as uninitialized and enable special behavior and circumvent the type checker
 
-## Falsy behavior:
-- any value other than the ones stated are evaluated to true
-- **integer**: `0`
-- **character** `''`
-- **string** `""`
-- **float** `0.0`
-- **boolean** `false`
-- **list** `[]`
-- **array** `<>`
-- **set** `()`
-- `nil`
-- *notes: alternatively, trying to truth nil could be made into erroring. As a consequence:
-- `if (nil) {this never runs} else {this always runs}` however
-- `if (nil == true) {this never runs} elsif (nil == false) {this doesn't run either}`, also
-- `bool(nil)` crashes the program (throws an error)
-- `while(nil) {will never run}`
-- `until(nil) {will run forever}`
+## Boolean operations and truthiness:
+Truthiness can only be accessed with the built-in `bool()` function, that gets any data as its argument and returns its truthy value. Truthiness can otherwise not be accessed, and instead explicit boolean values must be used in logical operations.
+- **Comparisons** like `==`, `<` and `>=` can take numeric values (`int`, `float`), as well as boolean values `true` and `false`.
+- **Logic operators** like `and`, `or` and `xor` can only be performed on strict boolean values, or type-casted non-boolean values through the `bool()` function.
+  - `5 and false` ❌
+  - `bool(5) and false` ✅
+
 
 ## Collections:
 - list: `list(type)` [1, 2, 3] (mutable, dynamically resizable)
@@ -73,10 +65,10 @@ https://www.harysdalvi.com/futhorc webapp runes keyboard
 ```
            |mutable|resizable|rebindable
 list       |   ✅  |   ✅   |   ✅
-const list |   ✅  |   ✅   |   ❌
-arr        |   ✅  |   ❌   |   ✅ 
-const arr  |   ✅  |   ❌   |   ❌
+arr        |   ✅  |   ❌   |   ✅
 set        |   ❌  |   ❌   |   ✅ 
+const list |   ✅  |   ✅   |   ❌
+const arr  |   ✅  |   ❌   |   ❌ 
 const set  |   ❌  |   ❌   |   ❌
 ```
 
@@ -98,7 +90,19 @@ However, if we change it to `arr([] int, str, float, 4)`, now you'll see that th
 No number next to the type means "any amount". However, a number means "this exact amount, no more, no less". For example: `arr([str, int3], 10)` represents an array that contains between 1 and 7 strings, and exactly 3 integers, and `arr([str1, int3], 4)` *has* to contain one string and 3 integers. This is similar to Rust's tuple structs. It goes without saying that, if the length of the array doesn't match the amount expressed in the types, the program will error. However, it can be left empty and the interpreter will automatically pre-compute the correct minimal amount, which for numbered type arrays, is in fact the recommended approach to keep typoes and confusions from causing errors.
 
 ## Structs
-Structs are named custom types that bundle an assortment of declared variable fields with their own types. A `struct` can hold data of any type. Example:
+Structs are named custom types that bundle an assortment of declared variable fields with their own types. A `struct` can hold data of any type. The basic structure is:
+```
+struct StructType {
+  type field_name;
+  type field_name = default_value;
+
+  type func(StructType self, type arg) {
+    // func body
+  }
+}
+```
+
+Example:
 
 ### Declaration and instantiation
 ```
@@ -109,6 +113,18 @@ struct Person {
     int height;
     float weight;
     list(str) interests;
+
+    nil grow_up(Person self, int years) {
+      self.age += years;
+    }
+
+    Person whoIsOlder(Person a, Person b) {
+      if (a.age > b.age) {
+        return a;
+      } else {
+        return b;
+      }
+    }
 }
 
 Person Lucas = {
@@ -117,10 +133,21 @@ Person Lucas = {
     citizen = "Argentine";
     height = 175;
     weight = 82.9;
-    ["rock", "pc gaming", "football", "girls"];
+    interests = ["rock", "pc gaming", "football", "girls"];
 }
+
+// in-line
+func(Person {name = "Lucas"; ...})
 ```
-Notice how the named type for the aggregated data isn't one of the contained field types but a custom-named one. This access to the type checker is the biggest offer structs have.
+Notice how the named type for the aggregated data isn't one of the contained field types but a custom-named one. This integration with the type checker is the biggest advantage structs offer.
+
+A few ground rules to keep in consideration:
+- Methods are implemented as syntax sugar over free functions. `Lucas.grow_up(5)` gets resolved to `Person::grow_up(Lucas, 5)`.
+- An instance method is any function whose first parameter is `StructType self`; the StructType is mandatory for consistency with the rest of the language, but `self` is a reserved keyword. Otherwise, the function is considered a static method. For example, `whoIsOlder(Person a, Person b)` would be callable only as `Person.whoIsOlder(Lucas, Marcos)` instead of `Lucas.whoIsOlder(Lucas, Marcos)`.
+- Uninitialized fields with no default raises an error.
+- Re-initializing fields (for example, if you defined `age` twice) raise an error
+- Initializing fields not present in the definition raises an error.
+- Struct literals behave as expressions and evaluate to the newly created object without requiring it to be bound to a variable.
 ### Accessing
 ```
 print(Lucas.age)
@@ -137,19 +164,18 @@ enum Clearance = (
     LEVEL_FOUR;
     MAXIMUM_LEVEL;
 )
-
 struct Employee {
     str name;
     const int id;
     Clearance clearance = LEVEL_ONE;
     const str manual = EMPLOYEE_MANUAL;
 }
-
 Employee johnSmith = {
     name = "John Smith";
     id = 25684978
 }
 ```
+
 The ID cannot be changed because it's a security measure, so it's assigned as a constant. This constant, in turn, is initialized upon instanciation. Clearance level is assumed to be the lowest possible unless stated otherwise. Finally, all employees must carry the employee manual, so it is assigned automatically and cannot be reassigned.
 
 ## Enumerations
@@ -238,17 +264,13 @@ In a similar vein, enums create a custom type whose valid values can be checked 
 - `list(char) char_list = ['h','e','l','l','o'];`
 - `arr(str, 3) names = <"john", "sarah", "arthur">;`
 - `set(int) magic_numbers = (35, 55, 75)`
-- `const ~`: prevents the variable from being reassigned (Though mutable collections can still be edited)
-- `new ~`: allows for variale redeclaration. Example:
+- `const`: prevents the variable from being reassigned (Though mutable collections can still be edited)
+- Redeclaration of variables is illegal
 ```
-int x = 5;
-//x = "hi" error: cannot assign type string to int x
-//str x = "hi" error: cannot redeclare variable
-new str x = "hi"; //this works
+int x;
+str x; // this errors
 ```
-  - attempting to redeclare constants results in a warning.
-  - to silence it, you can write it with a new-star instead: `new* ?global const`
-- `global ~`: allows the variable to ignore scope precedence
+- `global`: places the variable in the global scope instead of the current local scope.
 ```
 nil f(){
     a += 1;
@@ -265,7 +287,7 @@ print(c"{a}, {c}")
 >> b: 6
 5, 7
 ```
-  - the order of all four assignment keywords is `new global const int var_name
+- the order of all three assignment keywords is `global const int var_name
 
 # Built-ins:
 ## Non-mutating conversion functions:
@@ -396,12 +418,14 @@ print(c"{a}, {c}")
   - returns a deep copy of the array
 - `nil fill(any value)`
   - fills all available items with the specified value. Throws error if type does not match. Example:
+  - 
 ```
 arr(int, 5) array = <1, 2, 3>
 array.fill("1")
 expected behavior: <1, 2, 3, "1", "1">
 real behavior: error: "arr type array can only contain items of type int, not str"
 ```
+
 - `nil skintight()`
   - reduces capacity such that it equals length. Throws warning: "warning: using internal name "skintight". Consider "shrink_to_fit()" instead, weirdo".
 - `nil shrink_to_fit()`

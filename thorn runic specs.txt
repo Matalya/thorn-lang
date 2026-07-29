@@ -23,6 +23,8 @@ https://www.harysdalvi.com/futhorc webapp runes keyboard
 - `ᚢᚾᛏᛁᛚ () {}`
 ## Assignment
 - `?new ?global ?const type my_var = value;`
+## Returns
+- ᚱᛁᛏᚢᚱᚾ
 
 # types:
 - **integer**: `ᛁᚾᛏ` 1 2 5 67
@@ -98,7 +100,19 @@ However, if we change it to `ᚪᚱ([] ᛁᚾᛏ, ᛋᛏᚱ, float, 4)`, now you
 No number next to the type means "any amount". However, a number means "this exact amount, no more, no less". For example: `ᚪᚱ([ᛋᛏᚱ, ᛁᚾᛏ3], 10)` represents an array that contains between 1 and 7 strings, and exactly 3 integers, and `ᚪᚱ([ᛋᛏᚱ1, ᛁᚾᛏ3], 4)` *has* to contain one string and 3 integers. This is similar to Rust's tuple structs. It goes without saying that, if the length of the array doesn't match the amount expressed in the types, the program will error. However, it can be left empty and the interpreter will automatically pre-compute the correct minimal amount, which for numbered type arrays, is in fact the recommended approach to keep typoes and confusions from causing errors.
 
 ## Structs
-Structs (`ᛋᛏᚱᚢᚳᛏ` or `ᛥᚱᚢᚳᛏ`) are named custom types that bundle an assortment of declared variable fields with their own types. A `ᛋᛏᚱᚢᚳᛏ` can hold data of any type. Example:
+Structs (`ᛋᛏᚱᚢᚳᛏ` or `ᛥᚱᚢᚳᛏ`) are named custom types that bundle an assortment of declared variable fields with their own types. A `struct` can hold data of any type. The basic structure is:
+```
+ᛋᛏᚱᚢᚳᛏ StructType {
+  type field_name;
+  type field_name = default_value;
+
+  type func(StructType ᛋᛖᛚᚠ, type arg) {
+    // func body
+  }
+}
+```
+
+Example:
 
 ### Declaration and instantiation
 ```
@@ -107,8 +121,20 @@ Structs (`ᛋᛏᚱᚢᚳᛏ` or `ᛥᚱᚢᚳᛏ`) are named custom types that 
     ᛁᚾᛏ age;
     ᛋᛏᚱ citizen;
     ᛁᚾᛏ height;
-    float weight;
-    list(ᛋᛏᚱ) interests;
+    ᚠᛚᚩᛏ weight;
+    ᛚᛁᛋᛏ(ᛋᛏᚱ) interests;
+
+    ᚾᛁᛚ grow_up(Person ᛋᛖᛚᚠ, ᛁᚾᛏ years) {
+      ᛋᛖᛚᚠ.age += years;
+    }
+
+    Person whoIsOlder(Person a, Person b) {
+      ᛁᚠ (a.age > b.age) {
+        ᚱᛁᛏᚢᚱᚾ a;
+      } ᛖᛚᛋ {
+        ᚱᛁᛏᚢᚱᚾ b;
+      }
+    }
 }
 
 Person Lucas = {
@@ -117,14 +143,25 @@ Person Lucas = {
     citizen = "Argentine";
     height = 175;
     weight = 82.9;
-    ["rock", "pc gaming", "football", "girls"];
+    interests = ["rock", "pc gaming", "football", "girls"];
 }
+
+// in-line
+Person {name = "Lucas"; ...}
 ```
-Notice how the named type for the aggregated data isn't one of the contained field types but a custom-named one. This access to the type checker is the biggest offer structs have.
+Notice how the named type for the aggregated data isn't one of the contained field types but a custom-named one. This integration with the type checker is the biggest advantage structs offer.
+
+A few ground rules to keep in consideration:
+- Methods are implemented as syntax sugar over free functions. `Lucas.grow_up(5)` gets resolved to `Person::grow_up(Lucas, 5)`.
+- An instance method is any function whose first parameter is `StructType ᛋᛖᛚᚠ`; the StructType is mandatory for consistency with the rest of the language, but `ᛋᛖᛚᚠ` is a reserved keyword. Otherwise, the function is considered a static method. For example, `whoIsOlder(Person a, Person b)` would be callable only as `Person.whoIsOlder(Lucas, Marcos)` instead of `Lucas.whoIsOlder(Lucas, Marcos)`.
+- Uninitialized fields with no default raise an error.
+- Re-initializing fields (for example, if you defined `age` twice) raises an error
+- Initializing fields not present in the definition raises an error.
+- Struct literals behave as expressions and evaluate to the newly created object without requiring it to be bound to a variable.
 ### Accessing
 ```
-print(Lucas.age)
-print(Lucas.interests[1])
+ᛈᚱᛁᚾᛏ(Lucas.age)
+ᛈᚱᛁᚾᛏ(Lucas.interests[1])
 >> 17
 pc gaming
 ```
@@ -224,10 +261,10 @@ In a similar vein, enums create a custom type whose valid values can be checked 
 - `ᚠᛟᚱᛁᛁᚳᚻ(item ᛁᚾ collection){}`
 - ⚠️ each item is an object with its index attached, so even two identical items can be indexed. It's not identical to `ᚠᛟ (i ᚠᚱᛟᛗ 0 ᛏᚣ ᛚᛖᛝᚦ(collection)){collection[i]}` as that simply returns the item. The object behaves otherwise like its value, except that certain functions like `ᛁᚾᛞᛖᛉ()` can extract and return the index
 
-# functions:
+# Functions:
 - `f(x)`: function `f(x)` call
 - `t f(x){}`: function `f(x)` definition, with a return of type t
-- `ᚱᛖᛏᚢᚱᚾ [expression]`: return statement
+- `ᚱᛁᛏᚢᚱᚾ [expression]`: return statement
 
 
 # assignment:
@@ -238,24 +275,20 @@ In a similar vein, enums create a custom type whose valid values can be checked 
 - `ᛚᛁᛋᛏ(ᚳᚻᚪᚱ) char_list = ['h','e','l','l','o'];`
 - `ᚪᚱ(str, 3) names = <"john", "sarah", "arthur">;`
 - `ᛋᛖᛏ(ᛁᚾᛏ) magic_numbers = (35, 55, 75)`
-- `ᚳᛟᚾᛋᛏ` ~: prevents the variable from being reassigned (Though mutable collections can still be edited)
-- `ᚾᛄᚣ` ~: allows for variale redeclaration. Example:
+- `ᚳᛟᚾᛋᛏ`: prevents the variable from being reassigned (Though mutable collections can still be edited)
+- Redeclaration of variables is illegal
 ```
-ᛁᚾᛏ x = 5;
-//x = "hi" error: cannot assign type string to int x
-//ᛋᛏᚱ x = "hi" error: cannot redeclare variable
-ᚾᛄᚣ ᛋᛏᚱ x = "hi"; //this works
+ᛁᚾᛏ x;
+ᛋᛏᚱ x; // this errors
 ```
-  - attempting to redeclare constants results in a warning.
-  - to silence it, you can write it with a new-star instead: `ᚾᛄᚣ* ?ᚷᛚᚩᛒᚢᛚ const`
-- `ᚷᛚᚩᛒᚢᛚ ~`: allows the variable to ignore scope precedence
+- `ᚷᛚᚩᛒᚢᛚ`: places the variable in the global scope instead of the current local scope.
 ```
 ᚾᛁᛚ f(){
     a += 1;
 //  b += 1;
     ᛁᚾᛏ b = 6;
     ᛈᚱᛁᚾᛏ(c"b: {b}");
-    ᚷᛚᚩᛒᚢᛚ ᛁᚾᛏ c = 7;
+    ᚷᛚᚩᛒᚢᛚ int c = 7;
 }
 
 ᚷᛚᚩᛒᚢᛚ ᛁᚾᛏ a = 4
@@ -265,7 +298,7 @@ f()  //a becomes 5, b would error @ line 3 if it wasn't commented
 >> b: 6
 5, 7
 ```
-  - the order of all four assignment keywords is `ᚾᛄᚣ ᚷᛚᚩᛒᚢᛚ const int var_name
+- the order of all three assignment keywords is `global const int var_name
 
 # built-ins:
 ## non-mutating conversion functions:

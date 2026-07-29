@@ -5,6 +5,7 @@ class TokenKind(Enum):
     DEBUG_NULL    = auto() #✅
     DEBUG_UNKNOWN = auto() #✅
     EOF_KIND      = auto() #✅
+    COMMENT       = auto() #❌
 
     # Literals
     INTEGER       = auto() #✅
@@ -70,6 +71,7 @@ class TokenKind(Enum):
     OPEN_BRACK    = auto() #✅
     CLOSE_BRACK   = auto() #✅
     SEMICOLON     = auto() #✅
+    HASH          = auto() #✅
 
     def Name(self):
         return self.name.lower()
@@ -88,6 +90,8 @@ def symbolize(tokenKind: TokenKind):
             return "\0"
         case TokenKind.ASSIGN:
             return "="
+        case TokenKind.EXPONENT:
+            return "^"
         case TokenKind.OPEN_PAREN:
             return "("
         case TokenKind.CLOSE_PAREN:
@@ -106,6 +110,12 @@ def symbolize(tokenKind: TokenKind):
             return "c"
         case TokenKind.COMMA:
             return ","
+        case TokenKind.DOUBLE_SLASH:
+            return "//"
+        case TokenKind.DOT:
+            return "."
+        case TokenKind.HASH:
+            return "#"
         case _:
             return f"unmatched symbol: {tokenKind.name}"
 
@@ -127,7 +137,7 @@ class Token:
 def newToken(kind: TokenKind, value: str):
     return Token(kind, value)
 
-TYPES: list[TokenKind] = [
+DATA_TYPES: list[TokenKind] = [
     TokenKind.INT,
     TokenKind.STR,
     TokenKind.FLOAT,
@@ -153,6 +163,16 @@ LITERALS = [
     TokenKind.STRING,
     TokenKind.TRUE,
     TokenKind.FALSE
+]
+
+DELIMITERS = [
+    TokenKind.OPEN_PAREN,
+    TokenKind.CLOSE_PAREN,
+    TokenKind.OPEN_CURLY,
+    TokenKind.CLOSE_CURLY,
+    TokenKind.OPEN_BRACK,
+    TokenKind.CLOSE_BRACK,
+    TokenKind.SEMICOLON
 ]
 
 OPERATORS = [
@@ -192,7 +212,7 @@ COMPARISON_OPS = (
     TokenKind.MORE_THAN,
     TokenKind.LESS_THAN,
     TokenKind.LESS_EQUAL,
-    TokenKind.LESS_EQUAL
+    TokenKind.MORE_EQUAL
 )
 LOGICAL_OPS = (
     TokenKind.NOT,
