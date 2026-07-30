@@ -4,25 +4,25 @@ https://www.harysdalvi.com/futhorc webapp runes keyboard
 
 # Quick rundown
 ## Types
-- `ᛁᚾᛏ`, `ᚠᛚᚩᛏ`, `ᚳᚻᚪᚱ`, `ᛋᛏᚱ ᛥᚱ`, `ᛒᚣᛚ`, `ᛖᚾᛁ`, `ᚾᛁᛚ`
+- `ᛁᚾᛏ`, `ᚠᛚᚩᛏ`, `ᚳᚻᚪᚱ`, `ᛋᛏᚱ ᛥᚱ`, `ᛒᚣᛚ`, `ᛖᚾᛁ`, `ᚾᛁᛚ`, `ᚢᚾᛁᚾᛁᛋᚻᚢᛚᛡᛋᛏ` or `ᚢᚾᛁᚾᛁᛋᚻᚢᛚᛡᛥ`
 ## Collections
 - `ᛚᛁᛋᛏ(t) ᛚᛁᛥ(t) [1, 2, 3]`
 - `ᚪᚱ(t, n) <1, 2, 3>`
 - `ᛋᛖᛏ(t) (1, 2, 3)`
 - `ᛁᚾᚣᛗ(t) my_var = (NAME = ?value;)`
-- `ᛋᛏᚱᚢᚳᛏ MyType = {?const type field = ?value;}`
+- `ᛋᛏᚱᚢᚳᛏ MyType = {?ᚳᛟᚾᛋᛏ type field = ?value;}`
 ## Operators
 - `+`, `-`, `*`, `/`, `**` `^`, `%`, `//`
 - `==`, `!= ≠`, `>`, `<`, `>= ≥`, `<= ≤`
 - `ᚾᛟᛏ`, `ᚫᚾᛞ`, `ᛟᚱ`, `ᛉᛟᚱ`
 ## Control flow
 - `ᛁᚠ () {} ᛖᛚᛁᚠ () {} ᛖᛚᛋ {this always runs}`
-- `for (i from a to b) {}`
-- `foreach (item in collection) {}`
+- `ᚠᛟ (i ᚠᚱᛟᛗ a ᛏᚣ b) {}`
+- `ᚠᛟᚱᛁᛁᚳᚻ(item ᛁᚾ collection) {}`
 - `ᚹᛠᛚ () {}`
 - `ᚢᚾᛏᛁᛚ () {}`
 ## Assignment
-- `?new ?global ?const type my_var = value;`
+- `?ᚾᛁᚢ ?ᚷᛚᚩᛒᚢᛚ ?ᚳᛟᚾᛋᛏ type my_var = value;`
 ## Returns
 - ᚱᛁᛏᚢᚱᚾ
 
@@ -42,24 +42,15 @@ https://www.harysdalvi.com/futhorc webapp runes keyboard
 - **boolean number**: `ᛒᚣᛚ` `ᛏᚱᚣ` `ᚠᛟᛚᛋ`
 - **type-flexible**: `ᛖᚾᛁ`
 - **null**, **none**, **nothing**: `ᚾᛁᛚ`
+- **uninitialized**: `ᚢᚾᛁᚾᛁᛋᚻᚢᛚᛡᛋᛏ` or `ᚢᚾᛁᚾᛁᛋᚻᚢᛚᛡᛥ`
+    - special meta-type to mark variables as uninitialized and enable special behavior and circumvent the type checker
 
 ## falsy behavior:
-- any value other than the ones stated are evaluated to true
-- **integer**: `0`
-- **character** `''`
-- **string** `""`
-- **float** `0.0`
-- **boolean** `ᚠᛟᛚᛋ`
-- **list** `[]`
-- **array** `<>`
-- **set** `()`
-- `ᚾᛁᛚ`
-- *notes: alternatively, trying to truth ᚾᛁᛚ could be made into erroring. As a consequence:
-- `ᛁᚠ (ᚾᛁᛚ) {this never runs} ᛖᛚᛋ {this always runs}` however
-- `ᛁᚠ (ᚾᛁᛚ == ᛏᚱᚣ) {this never runs} ᛖᛚᛁᚠ (ᚾᛁᛚ == ᚠᛟᛚᛋ) {this doesn't run either}`, also
-- `ᛒᚣᛚ(ᚾᛁᛚ)` crashes the program (throws an error)
-- `ᚹᛠᛚ(ᚾᛁᛚ) {will never run}`
-- `ᚢᚾᛏᛁᛚ(ᚾᛁᛚ) {will run forever}`
+Truthiness can only be accessed with the built-in `bool()` function, that gets any data as its argument and returns its truthy value. Truthiness can otherwise not be accessed, and instead explicit boolean values must be used in logical operations.
+- **Comparisons** like `==`, `<` and `>=` can take numeric values (`ᛁᚾᛏ`, `ᚠᛚᚩᛏ`), as well as boolean values `ᛏᚱᚣ` and `ᚠᛟᛚᛋ`.
+- **Logic operators** like `ᚫᚾᛞ`, `ᛟᚱ` and `ᛉᛟᚱ` can only be performed on strict boolean values, or type-casted non-boolean values through the `bool()` function.
+  - `5 ᚫᚾᛞ ᚠᛟᛚᛋ` ❌
+  - `bool(5) ᚫᚾᛞ ᚠᛟᛚᛋ` ✅
 
 ## collections:
 - list: `ᛚᛁᛋᛏ(type)` [1, 2, 3] (mutable, dynamically resizable)
@@ -86,9 +77,9 @@ https://www.harysdalvi.com/futhorc webapp runes keyboard
 Typed arrays are arrays that can store multiple types of data in an ordered manner. Their minimum length is determined by the amount of types specified. A typed array is, syntactically, an array whose type passed is a list of types.
 
 ### unnumbered types
-`ᚪᚱ([ᛁᚾᛏ, ᛋᛏᚱ, float], 3)`: this type can hold 3 items, and the order in which they're held must match that of their definition. As such, `[1, "a", 1.5]` is a valid form, but `["a", 1, 1.0]` isn't.
+`ᚪᚱ([ᛁᚾᛏ, ᛋᛏᚱ, ᚠᛚᚩᛏ], 3)`: this type can hold 3 items, and the order in which they're held must match that of their definition. As such, `[1, "a", 1.5]` is a valid form, but `["a", 1, 1.0]` isn't.
 
-However, if we change it to `ᚪᚱ([] ᛁᚾᛏ, ᛋᛏᚱ, float, 4)`, now you'll see that there are more items than there are types. This allows you to put more than one, as long as the order is preserved and all types are covered. As such, all of the following are valid
+However, if we change it to `ᚪᚱ([] ᛁᚾᛏ, ᛋᛏᚱ, ᚠᛚᚩᛏ, 4)`, now you'll see that there are more items than there are types. This allows you to put more than one, as long as the order is preserved and all types are covered. As such, all of the following are valid
 ```
 [1, "a", 1.0]
 [1, 2, "a", 1.0]
@@ -147,7 +138,8 @@ Person Lucas = {
 }
 
 // in-line
-Person {name = "Lucas"; ...}
+func(Person {name = "Lucas"; ...})
+Person.new("Lucas", 17, "Argentine", 175, 82.9, ["rock", "pc gaming", "football", "girls"])
 ```
 Notice how the named type for the aggregated data isn't one of the contained field types but a custom-named one. This integration with the type checker is the biggest advantage structs offer.
 
@@ -158,6 +150,7 @@ A few ground rules to keep in consideration:
 - Re-initializing fields (for example, if you defined `age` twice) raises an error
 - Initializing fields not present in the definition raises an error.
 - Struct literals behave as expressions and evaluate to the newly created object without requiring it to be bound to a variable.
+- All objects are passed as reference
 ### Accessing
 ```
 ᛈᚱᛁᚾᛏ(Lucas.age)
@@ -177,9 +170,9 @@ pc gaming
 
 ᛋᛏᚱᚢᚳᛏ Employee {
     ᛋᛏᚱ name;
-    const ᛁᚾᛏ id;
+    ᚳᛟᚾᛋᛏ ᛁᚾᛏ id;
     Clearance clearance = LEVEL_ONE;
-    const ᛋᛏᚱ manual = EMPLOYEE_MANUAL;
+    ᚳᛟᚾᛋᛏ ᛋᛏᚱ manual = EMPLOYEE_MANUAL;
 }
 
 Employee johnSmith = {
@@ -188,6 +181,25 @@ Employee johnSmith = {
 }
 ```
 The ID cannot be changed because it's a security measure, so it's assigned as a constant. This constant, in turn, is initialized upon instanciation. Clearance level is assumed to be the lowest possible unless stated otherwise. Finally, all employees must carry the employee manual, so it is assigned automatically and cannot be reassigned.
+## Built-in functions and equality
+All structs come with several important functions that enable certain functionalities.
+- `StructType ᚾᛁᚢ(*args)`: creates a new instance of the struct
+- `StructType ᚳᚪᛈᛁᛁ()`: creates a deep copy of the struct's instance
+- `ᛒᚣᛚ structInstanceA.ᚱᛁᛋᛖᛗᛒᛚᛋ(structInstanceB)`: makes a deep comparison of the contents of A and B.
+```thorn
+ᛋᛏᚱᚢᚳᛏ Sample {
+  ᛁᚾᛏ sample;
+}
+
+Sample a = Sample.ᚾᛁᚢ(1)
+Sample b = a
+Sample c = a.ᚳᚪᛈᛁᛁ()
+
+ᛈᚱᛁᚾᛏ(a == b) # ᛏᚱᚣ
+ᛈᚱᛁᚾᛏ(a == c) # ᚠᛟᛚᛋ
+ᛈᚱᛁᚾᛏ(a.ᚱᛁᛋᛖᛗᛒᛚᛋ(c)) # ᛏᚱᚣ
+```
+- Equality of structs is based on memory identity (Like Python's `is` keyword).
 
 ## Enumerations
 Enumerations (Abbreviated as enums) are a closed collection of discrete data instances related by their custom named type.
@@ -201,7 +213,7 @@ Enumerations (Abbreviated as enums) are a closed collection of discrete data ins
 ```
 All of them have a unified type of ᛁᚾᛏ so they don't need to have it specified inline.
 
-Enums support auto-incremented values. To do this, you have to not define a value on all fields, and they'll be initialized with + 1 from the previous one. By default the first field will start at 0, but you can define the initial value instead. Enums are always constants and cannot be reassigned, even with the `ᚾᛄᚣ` keyword.
+Enums support auto-incremented values. To do this, you have to not define a value on all fields, and they'll be initialized with + 1 from the previous one. By default the first field will start at 0, but you can define the initial value instead. Enums are always constants and cannot be reassigned, even with the `ᚾᛁᚢ` keyword.
 ```
 ᛁᚾᚣᛗ(ᛁᚾᛏ) Positions = (
     FIRST = 1;
@@ -276,7 +288,6 @@ In a similar vein, enums create a custom type whose valid values can be checked 
 - `ᚪᚱ(str, 3) names = <"john", "sarah", "arthur">;`
 - `ᛋᛖᛏ(ᛁᚾᛏ) magic_numbers = (35, 55, 75)`
 - `ᚳᛟᚾᛋᛏ`: prevents the variable from being reassigned (Though mutable collections can still be edited)
-- Redeclaration of variables is illegal
 ```
 ᛁᚾᛏ x;
 ᛋᛏᚱ x; // this errors
@@ -298,7 +309,13 @@ f()  //a becomes 5, b would error @ line 3 if it wasn't commented
 >> b: 6
 5, 7
 ```
-- the order of all three assignment keywords is `global const int var_name
+- the order of all three assignment keywords is `ᚾᛁᚢ ᚷᛚᚩᛒᚢᛚ ᚳᛟᚾᛋᛏ type var_name`
+- `ᚾᛁᚢ`: allows the programmer to redeclare variables.
+```
+ᛁᚾᛏ x = 5;
+ᛋᛏᚱ x = "hi" # errors
+ᚾᛁᚢ ᛋᛏᚱ x = "hi" # all good
+```
 
 # built-ins:
 ## non-mutating conversion functions:
@@ -457,7 +474,7 @@ real behavior: error: "ᚪᚱ type array can only contain items of type ᛁᚾ�
   - returns a copy of the set
 ## functional
 - `ᛁᚾᛏ ᛁᚾᛞᛖᛉ(ᛖᚾᛁ item)`
-  - extracts the index of an item obtained through a `ᚠᚪᚱᛁᛁᚳᚻ`
+  - extracts the index of an item obtained through a `ᚠᛟᚱᛁᛁᚳᚻ`
 - `ᛋᛏᚱ ᛁᚾᛈᚣᛏ(ᛋᛏᚱ ?preview)`
   - returns the contents of the standard input after printing the optional string preview
 - `ᚾᛁᛚ ᛈᚱᛁᚾᛏ(str output, end = "\n")`

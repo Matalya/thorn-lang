@@ -177,6 +177,25 @@ Employee johnSmith = {
 ```
 
 The ID cannot be changed because it's a security measure, so it's assigned as a constant. This constant, in turn, is initialized upon instanciation. Clearance level is assumed to be the lowest possible unless stated otherwise. Finally, all employees must carry the employee manual, so it is assigned automatically and cannot be reassigned.
+## Built-in functions and equality
+All structs come with several important functions that enable certain functionalities. 
+- `StructType StructType.new(*args)`: creates a new instance of the struct
+- `StructType structInstance.copy()`: creates a deep copy of the struct's instance
+- `bool structInstanceA.resembles(structInstanceB)`: makes a deep comparison of the contents of A and B.
+```
+struct Sample {
+  int sample;
+}
+
+Sample a = Sample.new(1)
+Sample b = a
+Sample c = a.copy()
+
+print(a == b)         # true
+print(a == c)         # false
+print(a.resembles(c)) # true
+```
+- Equality of structs is based on memory identity (Like Python's `is` keyword).
 
 ## Enumerations
 Enumerations (Abbreviated as enums) are a closed collection of discrete data instances related by their custom named type.
@@ -265,7 +284,6 @@ In a similar vein, enums create a custom type whose valid values can be checked 
 - `arr(str, 3) names = <"john", "sarah", "arthur">;`
 - `set(int) magic_numbers = (35, 55, 75)`
 - `const`: prevents the variable from being reassigned (Though mutable collections can still be edited)
-- Redeclaration of variables is illegal
 ```
 int x;
 str x; // this errors
@@ -288,6 +306,12 @@ print(c"{a}, {c}")
 5, 7
 ```
 - the order of all three assignment keywords is `global const int var_name
+- `new`: allows the programmer to redeclare variables.
+```
+int x = 5;
+str x = "hi" # errors
+new str x = "hi" # all good
+```
 
 # Built-ins:
 ## Non-mutating conversion functions:
@@ -361,7 +385,7 @@ print(c"{a}, {c}")
   - returns the length of the list
 - `int find_first(any item)`
   - returns index of first instance of item
-- `int first_nth(any item, int number)`
+- `int find_nth(any item, int number)`
   - returns index of nth instance of item
 - `int find_last(any item)`
   - returns index of last instance of item

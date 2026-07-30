@@ -205,7 +205,7 @@ class Parser:
             return Identifier(token.value)
 
         return Literal(
-            token.kind,
+            mapLiteralToType(token),
             token.value
         )
 
@@ -240,8 +240,6 @@ class Parser:
             TK.CLOSE_PAREN,
             message="Closing parenthesis not found after function arguments."
         )
-
-        self.expectSemicolon()
 
         return FunctionCall(
             Identifier(funcName.value),

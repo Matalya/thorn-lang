@@ -46,7 +46,7 @@ PRECEDENCE: list[list[Op]] = [
 ]
 
 def is_unary(operator: Op) -> bool:
-    return operator in [Op.POWER, Op.NOT, Op.NEG]
+    return operator in [Op.NOT, Op.NEG]
 
 def associativity(operator: Op) -> str:
     if not isinstance(operator, Op): 
@@ -56,7 +56,7 @@ def associativity(operator: Op) -> str:
 def arity(operator: Op):
     if not isinstance(operator, Op): 
         raise TypeError(f"precedence(): Expected operator type, got {type(operator)}")
-    return "unary" if operator in [Op.POWER, Op.NEG, Op.NOT] else "binary"
+    return "unary" if operator in [Op.NEG, Op.NOT] else "binary"
 
 def precedence(operator: Op) -> int:
     global PRECEDENCE
