@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "thorn-language"
+version = "0.1.0"
+description = "The Thorn programming language interpreter"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["pyperclip>=1.8"]
+
+[project.scripts]
+thorn = "thorn:main"
+
+[tool.setuptools]
+py-modules = [
+    "Token",
+    "lexer",
+    "parser",
+    "th_ast",
+    "semantic",
+    "runtime",
+    "interpreter",
+    "thorn",
+]

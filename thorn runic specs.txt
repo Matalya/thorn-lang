@@ -4,33 +4,32 @@ https://www.harysdalvi.com/futhorc webapp runes keyboard
 
 # Quick rundown
 ## Types
-- `ᛁᚾᛏ`, `ᚠᛚᚩᛏ`, `ᚳᚻᚪᚱ`, `ᛋᛏᚱ ᛥᚱ`, `ᛒᚣᛚ`, `ᛖᚾᛁ`, `ᚾᛁᛚ`, `ᚢᚾᛁᚾᛁᛋᚻᚢᛚᛡᛋᛏ` or `ᚢᚾᛁᚾᛁᛋᚻᚢᛚᛡᛥ`
+- `ᛁᚾᛏ`, `ᚠᛚᚩᛏ`, `ᚳᚻᚪᚱ`, `ᛋᛏᚱ`, `ᛒᚣᛚ`, `ᛖᚾᛁ`, `ᚾᛁᛚ`, `ᚢᚾᛁᚾᛁᛋᚻᚢᛚᛡᛋᛏ`
 ## Collections
-- `ᛚᛁᛋᛏ(t) ᛚᛁᛥ(t) [1, 2, 3]`
+- `ᛚᛁᛋᛏ(t) [1, 2, 3]`
 - `ᚪᚱ(t, n) <1, 2, 3>`
 - `ᛋᛖᛏ(t) (1, 2, 3)`
 - `ᛁᚾᚣᛗ(t) my_var = (NAME = ?value;)`
 - `ᛋᛏᚱᚢᚳᛏ MyType = {?ᚳᛟᚾᛋᛏ type field = ?value;}`
 ## Operators
-- `+`, `-`, `*`, `/`, `**` `^`, `%`, `//`
+- `+`, `-`, `*`, `/`, `** ^`, `%`, `//`
 - `==`, `!= ≠`, `>`, `<`, `>= ≥`, `<= ≤`
 - `ᚾᛟᛏ`, `ᚫᚾᛞ`, `ᛟᚱ`, `ᛉᛟᚱ`
 ## Control flow
-- `ᛁᚠ () {} ᛖᛚᛁᚠ () {} ᛖᛚᛋ {this always runs}`
+- `ᛁᚠ () {} ᛖᛚᛁᚠ () {} ᛖᛚᛋ {}`
 - `ᚠᛟ (i ᚠᚱᛟᛗ a ᛏᚣ b) {}`
-- `ᚠᛟᚱᛁᛁᚳᚻ(item ᛁᚾ collection) {}`
+- `ᚠᛟᚱᛁᛁᚳᚻ (item ᛁᚾ collection) {}`
 - `ᚹᛠᛚ () {}`
 - `ᚢᚾᛏᛁᛚ () {}`
 ## Assignment
 - `?ᚾᛁᚢ ?ᚷᛚᚩᛒᚢᛚ ?ᚳᛟᚾᛋᛏ type my_var = value;`
 ## Returns
-- ᚱᛁᛏᚢᚱᚾ
+- `ᚱᛁᛏᚢᚱᚾ`
 
-# types:
+# Types:
 - **integer**: `ᛁᚾᛏ` 1 2 5 67
 - **character**: `ᚳᚻᚪᚱ` 'a' 'B' '1' '!'
 - **string**: `ᛋᛏᚱ` "hello" "oh" "why me"
-    - alternative: `ᛥᚱ`
 - **composite strings**: with a `ᚳ` prefix, you can put variables between curly brackets and they won't be treated as string literals. Example:
     ```
     ᛋᛏᚱ ah = "Hello"
@@ -42,41 +41,43 @@ https://www.harysdalvi.com/futhorc webapp runes keyboard
 - **boolean number**: `ᛒᚣᛚ` `ᛏᚱᚣ` `ᚠᛟᛚᛋ`
 - **type-flexible**: `ᛖᚾᛁ`
 - **null**, **none**, **nothing**: `ᚾᛁᛚ`
-- **uninitialized**: `ᚢᚾᛁᚾᛁᛋᚻᚢᛚᛡᛋᛏ` or `ᚢᚾᛁᚾᛁᛋᚻᚢᛚᛡᛥ`
+- **uninitialized**: `ᚢᚾᛁᚾᛁᛋᚻᚢᛚᛡᛋᛏ`
     - special meta-type to mark variables as uninitialized and enable special behavior and circumvent the type checker
 
-## falsy behavior:
-Truthiness can only be accessed with the built-in `bool()` function, that gets any data as its argument and returns its truthy value. Truthiness can otherwise not be accessed, and instead explicit boolean values must be used in logical operations.
+## Boolean operations and truthiness:
+Truthiness can only be accessed with the built-in `ᛒᚣᛚ()` function, that gets any data as its argument and returns its truthy value. Truthiness can otherwise not be accessed, and instead explicit boolean values must be used in logical operations.
 - **Comparisons** like `==`, `<` and `>=` can take numeric values (`ᛁᚾᛏ`, `ᚠᛚᚩᛏ`), as well as boolean values `ᛏᚱᚣ` and `ᚠᛟᛚᛋ`.
-- **Logic operators** like `ᚫᚾᛞ`, `ᛟᚱ` and `ᛉᛟᚱ` can only be performed on strict boolean values, or type-casted non-boolean values through the `bool()` function.
+- **Logic operators** like `ᚫᚾᛞ`, `ᛟᚱ` and `ᛉᛟᚱ` can only be performed on strict boolean values, or type-casted non-boolean values through the `ᛒᚣᛚ()` function.
   - `5 ᚫᚾᛞ ᚠᛟᛚᛋ` ❌
-  - `bool(5) ᚫᚾᛞ ᚠᛟᛚᛋ` ✅
+  - `ᛒᚣᛚ(5) ᚫᚾᛞ ᚠᛟᛚᛋ` ✅
 
-## collections:
+
+## Collections:
 - list: `ᛚᛁᛋᛏ(type)` [1, 2, 3] (mutable, dynamically resizable)
-  - alternative: `ᛚᛁᛥ`
 - array: `ᚪᚱ(t, n)` <1, 2, 3> (mutable, non-dynamically resizable)
 - set: `ᛋᛖᛏ(t)` (1, 2, 3) (inmutable)
 - item: `collection[n]`
 - slicing: `collection[a:b]` (zero-index, b-exclusive)
 
 - *mutable: can the items of the collection be changed/added upon?*
-- *resizable: can the collection be dynamically resized with each insertion and deletion?*
+- *resizable: can the collection be dynamically resized with each insertion and deletion?\**
 - *rebindable: can the variable be reassigned to something else?*
 ```
-          |mutable|resizable|rebindable
+           |mutable|resizable|rebindable
 ᛚᛁᛋᛏ       |   ✅  |   ✅   |   ✅
-ᚳᛟᚾᛋᛏ ᛚᛁᛋᛏ  |   ✅  |   ✅   |   ❌
-ᚪᚱ        |   ✅  |   ❌   |   ✅ 
-ᚳᛟᚾᛋᛏ ᚪᚱ   |   ✅  |   ❌   |   ❌
-ᛋᛖᛏ       |   ❌  |   ❌   |   ✅ 
+ᚪᚱ        |   ✅  |   ❌   |   ✅
+ᛋᛖᛏ        |   ❌  |   ❌   |   ✅ 
+ᚳᛟᚾᛋᛏ ᛚᛁᛋᛏ |   ✅  |   ✅   |   ❌
+ᚳᛟᚾᛋᛏ ᚪᚱ  |   ✅  |   ❌   |   ❌ 
 ᚳᛟᚾᛋᛏ ᛋᛖᛏ  |   ❌  |   ❌   |   ❌
 ```
+\* arrays are not dynamically resizable, but they can be resized with the methods listed further down. The capacity is runtime allocation.
+\* Thorn sets are immutable, ordered collections that permit duplicate elements; they behave like immutable lists rather than mathematical sets.
 
-## typed arrays
+## Typed arrays
 Typed arrays are arrays that can store multiple types of data in an ordered manner. Their minimum length is determined by the amount of types specified. A typed array is, syntactically, an array whose type passed is a list of types.
 
-### unnumbered types
+### Unnumbered types
 `ᚪᚱ([ᛁᚾᛏ, ᛋᛏᚱ, ᚠᛚᚩᛏ], 3)`: this type can hold 3 items, and the order in which they're held must match that of their definition. As such, `[1, "a", 1.5]` is a valid form, but `["a", 1, 1.0]` isn't.
 
 However, if we change it to `ᚪᚱ([] ᛁᚾᛏ, ᛋᛏᚱ, ᚠᛚᚩᛏ, 4)`, now you'll see that there are more items than there are types. This allows you to put more than one, as long as the order is preserved and all types are covered. As such, all of the following are valid
@@ -86,19 +87,19 @@ However, if we change it to `ᚪᚱ([] ᛁᚾᛏ, ᛋᛏᚱ, ᚠᛚᚩᛏ, 4)`, 
 [1, "a", "b", 1.0]
 [1, "a", 1.0, 2.0]
 ```
-###numbered types
+### Numbered types
 
 No number next to the type means "any amount". However, a number means "this exact amount, no more, no less". For example: `ᚪᚱ([ᛋᛏᚱ, ᛁᚾᛏ3], 10)` represents an array that contains between 1 and 7 strings, and exactly 3 integers, and `ᚪᚱ([ᛋᛏᚱ1, ᛁᚾᛏ3], 4)` *has* to contain one string and 3 integers. This is similar to Rust's tuple structs. It goes without saying that, if the length of the array doesn't match the amount expressed in the types, the program will error. However, it can be left empty and the interpreter will automatically pre-compute the correct minimal amount, which for numbered type arrays, is in fact the recommended approach to keep typoes and confusions from causing errors.
 
 ## Structs
-Structs (`ᛋᛏᚱᚢᚳᛏ` or `ᛥᚱᚢᚳᛏ`) are named custom types that bundle an assortment of declared variable fields with their own types. A `struct` can hold data of any type. The basic structure is:
+Structs are named custom types that bundle an assortment of declared variable fields with their own types. A `ᛋᛏᚱᚢᚳᛏ` can hold data of any type. The basic structure is:
 ```
 ᛋᛏᚱᚢᚳᛏ StructType {
   type field_name;
   type field_name = default_value;
 
   type func(StructType ᛋᛖᛚᚠ, type arg) {
-    // func body
+    # func body
   }
 }
 ```
@@ -137,20 +138,18 @@ Person Lucas = {
     interests = ["rock", "pc gaming", "football", "girls"];
 }
 
-// in-line
+# in-line
 func(Person {name = "Lucas"; ...})
-Person.new("Lucas", 17, "Argentine", 175, 82.9, ["rock", "pc gaming", "football", "girls"])
 ```
 Notice how the named type for the aggregated data isn't one of the contained field types but a custom-named one. This integration with the type checker is the biggest advantage structs offer.
 
 A few ground rules to keep in consideration:
 - Methods are implemented as syntax sugar over free functions. `Lucas.grow_up(5)` gets resolved to `Person::grow_up(Lucas, 5)`.
 - An instance method is any function whose first parameter is `StructType ᛋᛖᛚᚠ`; the StructType is mandatory for consistency with the rest of the language, but `ᛋᛖᛚᚠ` is a reserved keyword. Otherwise, the function is considered a static method. For example, `whoIsOlder(Person a, Person b)` would be callable only as `Person.whoIsOlder(Lucas, Marcos)` instead of `Lucas.whoIsOlder(Lucas, Marcos)`.
-- Uninitialized fields with no default raise an error.
-- Re-initializing fields (for example, if you defined `age` twice) raises an error
+- Uninitialized fields with no default raises an error.
+- Re-initializing fields (for example, if you defined `age` twice) raise an error
 - Initializing fields not present in the definition raises an error.
 - Struct literals behave as expressions and evaluate to the newly created object without requiring it to be bound to a variable.
-- All objects are passed as reference
 ### Accessing
 ```
 ᛈᚱᛁᚾᛏ(Lucas.age)
@@ -167,26 +166,25 @@ pc gaming
     LEVEL_FOUR;
     MAXIMUM_LEVEL;
 )
-
 ᛋᛏᚱᚢᚳᛏ Employee {
     ᛋᛏᚱ name;
     ᚳᛟᚾᛋᛏ ᛁᚾᛏ id;
     Clearance clearance = LEVEL_ONE;
     ᚳᛟᚾᛋᛏ ᛋᛏᚱ manual = EMPLOYEE_MANUAL;
 }
-
 Employee johnSmith = {
     name = "John Smith";
     id = 25684978
 }
 ```
+
 The ID cannot be changed because it's a security measure, so it's assigned as a constant. This constant, in turn, is initialized upon instanciation. Clearance level is assumed to be the lowest possible unless stated otherwise. Finally, all employees must carry the employee manual, so it is assigned automatically and cannot be reassigned.
 ## Built-in functions and equality
-All structs come with several important functions that enable certain functionalities.
-- `StructType ᚾᛁᚢ(*args)`: creates a new instance of the struct
-- `StructType ᚳᚪᛈᛁᛁ()`: creates a deep copy of the struct's instance
+All structs come with several important functions that enable certain functionalities. 
+- `StructType StructType.ᚾᛁᚢ(*args)`: creates a new instance of the struct
+- `StructType structInstance.ᚳᚪᛈᛁᛁ()`: creates a deep copy of the struct's instance
 - `ᛒᚣᛚ structInstanceA.ᚱᛁᛋᛖᛗᛒᛚᛋ(structInstanceB)`: makes a deep comparison of the contents of A and B.
-```thorn
+```
 ᛋᛏᚱᚢᚳᛏ Sample {
   ᛁᚾᛏ sample;
 }
@@ -195,8 +193,8 @@ Sample a = Sample.ᚾᛁᚢ(1)
 Sample b = a
 Sample c = a.ᚳᚪᛈᛁᛁ()
 
-ᛈᚱᛁᚾᛏ(a == b) # ᛏᚱᚣ
-ᛈᚱᛁᚾᛏ(a == c) # ᚠᛟᛚᛋ
+ᛈᚱᛁᚾᛏ(a == b)         # ᛏᚱᚣ
+ᛈᚱᛁᚾᛏ(a == c)         # ᚠᛟᛚᛋ
 ᛈᚱᛁᚾᛏ(a.ᚱᛁᛋᛖᛗᛒᛚᛋ(c)) # ᛏᚱᚣ
 ```
 - Equality of structs is based on memory identity (Like Python's `is` keyword).
@@ -211,22 +209,22 @@ Enumerations (Abbreviated as enums) are a closed collection of discrete data ins
     RIGHT = 3;
 )
 ```
-All of them have a unified type of ᛁᚾᛏ so they don't need to have it specified inline.
+All of them have a unified type of int so they don't need to have it specified inline.
 
 Enums support auto-incremented values. To do this, you have to not define a value on all fields, and they'll be initialized with + 1 from the previous one. By default the first field will start at 0, but you can define the initial value instead. Enums are always constants and cannot be reassigned, even with the `ᚾᛁᚢ` keyword.
 ```
 ᛁᚾᚣᛗ(ᛁᚾᛏ) Positions = (
     FIRST = 1;
-    SECOND; //2
-    THIRD; //3
-    FOURTH; //4
-    FIFTH; //5
+    SECOND; #2
+    THIRD; #3
+    FOURTH; #4
+    FIFTH; #5
 )
 
 ᛁᚾᚣᛗ(ᛁᚾᛏ) Weather = (
-    SUNNY; //0
-    RAINY; //1
-    STORMY; //2
+    SUNNY; #0
+    RAINY; #1
+    STORMY; #2
 )
 
 ᛁᚾᚣᛗ(ᛋᛏᚱ) Color = (
@@ -237,10 +235,10 @@ Enums support auto-incremented values. To do this, you have to not define a valu
     BLUE = "blue"
 )
 ```
-In a similar vein, enums create a custom type whose valid values can be checked up against the known valid values specified at the enum definition. This way: `Weather CLOUDY = 3;` will result in an error, becaus even though it's an ᛁᚾᛏ as specified, it's an invalid value for the `Weather` type.
+In a similar vein, enums create a custom type whose valid values can be checked up against the known valid values specified at the enum definition. This way: `Weather CLOUDY = 3;` will result in an error, becaus even though it's an int as specified, it's an invalid value for the `Weather` type.
 
 # Operators
-## arithmetic operators:
+## Arithmetic operators:
 - `+`: addition
 - `-`: substraction
 - `*`: multiplication
@@ -249,7 +247,7 @@ In a similar vein, enums create a custom type whose valid values can be checked 
 - `%`: modulo, division reminder
 - `//`: integer division, floored division
 
-## boolean operators:
+## Boolean operators:
 - `==`: equals (No type coercion)
 - `!=` (`≠`): does not equal (No type coercion)
 - `>`: greater than
@@ -265,13 +263,13 @@ In a similar vein, enums create a custom type whose valid values can be checked 
 `ᛉᛟᚱ`  0|0|0; 1|0|1; 0|1|1; 1|1|0
 ```
 
-# flow control:
+# Flow control:
 - `ᛁᚠ(cond){} ᛖᛚᛁᚠ(cond) {} ᛖᛚᛋ{}`
 - `ᚹᛠᛚ(star/cont_cond){}` (checks bef exe)
 - `ᚢᚾᛏᛁᛚ(stop_cond){}` (checks aft exe)
 - `ᚠᛟ (i ᚠᚱᛟᛗ a ᛏᚣ b){}` (b-exclusive)
 - `ᚠᛟᚱᛁᛁᚳᚻ(item ᛁᚾ collection){}`
-- ⚠️ each item is an object with its index attached, so even two identical items can be indexed. It's not identical to `ᚠᛟ (i ᚠᚱᛟᛗ 0 ᛏᚣ ᛚᛖᛝᚦ(collection)){collection[i]}` as that simply returns the item. The object behaves otherwise like its value, except that certain functions like `ᛁᚾᛞᛖᛉ()` can extract and return the index
+- ⚠️ each item is an object with its index attached. It's not identical to `ᚠᛟ (i ᚠᚱᛟᛗ 0 ᛏᚣ ᛚᛖᛝᚦ(collection)){collection[i]}` as that simply returns the item. The object behaves otherwise like its value, except that certain functions like `ᛁᚾᛞᛖᛉ()` can extract and return the index
 
 # Functions:
 - `f(x)`: function `f(x)` call
@@ -279,71 +277,110 @@ In a similar vein, enums create a custom type whose valid values can be checked 
 - `ᚱᛁᛏᚢᚱᚾ [expression]`: return statement
 
 
-# assignment:
+# Variable declarations:
 - `ᛁᚾᛏ i = 5;`
 - `ᚳᚻᚪᚱ c = 'c';`
 - `ᛋᛏᚱ hello = "hello";`
-- `ᛚᛁᛋᛏ(int) int_list = [1, 2, 3];`
+- `ᛚᛁᛋᛏ(ᛁᚾᛏ) int_list = [1, 2, 3];`
 - `ᛚᛁᛋᛏ(ᚳᚻᚪᚱ) char_list = ['h','e','l','l','o'];`
-- `ᚪᚱ(str, 3) names = <"john", "sarah", "arthur">;`
+- `ᚪᚱ(ᛋᛏᚱ, 3) names = <"john", "sarah", "arthur">;`
 - `ᛋᛖᛏ(ᛁᚾᛏ) magic_numbers = (35, 55, 75)`
 - `ᚳᛟᚾᛋᛏ`: prevents the variable from being reassigned (Though mutable collections can still be edited)
 ```
 ᛁᚾᛏ x;
-ᛋᛏᚱ x; // this errors
+ᛋᛏᚱ x; # this errors
 ```
 - `ᚷᛚᚩᛒᚢᛚ`: places the variable in the global scope instead of the current local scope.
 ```
 ᚾᛁᛚ f(){
     a += 1;
-//  b += 1;
+#  b += 1;
     ᛁᚾᛏ b = 6;
-    ᛈᚱᛁᚾᛏ(c"b: {b}");
-    ᚷᛚᚩᛒᚢᛚ int c = 7;
+    ᛈᚱᛁᚾᛏ(ᚳ"b: {b}");
+    ᚷᛚᚩᛒᚢᛚ ᛁᚾᛏ c = 7;
 }
 
 ᚷᛚᚩᛒᚢᛚ ᛁᚾᛏ a = 4
 ᛁᚾᛏ b = 5
-f()  //a becomes 5, b would error @ line 3 if it wasn't commented
-ᛈᚱᛁᚾᛏ(c"{a}, {c}")
+f()  # a becomes 5, b would error @ line 3 if it wasn't commented
+ᛈᚱᛁᚾᛏ(ᚳ"{a}, {c}")
 >> b: 6
 5, 7
 ```
-- the order of all three assignment keywords is `ᚾᛁᚢ ᚷᛚᚩᛒᚢᛚ ᚳᛟᚾᛋᛏ type var_name`
+- the order of all three assignment keywords is `ᚾᛁᚢ ᚷᛚᚩᛒᚢᛚ ᚳᛟᚾᛋᛏ ᛁᚾᛏ var_name`.
 - `ᚾᛁᚢ`: allows the programmer to redeclare variables.
 ```
 ᛁᚾᛏ x = 5;
 ᛋᛏᚱ x = "hi" # errors
 ᚾᛁᚢ ᛋᛏᚱ x = "hi" # all good
 ```
+## Scope
+Thorn uses function-level lexical scope. Function bodies create local scopes; control-flow bodies do not. Variables declared within control-flow bodies are added to the nearest containing function scope, or to the global scope when no function contains them. Their initialization remains conditional on whether execution reaches the declaration.
+## `ᛖᚾᛁ`
+`ᛖᚾᛁ` is close to TypeScript's `unknown`. In practice, a function with a return type of `ᛖᚾᛁ` can only be assigned to variables with a type of `ᛖᚾᛁ`, but `ᛖᚾᛁ` can take on any type. However, performing operations on an `ᛖᚾᛁ`-tagged variable requires you to narrow it down via conversion or type-checking using `is_*` functions.
 
-# built-ins:
-## non-mutating conversion functions:
+# Built-ins:
+\* This documentation uses `?value` to mean "optional parameter". However, this is merely notational and is not valid Thorn source. Parameters become optional by providing a default evaluation with `=`.
+
+In collection method signatures, `T` represents the collection's element type. In array signatures, `N` represents runtime capacity. Array capacity is not part of static type identity: `ᚪᚱ(T, 3)` and `ᚪᚱ(T, 8)` have the same static type.
+
+Collection indexes are zero-based. Negative indexes count backwards from the end of the collection:
+
+```
+collection[-n] == collection[collection.ᛚᛖᛝᚦ() - n]
+```
+
+For example, `collection[-1]` accesses the last item and `collection[-2]` accesses the second-to-last item. An index outside the occupied range is a runtime error.
+
+For methods that insert at an index, `index == ᛚᛖᛝᚦ()` is valid and inserts at the end. An index greater than the collection's length is an error; insertion never creates gaps filled with `ᚾᛁᛚ`.
+
+Search methods return `ᚾᛁᛚ` when no matching item or occurrence exists. `ᚠᛠᚾᛞ_ᚾᚦ(item, number)` uses one-based occurrence numbering: `1` means the first occurrence, `2` the second, and so on. A `number` below `1` is a runtime error.
+
+`ᚳᚪᛈᛁᛁ()` performs a deep copy. Nested collections and structs are recursively copied. Repeated references and cycles preserve their topology: if two references in the original point to the same object, their copies point to the same copied object rather than two independent copies.
+
+## Non-mutating conversion functions:
 - `ᛁᚾᛏ ᛁᚾᛏ(ᛖᚾᛁ ?value)`
-  - ⚠️ optional value argument. Returns `0` if empty
+  - Converts `value` to an integer.
+  - Returns `0` if omitted.
 - `ᚳᚻᚪᚱ ᚳᚻᚪᚱ(ᛖᚾᛁ ?value)`
-  - ⚠️ optional value argument. Returns `''` if empty
+  - Converts `value` to a character.
+  - Returns `'\0'` if omitted.
 - `ᛋᛏᚱ ᛋᛏᚱ(ᛖᚾᛁ ?value)`
-  - ⚠️ optional value argument. Returns `""` if empty
+  - Converts `value` to a string.
+  - Returns `""` if omitted.
 - `ᚠᛚᚩᛏ ᚠᛚᚩᛏ(ᛖᚾᛁ ?value)`
-  - ⚠️ optional value argument. Returns `0.0` if empty
+  - Converts `value` to a floating-point number.
+  - Returns `0.0` if omitted.
 - `ᛒᚣᛚ ᛒᚣᛚ(ᛖᚾᛁ value)`
-  - ⚠️ converts based on truthiness
-- `ᛚᛁᛋᛏ ᛚᛁᛋᛏ(type type, ᛖᚾᛁ ?value)`
-  - ⚠️ optional value argument. Returns `[]` if empty
-- `ᚪᚱ ᚪᚱ(type type, ᛖᚾᛁ ?value, int ?length)`
-  - ⚠️ optional value argument. Returns `<>` if empty. Optional length argument. if ᛚᛖᛝᚦ(value) > length, it'll clip it. If <, it'll leave empty space. ᚪᚱ(length = value_above_zero) returns an empty array with unused space.
-- `ᛋᛖᛏ ᛋᛖᛏ(type type, ᛖᚾᛁ ?value)`
-  - ⚠️ optional value argument. Returns `()` if empty
-## mutating conversion functions
+  - Converts `value` according to its truthiness.
+- `ᛚᛁᛋᛏ(T) ᛚᛁᛋᛏ(type T, ᛖᚾᛁ ?value)`
+  - Converts `value` into a list whose element type is `T`.
+  - Returns `[]` if `value` is omitted.
+- `ᚪᚱ(T, N) ᚪᚱ(type T, ᛖᚾᛁ ?value, ᛁᚾᛏ ?capacity)`
+  - Converts `value` into an array whose element type is `T`.
+  - If `capacity` is omitted and `value` is provided, capacity defaults to the resulting length.
+  - If both `value` and `capacity` are omitted, returns an empty array with capacity `0`.
+  - If `capacity` is greater than the resulting length, the remaining capacity consists of internal empty slots. Empty slots are not Thorn `ᚾᛁᛚ` values and cannot be read directly.
+  - If `capacity` is smaller than the number of converted elements, excess elements are truncated and a warning is emitted.
+- `ᛋᛖᛏ(T) ᛋᛖᛏ(type T, ᛖᚾᛁ ?value)`
+  - Converts `value` into a set whose element type is `T`.
+  - Returns `()` if `value` is omitted.
+  - Thorn sets are ordered, immutable collections and may contain duplicate values.
+
+## Mutating conversion functions
 - `ᚾᛁᛚ ᛏᚣ_ᛁᚾᛏ(ᛖᚾᛁ value)`
 - `ᚾᛁᛚ ᛏᚣ_ᚳᚻᚪᚱ(ᛖᚾᛁ value)`
 - `ᚾᛁᛚ ᛏᚣ_ᛋᛏᚱ(ᛖᚾᛁ value)`
 - `ᚾᛁᛚ ᛏᚣ_ᚠᛚᚩᛏ(ᛖᚾᛁ value)`
 - `ᚾᛁᛚ ᛏᚣ_ᛒᚣᛚ(ᛖᚾᛁ value)`
 - `ᚾᛁᛚ ᛏᚣ_ᛚᛁᛋᛏ(ᛖᚾᛁ value)`
-- `ᚾᛁᛚ ᛏᚣ_ᚪᚱ(ᛖᚾᛁ value, ᛁᚾᛏ ?length)` ⚠️ optional length argument. If `ᛚᛖᛝᚦ(value) > length`, it'll clip it. If `<`, it'll leave empty space to add later
-## verification functions
+- `ᚾᛁᛚ ᛏᚣ_ᚪᚱ(ᛖᚾᛁ value, ᛁᚾᛏ ?capacity)`
+  - Converts `value` into an array in place.
+  - If `capacity` is omitted, capacity defaults to the resulting length.
+  - If `capacity` exceeds the resulting length, the remaining capacity consists of internal empty slots.
+  - If `capacity` is smaller than the resulting length, excess elements are truncated and a warning is emitted.
+
+## Verification functions
 - `ᛒᚣᛚ ᛁᛋ_ᛁᚾᛏ(ᛖᚾᛁ value)`
 - `ᛒᚣᛚ ᛁᛋ_ᚳᚻᚪᚱ(ᛖᚾᛁ value)`
 - `ᛒᚣᛚ ᛁᛋ_ᛋᛏᚱ(ᛖᚾᛁ value)`
@@ -353,128 +390,210 @@ f()  //a becomes 5, b would error @ line 3 if it wasn't commented
 - `ᛒᚣᛚ ᛁᛋ_ᚪᚱ(ᛖᚾᛁ value)`
 - `ᛒᚣᛚ ᛁᛋ_ᛋᛖᛏ(ᛖᚾᛁ value)`
 - `ᛒᚣᛚ ᛁᛋ_ᛖᛗᛈᛏᛁ(ᛖᚾᛁ collec)`
-  - ⚠️ returns an error if collec is not a collection
-- `ᛒᚣᛚ ᛁᛋ_ᚠᚣᛚ(ᚪᚱ collec)`
-## integer methods:
+  - Returns whether the collection contains no occupied elements.
+  - Raises an error if `collec` is not a collection.
+- `ᛒᚣᛚ ᛁᛋ_ᚠᚣᛚ(ᚪᚱ(T, N) collec)`
+  - Returns whether `collec.ᛚᛖᛝᚦ() == collec.ᚳᚢᛈᛋᛁᛏᛁᛁ()`.
+
+## Integer methods:
 - `ᛒᚣᛚ ᚷᚦ(ᛁᚾᛏ value)`
-  - returns whether it's greather than
+  - Returns whether the integer is greater than `value`.
 - `ᛒᚣᛚ ᛚᚦ(ᛁᚾᛏ value)`
-  - returns whether it's less than
+  - Returns whether the integer is less than `value`.
 - `ᛒᚣᛚ ᛒᛁᛏᚹᛁᛁᚾ(ᛖᚾᛁ lower, ᛖᚾᛁ upper)`
-  - returns whether it's between two values. if lower or higher are integers, the boundary is inclusive; if they're strings, the boundary is exclusive
+  - Returns whether the integer is between two values. If a boundary is provided as an integer, that boundary is inclusive; if it is provided as a string, that boundary is exclusive.
     ```
     5.ᛒᛁᛏᚹᛁᛁᚾ(1, 6) = [1, 6] = 1 ≤ 5 ≤ 6
     5.ᛒᛁᛏᚹᛁᛁᚾ("1", 6) = (1, 6] = 1 < 5 ≤ 6
     5.ᛒᛁᛏᚹᛁᛁᚾ(1, "6") = [1, 6) = 1 ≤ 5 < 6
     5.ᛒᛁᛏᚹᛁᛁᚾ("1", "6") = (1, 6) = 1 < 5 < 6
     ```
-## list methods
-- `ᚾᛁᛚ ᚢᛈᛖᚾᛞ(ᛖᚾᛁ item)`
-  - adds item to end of list
-- `ᚾᛁᛚ ᛁᚾᛋᚢᚱᛏ(ᛖᚾᛁ item, int index)`
-  - adds item at index, shifts everything after one place
-  - if `index > ᛚᛖᛝᚦ(list)` fills the index gap with ᚾᛁᛚ's and shows a warning
-- `ᚾᛁᛚ ᛈᚱᛁᛈᛖᚾᛞ(ᛖᚾᛁ item)`
-  - adds item to first index, shifts everything one place
-- `ᛖᚾᛁ ᚱᛁᛈᛚᛠᛋ_ᚫᛏ(ᛁᚾᛏ index)`
-  - reassigns item at index to new value, returns the old value
-- `ᛚᛁᛋᛏ ᛋᚻᛟᛏᛖᚾ(ᛁᚾᛏ amount = 1)`
-  - clips list by given amount. Returns a list with removed items
-- `ᛖᚾᛁ ᚱᛁᛗᚣᚠ_ᚫᛏ(ᛁᚾᛏ index)`
-  - removes item from given item, shifts everything after it one place down. Returns removed item
-- `ᛚᛁᛋᛏ ᛋᚻᛠᚠ(ᛁᚾᛏ amount = 1)`
-  - removes the specified amount of items from the beginning, shifts everything in front of it backwards and returns a list of the shaved off items
+
+## List methods
+- `ᚾᛁᛚ ᚢᛈᛖᚾᛞ(T item)`
+  - Adds `item` to the end of the list.
+- `ᚾᛁᛚ ᛁᚾᛋᚢᚱᛏ(T item, ᛁᚾᛏ index)`
+  - Adds `item` at `index` and shifts the item previously at that index and all following items one position forward.
+  - `index == ᛚᛖᛝᚦ()` inserts at the end.
+  - An index outside the valid insertion range is an error.
+- `ᚾᛁᛚ ᛈᚱᛁᛈᛖᚾᛞ(T item)`
+  - Adds `item` at the beginning of the list and shifts all existing items one position forward.
+- `T ᚱᛁᛈᛚᛠᛋ_ᚫᛏ(T item, ᛁᚾᛏ index)`
+  - Replaces the item at `index` with `item`.
+  - Returns the previous item.
+- `ᛚᛁᛋᛏ(T) ᛋᚻᛟᛏᛖᚾ(ᛁᚾᛏ amount = 1)`
+  - Removes `amount` items from the end of the list.
+  - Returns the removed items in their original order.
+- `T ᚱᛁᛗᚣᚠ_ᚫᛏ(ᛁᚾᛏ index)`
+  - Removes the item at `index` and shifts all following items one position backward.
+  - Returns the removed item.
+- `ᛚᛁᛋᛏ(T) ᛋᚻᛠᚠ(ᛁᚾᛏ amount = 1)`
+  - Removes `amount` items from the beginning of the list.
+  - Shifts the remaining items backward and returns the removed items in their original order.
 - `ᛁᚾᛏ ᛚᛖᛝᚦ()`
-  - returns the length of the list
-- `ᛁᚾᛏ ᚠᛠᚾᛞ_ᚠᚢᛋᛏ(ᛖᚾᛁ item)`
-  - returns index of first instance of item
-  - alternative: `ᚠᛠᚾᛞ_ᚠᚢᚱᛥ`
-- `ᛁᚾᛏ ᚠᛠᚾᛞ_ᚾᚦ(ᛖᚾᛁ item, ᛁᚾᛏ number)`
-  - returns index of nth instance of item
-- `ᛁᚾᛏ ᚠᛠᚾᛞ_ᛚᚫᛋᛏ(ᛖᚾᛁ item)`
-  - returns index of last instance of item
-  - alternative: `ᚠᛠᚾᛞ_ᛚᚫᛥ`
-- `ᛖᚾᛁ ᛚᚪᚳᛠᛏ(ᛁᚾᛏ index)`
-  - returns item at given index
+  - Returns the number of items in the list.
+- `ᛁᚾᛏ | ᚾᛁᛚ ᚠᛠᚾᛞ_ᚠᚢᛋᛏ(ᛖᚾᛁ item)`
+  - Returns the index of the first occurrence of `item`.
+  - Returns `ᚾᛁᛚ` if no occurrence exists.
+- `ᛁᚾᛏ | ᚾᛁᛚ ᚠᛠᚾᛞ_ᚾᚦ(ᛖᚾᛁ item, ᛁᚾᛏ number)`
+  - Returns the index of the specified occurrence of `item`.
+  - `number` is one-based.
+  - Returns `ᚾᛁᛚ` if that occurrence does not exist.
+  - A `number` below `1` is an error.
+- `ᛁᚾᛏ | ᚾᛁᛚ ᚠᛠᚾᛞ_ᛚᚫᛋᛏ(ᛖᚾᛁ item)`
+  - Returns the index of the last occurrence of `item`.
+  - Returns `ᚾᛁᛚ` if no occurrence exists.
+- `T ᛚᚪᚳᛠᛏ(ᛁᚾᛏ index)`
+  - Returns the item at `index`.
+  - Negative indexes count backwards from the end.
 - `ᚾᛁᛚ ᚳᚢᛗᛈᚱᛖᛋ()`
-  - removes all ᚾᛁᛚ's from a list
+  - Removes all actual `ᚾᛁᛚ` values from the list while preserving the order of all remaining items.
+  - On a list whose element type cannot contain `ᚾᛁᛚ`, this is normally a no-op.
     ```
     [1, 2, 3, ᚾᛁᛚ, 4, ᚾᛁᛚ, 5]
     ↓
     [1, 2, 3, 4, 5]
     ```
-- `ᛚᛁᛋᛏ ᚳᚪᛈᛁᛁ(ᛚᛁᛋᛏ collec)`
-  - returns a deep copy of the list
-## array methods
-- all of the following methods error upon interacting with indices higher than the capacity
+- `ᛚᛁᛋᛏ(T) ᚳᚪᛈᛁᛁ()`
+  - Returns a deep copy of the list.
+
+For both `ᛋᚻᛟᛏᛖᚾ(amount)` and `ᛋᚻᛠᚠ(amount)`:
+- `amount == 0` returns an empty list and does not modify the collection.
+- `amount < 0` is an error.
+- `amount > ᛚᛖᛝᚦ()` is an error.
+
+## Array methods
+Arrays have both a **length** and a **capacity**.
+
+- **length** is the number of occupied elements.
+- **capacity** is the number of elements the array can contain before explicit resizing is required.
+- Capacity is runtime allocation and is not part of static type identity.
+- Unoccupied capacity consists of internal empty slots. Empty slots are not Thorn `ᚾᛁᛚ` values and cannot be accessed as elements.
+- Arrays never resize automatically. Operations that would exceed capacity produce a runtime error unless capacity is explicitly increased first.
+- Capacity changes are visible through every alias referring to the same array.
+- Assigning an existing array to a declaration written with a different `N` does not resize it.
+
+Methods that access, replace, or remove existing items require an occupied index. An index below the array's capacity may still be invalid when it refers to an empty slot.
+
 - `ᚾᛁᛚ ᚱᛁᛋᛠᛋ(ᛁᚾᛏ new_size)`
-  - changes the capacity size of the array
+  - Explicitly changes the array's capacity.
+  - `new_size < 0` is an error.
+  - `new_size == ᚳᚢᛈᛋᛁᛏᛁᛁ()` does nothing.
+  - Increasing capacity creates additional internal empty slots and does not change length.
+  - Reducing capacity below the current length truncates elements from the end until `ᛚᛖᛝᚦ() <= new_size` and emits a runtime warning.
+  - Resizing to `0` is valid; any occupied elements are truncated with a warning.
 - `ᛁᚾᛏ ᛚᛖᛝᚦ()`
-  - returns the item count of the array
+  - Returns the number of occupied elements in the array.
 - `ᛁᚾᛏ ᚳᚢᛈᛋᛁᛏᛁᛁ()`
-  - returns the capacity of the array
-- `ᚾᛁᛚ ᚢᛈᛖᚾᛞ(ᛖᚾᛁ item)`
-  - adds item to end of array
-- `ᚾᛁᛚ ᛁᚾᛋᚢᚱᛏ(ᛖᚾᛁ item, ᛁᚾᛏ index)`
-  - adds item at index, shifts everything after one place
-  - if index > length(list) fills the index gap with ᚾᛁᛚ's and shows a warning
-- `ᚾᛁᛚ ᛈᚱᛁᛈᛖᚾᛞ(ᛖᚾᛁ item)`
-  - adds item to first index, shifts everything one place
-- `ᛖᚾᛁ ᚱᛁᛗᚣᚠ_ᚫᛏ(ᛁᚾᛏ index)`
-  - reassigns item at index to new value, returns the old value
-- `ᚪᚱ ᛋᚻᛠᚠ(ᛁᚾᛏ amount = 1)`
-  - clips list by given amount. Returns a list with removed items
-- `ᛖᚾᛁ ᚱᛁᛗᚣᚠ_ᚫᛏ(ᛁᚾᛏ index)`
-  - removes item from given index, shifts everything after it one place down. Returns removed item
-- `ᚪᚱ ᛋᚻᛠᚠ(ᛁᚾᛏ amount = 1)`
-  - removes the specified amount of items from the beginning, shifts everything in front of it backwards and returns a list of the shaved off items
-- `ᛁᚾᛏ ᚠᛠᚾᛞ_ᚠᚢᛋᛏ(ᛖᚾᛁ item)`
-  - returns index of first instance of item
-  - alternative: `ᚠᛠᚾᛞ_ᚠᚢᚱᛥ`
-- `ᛁᚾᛏ ᚠᛠᚾᛞ_ᚾᚦ(ᛖᚾᛁ item, ᛁᚾᛏ number)`
-  - returns index of nth instance of item
-- `ᛁᚾᛏ ᚠᛠᚾᛞ_ᛚᚫᛋᛏ(ᛖᚾᛁ item)`
-  - returns index of last instance of item
-  - alternative: ᚠᛠᚾᛞ_ᛚᚫᛥ`
-- `ᛖᚾᛁ ᛚᚪᚳᛠᛏ(ᛁᚾᛏ index)`
-  - returns item at given index
+  - Returns the current runtime capacity of the array.
+- `ᚾᛁᛚ ᚢᛈᛖᚾᛞ(T item)`
+  - Adds `item` to the end of the occupied portion of the array.
+  - Raises an error if the array is full.
+- `ᚾᛁᛚ ᛁᚾᛋᚢᚱᛏ(T item, ᛁᚾᛏ index)`
+  - Adds `item` at `index` and shifts the item previously at that index and all following occupied items one position forward.
+  - `index == ᛚᛖᛝᚦ()` inserts at the end.
+  - Raises an error if the array is full.
+  - An index greater than the current length is an error.
+- `ᚾᛁᛚ ᛈᚱᛁᛈᛖᚾᛞ(T item)`
+  - Adds `item` to the beginning of the array and shifts all occupied items one position forward.
+  - Raises an error if the array is full.
+- `T ᚱᛁᛈᛚᛠᛋ_ᚫᛏ(T item, ᛁᚾᛏ index)`
+  - Replaces the occupied item at `index` with `item`.
+  - Returns the previous item.
+  - Does not change length or capacity.
+- `ᛚᛁᛋᛏ(T) ᛋᚻᛟᛏᛖᚾ(ᛁᚾᛏ amount = 1)`
+  - Removes `amount` occupied items from the end of the array.
+  - Returns the removed items as a list in their original order.
+  - Does not change array capacity.
+- `T ᚱᛁᛗᚣᚠ_ᚫᛏ(ᛁᚾᛏ index)`
+  - Removes the occupied item at `index`, shifts all following occupied items one position backward, and leaves an empty slot at the end of the occupied portion.
+  - Returns the removed item.
+  - Does not change capacity.
+- `ᛚᛁᛋᛏ(T) ᛋᚻᛠᚠ(ᛁᚾᛏ amount = 1)`
+  - Removes `amount` occupied items from the beginning of the array.
+  - Shifts the remaining occupied items backward and returns the removed items as a list in their original order.
+  - Does not change array capacity.
+- `ᛁᚾᛏ | ᚾᛁᛚ ᚠᛠᚾᛞ_ᚠᚢᛋᛏ(ᛖᚾᛁ item)`
+  - Returns the index of the first occurrence of `item`.
+  - Returns `ᚾᛁᛚ` if no occurrence exists.
+- `ᛁᚾᛏ | ᚾᛁᛚ ᚠᛠᚾᛞ_ᚾᚦ(ᛖᚾᛁ item, ᛁᚾᛏ number)`
+  - Returns the index of the specified occurrence of `item`.
+  - `number` is one-based.
+  - Returns `ᚾᛁᛚ` if that occurrence does not exist.
+  - A `number` below `1` is an error.
+- `ᛁᚾᛏ | ᚾᛁᛚ ᚠᛠᚾᛞ_ᛚᚫᛋᛏ(ᛖᚾᛁ item)`
+  - Returns the index of the last occurrence of `item`.
+  - Returns `ᚾᛁᛚ` if no occurrence exists.
+- `T ᛚᚪᚳᛠᛏ(ᛁᚾᛏ index)`
+  - Returns the occupied item at `index`.
+  - Negative indexes count backwards from the end of the occupied elements, not from capacity.
 - `ᚾᛁᛚ ᚳᚢᛗᛈᚱᛖᛋ()`
-  - removes all `ᚾᛁᛚ`'s from an array
-  - <1, 2, 3, ᚾᛁᛚ, 4, ᚾᛁᛚ, 5>
-  - ↓
-  - <1, 2, 3, 4, 5>
-- `ᚪᚱ ᚳᚪᛈᛁᛁ(ᚪᚱ collec)`
-  - returns a deep copy of the array
-- `ᚾᛁᛚ ᚠᛁᛚ(ᛖᚾᛁ value)`
-  - fills all available items with the specified value. Throws error if type does not match. Example:
-```
-ᚪᚱ(ᛁᚾᛏ, 5) array = <1, 2, 3>
-array.fill("1")
-expected behavior: <1, 2, 3, "1", "1">
-real behavior: error: "ᚪᚱ type array can only contain items of type ᛁᚾᛏ, not ᛋᛏᚱ"
-```
+  - Removes all actual `ᚾᛁᛚ` values from the occupied portion of the array and shifts the remaining elements together while preserving their order.
+  - Capacity remains unchanged.
+  - Internal empty slots are not Thorn `ᚾᛁᛚ` and are unaffected.
+  - On an array whose element type cannot contain `ᚾᛁᛚ`, this is normally a no-op.
+    ```
+    <1, 2, 3, ᚾᛁᛚ, 4, ᚾᛁᛚ, 5>
+    ↓
+    <1, 2, 3, 4, 5>
+    ```
+- `ᚪᚱ(T, N) ᚳᚪᛈᛁᛁ()`
+  - Returns a deep copy of the array.
+  - The copied array initially has the same current capacity as the source array.
+- `ᚾᛁᛚ ᚠᛁᛚ(T value)`
+  - Fills every currently unoccupied slot with `value`.
+  - Existing occupied elements are not replaced.
+  - After the operation, `ᛚᛖᛝᚦ() == ᚳᚢᛈᛋᛁᛏᛁᛁ()`.
+  - If the array is already full, the operation does nothing.
+    ```
+    ᚪᚱ(ᛁᚾᛏ, 5) array = <1, 2, 3>
+    array.ᚠᛁᛚ(1)
+
+    >> <1, 2, 3, 1, 1>
+    ```
+  - A value incompatible with `T` is a type error.
 - `ᚾᛁᛚ ᛋᚳᛁᚾᛏᛠᛏ()`
-  - reduces capacity such that it equals length. Throws warning: "warning: using internal name "ᛋᚳᛁᚾᛏᛠᛏ". Consider "ᛋᚻᚱᛁᛝᚳ_ᛏᚣ_ᚠᛁᛏ()" instead, weirdo".
+  - Reduces capacity until it equals length.
+  - Emits the warning: `warning: using internal name "ᛋᚳᛁᚾᛏᛠᛏ". Consider "ᛋᚻᚱᛁᛝᚳ_ᛏᚣ_ᚠᛁᛏ()" instead, weirdo`.
 - `ᚾᛁᛚ ᛋᚻᚱᛁᛝᚳ_ᛏᚣ_ᚠᛁᛏ()`
-  - reduces capacity such that it equals length. Doesn't throw sassy warning.
-## set methods
+  - Reduces capacity until it equals length without emitting the `ᛋᚳᛁᚾᛏᛠᛏ()` warning.
+
+For both `ᛋᚻᛟᛏᛖᚾ(amount)` and `ᛋᚻᛠᚠ(amount)`:
+- `amount == 0` returns an empty list and does not modify the array.
+- `amount < 0` is an error.
+- `amount > ᛚᛖᛝᚦ()` is an error.
+
+Slicing an array produces a new array containing the selected occupied elements. The resulting array's capacity is exactly equal to its resulting length.
+
+## Set methods
+Thorn sets are ordered, immutable collections. Unlike mathematical sets and sets in many other languages, Thorn sets permit duplicate values and retain their order. Their contents cannot be added to, removed from, replaced, or reordered after construction.
+
+A non-`ᚳᛟᚾᛋᛏ` variable containing a set may still be rebound to another set. `ᚳᛟᚾᛋᛏ ᛋᛖᛏ(T)` prevents that rebinding as well.
+
 - `ᛁᚾᛏ ᛚᛖᛝᚦ()`
-  - returns the length of the set
-- `ᛁᚾᛏ ᚠᛠᚾᛞ_ᚠᚢᛋᛏ(ᛖᚾᛁ item)`
-  - returns index of first instance of item
-  - alternative: `ᚠᛠᚾᛞ_ᚠᚢᚱᛥ`
-- `ᛁᚾᛏ ᚠᛠᚾᛞ_ᚾᚦ(ᛖᚾᛁ item, ᛁᚾᛏ number)`
-  - returns index of nth instance of item
-- `ᛁᚾᛏ ᚠᛠᚾᛞ_ᛚᚫᛋᛏ(ᛖᚾᛁ item)`
-  - returns index of last instance of item
-  - alternative: `ᚠᛠᚾᛞ_ᛚᚫᛥ`
-- `ᛖᚾᛁ ᛚᚪᚳᛠᛏ(ᛁᚾᛏ index)`
-  - returns item at given index
-- `ᛋᛖᛏ ᚳᚪᛈᛁᛁ()`
-  - returns a copy of the set
-## functional
+  - Returns the number of items in the set.
+- `ᛁᚾᛏ | ᚾᛁᛚ ᚠᛠᚾᛞ_ᚠᚢᛋᛏ(ᛖᚾᛁ item)`
+  - Returns the index of the first occurrence of `item`.
+  - Returns `ᚾᛁᛚ` if no occurrence exists.
+- `ᛁᚾᛏ | ᚾᛁᛚ ᚠᛠᚾᛞ_ᚾᚦ(ᛖᚾᛁ item, ᛁᚾᛏ number)`
+  - Returns the index of the specified occurrence of `item`.
+  - `number` is one-based.
+  - Returns `ᚾᛁᛚ` if that occurrence does not exist.
+  - A `number` below `1` is an error.
+- `ᛁᚾᛏ | ᚾᛁᛚ ᚠᛠᚾᛞ_ᛚᚫᛋᛏ(ᛖᚾᛁ item)`
+  - Returns the index of the last occurrence of `item`.
+  - Returns `ᚾᛁᛚ` if no occurrence exists.
+- `T ᛚᚪᚳᛠᛏ(ᛁᚾᛏ index)`
+  - Returns the item at `index`.
+  - Negative indexes count backwards from the end.
+- `ᛋᛖᛏ(T) ᚳᚪᛈᛁᛁ()`
+  - Returns a deep copy of the set.
+
+## Functional
 - `ᛁᚾᛏ ᛁᚾᛞᛖᛉ(ᛖᚾᛁ item)`
-  - extracts the index of an item obtained through a `ᚠᛟᚱᛁᛁᚳᚻ`
+  - Extracts the index attached to an item obtained through a `ᚠᛟᚱᛁᛁᚳᚻ`.
 - `ᛋᛏᚱ ᛁᚾᛈᚣᛏ(ᛋᛏᚱ ?preview)`
-  - returns the contents of the standard input after printing the optional string preview
-- `ᚾᛁᛚ ᛈᚱᛁᚾᛏ(str output, end = "\n")`
+  - Prints the optional `preview`, then returns the contents read from standard input.
+- `ᚾᛁᛚ ᛈᚱᛁᚾᛏ(ᛖᚾᛁ output, ᛋᛏᚱ end = "\n")`
+  - Prints `output`.
+  - `end` is appended after the output and defaults to a newline.

@@ -60,7 +60,7 @@ Truthiness can only be accessed with the built-in `bool()` function, that gets a
 - slicing: `collection[a:b]` (zero-index, b-exclusive)
 
 - *mutable: can the items of the collection be changed/added upon?*
-- *resizable: can the collection be dynamically resized with each insertion and deletion?*
+- *resizable: can the collection be dynamically resized with each insertion and deletion?\**
 - *rebindable: can the variable be reassigned to something else?*
 ```
            |mutable|resizable|rebindable
@@ -71,6 +71,8 @@ const list |   ✅  |   ✅   |   ❌
 const arr  |   ✅  |   ❌   |   ❌ 
 const set  |   ❌  |   ❌   |   ❌
 ```
+\* arrays are not dynamically resizable, but they can be resized with the methods listed further down. The capacity is runtime allocation.
+\* Thorn sets are immutable, ordered collections that permit duplicate elements; they behave like immutable lists rather than mathematical sets.
 
 ## Typed arrays
 Typed arrays are arrays that can store multiple types of data in an ordered manner. Their minimum length is determined by the amount of types specified. A typed array is, syntactically, an array whose type passed is a list of types.
@@ -97,7 +99,7 @@ struct StructType {
   type field_name = default_value;
 
   type func(StructType self, type arg) {
-    // func body
+    # func body
   }
 }
 ```
@@ -136,7 +138,7 @@ Person Lucas = {
     interests = ["rock", "pc gaming", "football", "girls"];
 }
 
-// in-line
+# in-line
 func(Person {name = "Lucas"; ...})
 ```
 Notice how the named type for the aggregated data isn't one of the contained field types but a custom-named one. This integration with the type checker is the biggest advantage structs offer.
@@ -213,16 +215,16 @@ Enums support auto-incremented values. To do this, you have to not define a valu
 ```
 enum(int) Positions = (
     FIRST = 1;
-    SECOND; //2
-    THIRD; //3
-    FOURTH; //4
-    FIFTH; //5
+    SECOND; #2
+    THIRD; #3
+    FOURTH; #4
+    FIFTH; #5
 )
 
 enum(int) Weather = (
-    SUNNY; //0
-    RAINY; //1
-    STORMY; //2
+    SUNNY; #0
+    RAINY; #1
+    STORMY; #2
 )
 
 enum(str) Color = (
@@ -275,7 +277,7 @@ In a similar vein, enums create a custom type whose valid values can be checked 
 - `return [expression]`: return statement
 
 
-# Assignment:
+# Variable declarations:
 - `int i = 5;`
 - `char c = 'c';`
 - `str hello = "hello";`
@@ -286,13 +288,13 @@ In a similar vein, enums create a custom type whose valid values can be checked 
 - `const`: prevents the variable from being reassigned (Though mutable collections can still be edited)
 ```
 int x;
-str x; // this errors
+str x; # this errors
 ```
 - `global`: places the variable in the global scope instead of the current local scope.
 ```
 nil f(){
     a += 1;
-//  b += 1;
+#  b += 1;
     int b = 6;
     print(c"b: {b}");
     global int c = 7;
@@ -300,37 +302,71 @@ nil f(){
 
 global int a = 4
 int b = 5
-f()  //a becomes 5, b would error @ line 3 if it wasn't commented
+f()  # a becomes 5, b would error @ line 3 if it wasn't commented
 print(c"{a}, {c}")
 >> b: 6
 5, 7
 ```
-- the order of all three assignment keywords is `global const int var_name
+- the order of all three assignment keywords is `new global const int var_name`.
 - `new`: allows the programmer to redeclare variables.
 ```
 int x = 5;
 str x = "hi" # errors
 new str x = "hi" # all good
 ```
+## Scope
+Thorn uses function-level lexical scope. Function bodies create local scopes; control-flow bodies do not. Variables declared within control-flow bodies are added to the nearest containing function scope, or to the global scope when no function contains them. Their initialization remains conditional on whether execution reaches the declaration.
+## `any`
+`any` is close to TypeScript's `unknown`. In practice, a function with a return type of `any` can only be assigned to variables with a type of `any`, but `any` can take on any type. However, performing operations on an `any`-tagged variable requires you to narrow it down via conversion or type-checking using `is_*` functions.
 
 # Built-ins:
+\* This documentation uses `?value` to mean "optional parameter". However, this is merely notational and is not valid Thorn source. Parameters become optional by providing a default evaluation with `=`.
+
+In collection method signatures, `T` represents the collection's element type. In array signatures, `N` represents runtime capacity. Array capacity is not part of static type identity: `arr(T, 3)` and `arr(T, 8)` have the same static type.
+
+Collection indexes are zero-based. Negative indexes count backwards from the end of the collection:
+
+```
+collection[-n] == collection[collection.length() - n]
+```
+
+For example, `collection[-1]` accesses the last item and `collection[-2]` accesses the second-to-last item. An index outside the occupied range is a runtime error.
+
+For methods that insert at an index, `index == length()` is valid and inserts at the end. An index greater than the collection's length is an error; insertion never creates gaps filled with `nil`.
+
+Search methods return `nil` when no matching item or occurrence exists. `find_nth(item, number)` uses one-based occurrence numbering: `1` means the first occurrence, `2` the second, and so on. A `number` below `1` is a runtime error.
+
+`copy()` performs a deep copy. Nested collections and structs are recursively copied. Repeated references and cycles preserve their topology: if two references in the original point to the same object, their copies point to the same copied object rather than two independent copies.
+
 ## Non-mutating conversion functions:
 - `int int(any ?value)`
-  - ⚠️ optional value argument. Returns `0` if empty
+  - Converts `value` to an integer.
+  - Returns `0` if omitted.
 - `char char(any ?value)`
-  - ⚠️ optional value argument. Returns `''` if empty
+  - Converts `value` to a character.
+  - Returns `'\0'` if omitted.
 - `str str(any ?value)`
-  - ⚠️ optional value argument. Returns `""` if empty
+  - Converts `value` to a string.
+  - Returns `""` if omitted.
 - `float float(any ?value)`
-  - ⚠️ optional value argument. Returns `0.0` if empty
+  - Converts `value` to a floating-point number.
+  - Returns `0.0` if omitted.
 - `bool bool(any value)`
-  - ⚠️ converts based on truthiness
-- `list list(type type, any ?value)`
-  - ⚠️ optional value argument. Returns `[]` if empty
-- `arr arr(type type, any ?value, int ?length)`
-  - ⚠️ optional value argument. Returns `<>` if empty. Optional length argument. if length(value) > length, it'll clip it. If <, it'll leave empty space. arr(length = value_above_zero) returns an empty array with unused space.
-- `set set(type type, any ?value)`
-  - ⚠️ optional value argument. Returns `()` if empty
+  - Converts `value` according to its truthiness.
+- `list(T) list(type T, any ?value)`
+  - Converts `value` into a list whose element type is `T`.
+  - Returns `[]` if `value` is omitted.
+- `arr(T, N) arr(type T, any ?value, int ?capacity)`
+  - Converts `value` into an array whose element type is `T`.
+  - If `capacity` is omitted and `value` is provided, capacity defaults to the resulting length.
+  - If both `value` and `capacity` are omitted, returns an empty array with capacity `0`.
+  - If `capacity` is greater than the resulting length, the remaining capacity consists of internal empty slots. Empty slots are not Thorn `nil` values and cannot be read directly.
+  - If `capacity` is smaller than the number of converted elements, excess elements are truncated and a warning is emitted.
+- `set(T) set(type T, any ?value)`
+  - Converts `value` into a set whose element type is `T`.
+  - Returns `()` if `value` is omitted.
+  - Thorn sets are ordered, immutable collections and may contain duplicate values.
+
 ## Mutating conversion functions
 - `nil to_int(any value)`
 - `nil to_char(any value)`
@@ -338,7 +374,12 @@ new str x = "hi" # all good
 - `nil to_float(any value)`
 - `nil to_bool(any value)`
 - `nil to_list(any value)`
-- `nil to_arr(any value, int ?length)` ⚠️ optional length argument. If `length(value) > length`, it'll clip it. If `<`, it'll leave empty space to add later
+- `nil to_arr(any value, int ?capacity)`
+  - Converts `value` into an array in place.
+  - If `capacity` is omitted, capacity defaults to the resulting length.
+  - If `capacity` exceeds the resulting length, the remaining capacity consists of internal empty slots.
+  - If `capacity` is smaller than the resulting length, excess elements are truncated and a warning is emitted.
+
 ## Verification functions
 - `bool is_int(any value)`
 - `bool is_char(any value)`
@@ -349,127 +390,210 @@ new str x = "hi" # all good
 - `bool is_arr(any value)`
 - `bool is_set(any value)`
 - `bool is_empty(any collec)`
-  - ⚠️ returns an error if collec is not a collection
-- `bool is_full(arr collec)`
-  - returns whether `array.length() == array.capacity()`
+  - Returns whether the collection contains no occupied elements.
+  - Raises an error if `collec` is not a collection.
+- `bool is_full(arr(T, N) collec)`
+  - Returns whether `collec.length() == collec.capacity()`.
+
 ## Integer methods:
 - `bool gt(int value)`
-  - returns whether it's greather than
+  - Returns whether the integer is greater than `value`.
 - `bool lt(int value)`
-  - returns whether it's less than
+  - Returns whether the integer is less than `value`.
 - `bool between(any lower, any upper)`
-  - returns whether it's between two values. if lower or higher are integers, the boundary is inclusive; if they're strings, the boundary is exclusive
+  - Returns whether the integer is between two values. If a boundary is provided as an integer, that boundary is inclusive; if it is provided as a string, that boundary is exclusive.
     ```
     5.between(1, 6) = [1, 6] = 1 ≤ 5 ≤ 6
     5.between("1", 6) = (1, 6] = 1 < 5 ≤ 6
     5.between(1, "6") = [1, 6) = 1 ≤ 5 < 6
     5.between("1", "6") = (1, 6) = 1 < 5 < 6
     ```
+
 ## List methods
-- `nil append(any item)`
-  - adds item to end of list
-- `nil insert(any item, int index)`
-  - adds item at index, shifts everything after one place
-  - if `index > length(list)` fills the index gap with nil's and shows a warning
-- `nil prepend(any item)`
-  - adds item to first index, shifts everything one place
-- `any replace_at(int index)`
-  - reassigns item at index to new value, returns the old value
-- `list shorten(int amount = 1)`
-  - clips list by given amount. Returns a list with removed items
-- `any remove_at(int index)`
-  - removes item from given item, shifts everything after it one place down. Returns removed item
-- `list shave(int amount = 1)`
-  - removes the specified amount of items from the beginning, shifts everything in front of it backwards and returns a list of the shaved off items
+- `nil append(T item)`
+  - Adds `item` to the end of the list.
+- `nil insert(T item, int index)`
+  - Adds `item` at `index` and shifts the item previously at that index and all following items one position forward.
+  - `index == length()` inserts at the end.
+  - An index outside the valid insertion range is an error.
+- `nil prepend(T item)`
+  - Adds `item` at the beginning of the list and shifts all existing items one position forward.
+- `T replace_at(T item, int index)`
+  - Replaces the item at `index` with `item`.
+  - Returns the previous item.
+- `list(T) shorten(int amount = 1)`
+  - Removes `amount` items from the end of the list.
+  - Returns the removed items in their original order.
+- `T remove_at(int index)`
+  - Removes the item at `index` and shifts all following items one position backward.
+  - Returns the removed item.
+- `list(T) shave(int amount = 1)`
+  - Removes `amount` items from the beginning of the list.
+  - Shifts the remaining items backward and returns the removed items in their original order.
 - `int length()`
-  - returns the length of the list
-- `int find_first(any item)`
-  - returns index of first instance of item
-- `int find_nth(any item, int number)`
-  - returns index of nth instance of item
-- `int find_last(any item)`
-  - returns index of last instance of item
-- `any locate(int index)`
-  - returns item at given index
+  - Returns the number of items in the list.
+- `int | nil find_first(any item)`
+  - Returns the index of the first occurrence of `item`.
+  - Returns `nil` if no occurrence exists.
+- `int | nil find_nth(any item, int number)`
+  - Returns the index of the specified occurrence of `item`.
+  - `number` is one-based.
+  - Returns `nil` if that occurrence does not exist.
+  - A `number` below `1` is an error.
+- `int | nil find_last(any item)`
+  - Returns the index of the last occurrence of `item`.
+  - Returns `nil` if no occurrence exists.
+- `T locate(int index)`
+  - Returns the item at `index`.
+  - Negative indexes count backwards from the end.
 - `nil compress()`
-  - removes all nil's from a list
+  - Removes all actual `nil` values from the list while preserving the order of all remaining items.
+  - On a list whose element type cannot contain `nil`, this is normally a no-op.
     ```
     [1, 2, 3, nil, 4, nil, 5]
     ↓
     [1, 2, 3, 4, 5]
     ```
-- `list copy(list collec)`
-  - returns a deep copy of the list
+- `list(T) copy()`
+  - Returns a deep copy of the list.
+
+For both `shorten(amount)` and `shave(amount)`:
+- `amount == 0` returns an empty list and does not modify the collection.
+- `amount < 0` is an error.
+- `amount > length()` is an error.
+
 ## Array methods
-- all of the following methods error upon interacting with indices higher than the capacity
+Arrays have both a **length** and a **capacity**.
+
+- **length** is the number of occupied elements.
+- **capacity** is the number of elements the array can contain before explicit resizing is required.
+- Capacity is runtime allocation and is not part of static type identity.
+- Unoccupied capacity consists of internal empty slots. Empty slots are not Thorn `nil` values and cannot be accessed as elements.
+- Arrays never resize automatically. Operations that would exceed capacity produce a runtime error unless capacity is explicitly increased first.
+- Capacity changes are visible through every alias referring to the same array.
+- Assigning an existing array to a declaration written with a different `N` does not resize it.
+
+Methods that access, replace, or remove existing items require an occupied index. An index below the array's capacity may still be invalid when it refers to an empty slot.
+
 - `nil resize(int new_size)`
-  - changes the capacity size of the array
+  - Explicitly changes the array's capacity.
+  - `new_size < 0` is an error.
+  - `new_size == capacity()` does nothing.
+  - Increasing capacity creates additional internal empty slots and does not change length.
+  - Reducing capacity below the current length truncates elements from the end until `length() <= new_size` and emits a runtime warning.
+  - Resizing to `0` is valid; any occupied elements are truncated with a warning.
 - `int length()`
-  - returns the item count of the array
+  - Returns the number of occupied elements in the array.
 - `int capacity()`
-  - returns the capacity of the array
-- `nil append(any item)`
-  - adds item to end of array
-- `nil insert(any item, int index)`
-  - adds item at index, shifts everything after one place
-  - if index > length(list) fills the index gap with nil's and shows a warning
-- `nil prepend(any item)`
-  - adds item to first index, shifts everything one place
-- `any remove_at(int index)`
-  - reassigns item at index to new value, returns the old value
-- `arr shave(int amount = 1)`
-  - clips list by given amount. Returns a list with removed items
-- `any remove_at(int index)`
-  - removes item from given index, shifts everything after it one place down. Returns removed item
-- `arr shave(int amount = 1)`
-  - removes the specified amount of items from the beginning, shifts everything in front of it backwards and returns a list of the shaved off items
-- `int find_first(any item)`
-  - returns index of first instance of item
-- `int first_nth(any item, int number)`
-  - returns index of nth instance of item
-- `int find_last(any item)`
-  - returns index of last instance of item
-- `any locate(int index)`
-  - returns item at given index
+  - Returns the current runtime capacity of the array.
+- `nil append(T item)`
+  - Adds `item` to the end of the occupied portion of the array.
+  - Raises an error if the array is full.
+- `nil insert(T item, int index)`
+  - Adds `item` at `index` and shifts the item previously at that index and all following occupied items one position forward.
+  - `index == length()` inserts at the end.
+  - Raises an error if the array is full.
+  - An index greater than the current length is an error.
+- `nil prepend(T item)`
+  - Adds `item` to the beginning of the array and shifts all occupied items one position forward.
+  - Raises an error if the array is full.
+- `T replace_at(T item, int index)`
+  - Replaces the occupied item at `index` with `item`.
+  - Returns the previous item.
+  - Does not change length or capacity.
+- `list(T) shorten(int amount = 1)`
+  - Removes `amount` occupied items from the end of the array.
+  - Returns the removed items as a list in their original order.
+  - Does not change array capacity.
+- `T remove_at(int index)`
+  - Removes the occupied item at `index`, shifts all following occupied items one position backward, and leaves an empty slot at the end of the occupied portion.
+  - Returns the removed item.
+  - Does not change capacity.
+- `list(T) shave(int amount = 1)`
+  - Removes `amount` occupied items from the beginning of the array.
+  - Shifts the remaining occupied items backward and returns the removed items as a list in their original order.
+  - Does not change array capacity.
+- `int | nil find_first(any item)`
+  - Returns the index of the first occurrence of `item`.
+  - Returns `nil` if no occurrence exists.
+- `int | nil find_nth(any item, int number)`
+  - Returns the index of the specified occurrence of `item`.
+  - `number` is one-based.
+  - Returns `nil` if that occurrence does not exist.
+  - A `number` below `1` is an error.
+- `int | nil find_last(any item)`
+  - Returns the index of the last occurrence of `item`.
+  - Returns `nil` if no occurrence exists.
+- `T locate(int index)`
+  - Returns the occupied item at `index`.
+  - Negative indexes count backwards from the end of the occupied elements, not from capacity.
 - `nil compress()`
-  - removes all `nil`'s from an array
+  - Removes all actual `nil` values from the occupied portion of the array and shifts the remaining elements together while preserving their order.
+  - Capacity remains unchanged.
+  - Internal empty slots are not Thorn `nil` and are unaffected.
+  - On an array whose element type cannot contain `nil`, this is normally a no-op.
     ```
     <1, 2, 3, nil, 4, nil, 5>
     ↓
     <1, 2, 3, 4, 5>
     ```
-- `arr copy(arr collec)`
-  - returns a deep copy of the array
-- `nil fill(any value)`
-  - fills all available items with the specified value. Throws error if type does not match. Example:
-  - 
-```
-arr(int, 5) array = <1, 2, 3>
-array.fill("1")
-expected behavior: <1, 2, 3, "1", "1">
-real behavior: error: "arr type array can only contain items of type int, not str"
-```
+- `arr(T, N) copy()`
+  - Returns a deep copy of the array.
+  - The copied array initially has the same current capacity as the source array.
+- `nil fill(T value)`
+  - Fills every currently unoccupied slot with `value`.
+  - Existing occupied elements are not replaced.
+  - After the operation, `length() == capacity()`.
+  - If the array is already full, the operation does nothing.
+    ```
+    arr(int, 5) array = <1, 2, 3>
+    array.fill(1)
 
+    >> <1, 2, 3, 1, 1>
+    ```
+  - A value incompatible with `T` is a type error.
 - `nil skintight()`
-  - reduces capacity such that it equals length. Throws warning: "warning: using internal name "skintight". Consider "shrink_to_fit()" instead, weirdo".
+  - Reduces capacity until it equals length.
+  - Emits the warning: `warning: using internal name "skintight". Consider "shrink_to_fit()" instead, weirdo`.
 - `nil shrink_to_fit()`
-  - reduces capacity such that it equals length. Doesn't throw sassy warning.
+  - Reduces capacity until it equals length without emitting the `skintight()` warning.
+
+For both `shorten(amount)` and `shave(amount)`:
+- `amount == 0` returns an empty list and does not modify the array.
+- `amount < 0` is an error.
+- `amount > length()` is an error.
+
+Slicing an array produces a new array containing the selected occupied elements. The resulting array's capacity is exactly equal to its resulting length.
+
 ## Set methods
+Thorn sets are ordered, immutable collections. Unlike mathematical sets and sets in many other languages, Thorn sets permit duplicate values and retain their order. Their contents cannot be added to, removed from, replaced, or reordered after construction.
+
+A non-`const` variable containing a set may still be rebound to another set. `const set(T)` prevents that rebinding as well.
+
 - `int length()`
-  - returns the length of the set
-- `int find_first(any item)`
-  - returns index of first instance of item
-- `int first_nth(any item, int number)`
-  - returns index of nth instance of item
-- `int find_last(any item)`
-  - returns index of last instance of item
-- `any locate(int index)`
-  - returns item at given index
-- `set copy()`
-  - returns a copy of the set
+  - Returns the number of items in the set.
+- `int | nil find_first(any item)`
+  - Returns the index of the first occurrence of `item`.
+  - Returns `nil` if no occurrence exists.
+- `int | nil find_nth(any item, int number)`
+  - Returns the index of the specified occurrence of `item`.
+  - `number` is one-based.
+  - Returns `nil` if that occurrence does not exist.
+  - A `number` below `1` is an error.
+- `int | nil find_last(any item)`
+  - Returns the index of the last occurrence of `item`.
+  - Returns `nil` if no occurrence exists.
+- `T locate(int index)`
+  - Returns the item at `index`.
+  - Negative indexes count backwards from the end.
+- `set(T) copy()`
+  - Returns a deep copy of the set.
+
 ## Functional
 - `int index(any item)`
-  - extracts the index of an item obtained through a `foreach`
+  - Extracts the index attached to an item obtained through a `foreach`.
 - `str input(str ?preview)`
-  - returns the contents of the standard input after printing the optional string preview
-- `nil print(str output, end = "\n")`
+  - Prints the optional `preview`, then returns the contents read from standard input.
+- `nil print(any output, str end = "\n")`
+  - Prints `output`.
+  - `end` is appended after the output and defaults to a newline.

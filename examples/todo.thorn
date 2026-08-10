@@ -1,0 +1,51 @@
+list(str) tasks = [];
+bool running = true;
+
+print("Thorn To-Do");
+print("===========");
+
+while (running) {
+    print("");
+    print("1. Add a task");
+    print("2. Show tasks");
+    print("3. Remove a task");
+    print("4. Quit");
+
+    str choice = input("> ");
+
+    if (choice == "1") {
+        str description = input("Task: ");
+        tasks.append(description);
+        print(c"Added: {description}");
+    } elsif (choice == "2") {
+        if (is_empty(tasks)) {
+            print("Nothing to do!");
+        } else {
+            print("Your tasks:");
+
+            foreach (task in tasks) {
+                int number = index(task) + 1;
+                print(c"{number}. {task}");
+            }
+        }
+    } elsif (choice == "3") {
+        if (is_empty(tasks)) {
+            print("There are no tasks to remove.");
+        } else {
+            int selectedNumber = int(input("Task number: "));
+            int taskIndex = selectedNumber - 1;
+
+            if (taskIndex >= 0 and taskIndex < tasks.length()) {
+                str removed = tasks.remove_at(taskIndex);
+                print(c"Completed: {removed}");
+            } else {
+                print("That task number does not exist.");
+            }
+        }
+    } elsif (choice == "4") {
+        running = false;
+        print("May your tasks wither before you do. Farewell!");
+    } else {
+        print("Choose 1, 2, 3, or 4.");
+    }
+}

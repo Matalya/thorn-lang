@@ -1,0 +1,19 @@
+ᛁᚾᛏ factorial(ᛁᚾᛏ value) {
+    ᛁᚠ (value <= 1) {
+        ᚱᛁᛏᚢᚱᚾ 1;
+    }
+
+    ᚱᛁᛏᚢᚱᚾ value * factorial(value - 1);
+}
+
+ᛋᛏᚱ name = "Matías";
+ᛁᚾᛏ answer = factorial(5);
+
+ᛈᚱᛁᚾᛏ(ᚳ"Hello, {name}!");
+ᛈᚱᛁᚾᛏ(ᚳ"5! is {answer}");
+
+ᛁᚠ (answer == 120) {
+    ᛈᚱᛁᚾᛏ("The Thorn interpreter works!");
+} ᛖᛚᛋ {
+    ᛈᚱᛁᚾᛏ("Something went wrong.");
+}
