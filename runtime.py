@@ -15,12 +15,17 @@ class ThornRuntimeError(Exception):
         super().__init__(message)
         self.message = message
         self.span = getattr(node, "span", None)
+        self.frames: list[tuple[str, Any]] = []
+
+    def add_frame(self, name, span):
+        self.frames.append((name, span))
 
 
 @dataclass
 class Cell:
     value: Any = UNINITIALIZED
     constant: bool = False
+    declared_type: Any = None
 
     @property
     def initialized(self) -> bool:
@@ -41,10 +46,13 @@ class Environment:
             environment = environment.parent
         return environment
 
-    def declare(self, name: str, value=UNINITIALIZED, *, constant: bool = False) -> Cell:
+    def declare(
+        self, name: str, value=UNINITIALIZED, *, constant: bool = False,
+        declared_type=None
+    ) -> Cell:
         if name in self.cells:
             raise ThornRuntimeError(f"Name '{name}' is already declared in this scope")
-        cell = Cell(value, constant)
+        cell = Cell(value, constant, declared_type)
         self.cells[name] = cell
         return cell
 
@@ -129,6 +137,22 @@ class ThornStruct:
     def copy(self):
         return copy.deepcopy(self)
 
+    def __deepcopy__(self, memo):
+        existing = memo.get(id(self))
+        if existing is not None:
+            return existing
+        result = ThornStruct(self.struct_type)
+        memo[id(self)] = result
+        result.fields = {
+            name: Cell(
+                copy.deepcopy(cell.value, memo) if cell.initialized else UNINITIALIZED,
+                cell.constant,
+                cell.declared_type,
+            )
+            for name, cell in self.fields.items()
+        }
+        return result
+
     def resembles(self, other):
         if not isinstance(other, ThornStruct) or self.struct_type.name != other.struct_type.name:
             return False
@@ -172,6 +196,159 @@ class ThornEnumType:
         raise ThornRuntimeError(f"Value {raw!r} is not declared by enum '{self.name}'")
 
 
+FILE_METHOD_ALIASES = {
+    "read": ("read", "ᚱᛁᛁᛞ"),
+    "readline": ("readline", "ᚱᛁᛁᛞᛚᛠᚾ"),
+    "readlines": ("readlines", "ᚱᛁᛁᛞᛚᛠᚾᛋ"),
+    "write": ("write", "ᚹᚱᛠᛏ"),
+    "writelines": ("writelines", "ᚹᚱᛠᛏᛚᛠᚾ"),
+    "flush": ("flush", "ᚠᛚᚢᛋᚻ"),
+    "seek": ("seek", "ᛋᛁᛁᚳ"),
+    "tell": ("tell", "ᛏᛖᛚ"),
+    "close": ("close", "ᚳᛚᚩᛋ"),
+    "closed": ("closed", "ᚳᛚᚩᛋᛞ"),
+    "readable": ("readable", "ᚱᛁᛁᛞᚢᛒᚢᛚ"),
+    "writable": ("writable", "ᚹᚱᛠᛏᚢᛒᚢᛚ"),
+    "seekable": ("seekable", "ᛋᛁᛁᚳᚢᛒᚢᛚ"),
+}
+FILE_METHOD_CANONICAL = {
+    alias: canonical
+    for canonical, aliases in FILE_METHOD_ALIASES.items()
+    for alias in aliases
+}
+
+
+class ThornFile:
+    def __init__(self, handle, path):
+        self.handle = handle
+        self.path = str(path)
+
+    def method(self, name):
+        canonical = FILE_METHOD_CANONICAL.get(name)
+        if canonical is None:
+            raise ThornRuntimeError(f"File has no method '{name}'")
+        if canonical == "closed":
+            return lambda: self.handle.closed
+        function = getattr(self, canonical)
+        parameter_aliases = {
+            "ᛋᛠᛋ": "size",
+            "ᚳᚪᚾᛏᛖᚾᛏ": "content",
+            "ᛚᛠᚾᛋ": "lines",
+            "ᚢᚠᛋᛖᛏ": "offset",
+            "ᚩᚱᛁᚷᚻᛁᚾ": "origin",
+        }
+
+        def call(*args, **kwargs):
+            normalized = {
+                parameter_aliases.get(key, key): value
+                for key, value in kwargs.items()
+            }
+            return function(*args, **normalized)
+
+        return call
+
+    def _call(self, operation, *args):
+        try:
+            return getattr(self.handle, operation)(*args)
+        except (OSError, ValueError, UnicodeError) as error:
+            raise ThornRuntimeError(
+                f"cannot {operation} file '{self.path}': {error}"
+            ) from error
+
+    def read(self, size=None):
+        return self._call("read") if size is None else self._call("read", size)
+
+    def readline(self, size=None):
+        return self._call("readline") if size is None else self._call("readline", size)
+
+    def readlines(self):
+        return ThornList(self._call("readlines"), None)
+
+    def write(self, content):
+        return self._call("write", content)
+
+    def writelines(self, lines):
+        values = lines.values if isinstance(lines, ThornCollection) else lines
+        self._call("writelines", values)
+
+    def flush(self):
+        self._call("flush")
+
+    def seek(self, offset, origin=0):
+        return self._call("seek", offset, origin)
+
+    def tell(self):
+        return self._call("tell")
+
+    def close(self):
+        if not self.handle.closed:
+            self._call("close")
+
+    def readable(self):
+        return self._call("readable")
+
+    def writable(self):
+        return self._call("writable")
+
+    def seekable(self):
+        return self._call("seekable")
+
+
+class ThornPyObject:
+    """A value owned by Python and intentionally dynamic in Thorn."""
+
+    def __init__(self, value):
+        self.value = value
+
+    @property
+    def python_type_name(self):
+        value_type = type(self.value)
+        return f"{value_type.__module__}.{value_type.__qualname__}"
+
+    def __str__(self):
+        return str(self.value)
+
+    def __repr__(self):
+        return f"pyobject({self.value!r})"
+
+    def __bool__(self):
+        return bool(self.value)
+
+    def __int__(self):
+        return int(self.value)
+
+    def __float__(self):
+        return float(self.value)
+
+
+def thorn_to_python(value):
+    if isinstance(value, ThornPyObject):
+        return value.value
+    if isinstance(value, ThornArray):
+        return [thorn_to_python(item) for item in value.values]
+    if isinstance(value, ThornList):
+        return [thorn_to_python(item) for item in value.values]
+    if isinstance(value, ThornSet):
+        return tuple(thorn_to_python(item) for item in value.values)
+    if isinstance(value, ThornEnumValue):
+        return thorn_to_python(value.raw)
+    if isinstance(value, ThornStruct):
+        raise ThornRuntimeError(
+            "Thorn structs cannot cross into Python until struct conversion is defined"
+        )
+    return value
+
+
+def python_to_thorn(value):
+    return ThornPyObject(value)
+
+
+def python_collection_item_to_thorn(value):
+    if value is None or type(value) in (bool, int, float, str):
+        return value
+    return ThornPyObject(value)
+
+
 class ReturnSignal(Exception):
     def __init__(self, value):
         self.value = value
@@ -208,8 +385,9 @@ COLLECTION_METHOD_CANONICAL = {
 class ThornCollection:
     kind = "collection"
 
-    def __init__(self, values=()):
+    def __init__(self, values=(), element_type=None):
         self.values = list(values)
+        self.element_type = element_type
 
     def __len__(self):
         return len(self.values)
@@ -225,6 +403,15 @@ class ThornCollection:
 
     def __eq__(self, other):
         return type(self) is type(other) and self.values == other.values
+
+    def __deepcopy__(self, memo):
+        existing = memo.get(id(self))
+        if existing is not None:
+            return existing
+        result = type(self)((), self.element_type)
+        memo[id(self)] = result
+        result.values = copy.deepcopy(self.values, memo)
+        return result
 
     def method(self, name: str):
         canonical = COLLECTION_METHOD_CANONICAL.get(name)
@@ -265,7 +452,7 @@ class ThornCollection:
         return copy.deepcopy(self)
 
     def sliced(self, start, end):
-        return type(self)(self.values[slice(start, end)])
+        return type(self)(self.values[slice(start, end)], self.element_type)
 
 
 class ThornList(ThornCollection):
@@ -322,8 +509,8 @@ class ThornList(ThornCollection):
 class ThornArray(ThornList):
     kind = "array"
 
-    def __init__(self, values=(), capacity=None, warning=None):
-        super().__init__(values)
+    def __init__(self, values=(), capacity=None, warning=None, element_type=None):
+        super().__init__(values, element_type)
         self._capacity = len(self.values) if capacity is None else capacity
         self.warning = warning
         if self._capacity < 0:
@@ -335,6 +522,17 @@ class ThornArray(ThornList):
     def _warn(self, message):
         if self.warning is not None:
             self.warning(message)
+
+    def __deepcopy__(self, memo):
+        existing = memo.get(id(self))
+        if existing is not None:
+            return existing
+        result = ThornArray(
+            (), self._capacity, self.warning, self.element_type
+        )
+        memo[id(self)] = result
+        result.values = copy.deepcopy(self.values, memo)
+        return result
 
     def _ensure_space(self):
         if len(self.values) >= self._capacity:
@@ -380,7 +578,7 @@ class ThornArray(ThornList):
 
     def sliced(self, start, end):
         values = self.values[slice(start, end)]
-        return ThornArray(values, len(values), self.warning)
+        return ThornArray(values, len(values), self.warning, self.element_type)
 
 
 class ThornSet(ThornCollection):
@@ -389,7 +587,7 @@ class ThornSet(ThornCollection):
     kind = "set"
 
     def sliced(self, start, end):
-        return ThornSet(self.values[slice(start, end)])
+        return ThornSet(self.values[slice(start, end)], self.element_type)
 
 
 def format_value(value) -> str:
@@ -414,4 +612,6 @@ def format_value(value) -> str:
             if cell.initialized
         )
         return f"{value.struct_type.name} {{ {fields} }}"
+    if isinstance(value, ThornPyObject):
+        return str(value.value)
     return str(value)

@@ -108,6 +108,8 @@ def mapKindToType(tokenKind: TokenKind) -> Type:
         case TK.ANY: return Type.ANY
         case TK.NIL: return Type.NIL
         case TK.UNINITIALIZED: return Type.UNINITIALIZED
+        case TK.FILE: return Type.FILE
+        case TK.PYOBJECT: return Type.PYOBJECT
         case _: raise TokenKindError(f"mapKindToType(): Unknown or invalid type token {tokenKind}")
 
 def mapLiteralToType(literalToken: Token) -> Type:

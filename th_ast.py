@@ -12,6 +12,8 @@ class Type(Enum):
     ANY = auto()
     NIL = auto()
     UNINITIALIZED = auto()
+    FILE = auto()
+    PYOBJECT = auto()
 
     def __str__(self):
         return self.name.lower()

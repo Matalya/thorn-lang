@@ -44,10 +44,34 @@ def run_source(source: str, *, output=None, input_function=None):
 def format_runtime_error(error: ThornRuntimeError, source: str, path: str) -> str:
     if error.span is None:
         return f"runtime error: {error.message}"
-    line = source.count("\n", 0, error.span.start) + 1
-    last_newline = source.rfind("\n", 0, error.span.start)
-    column = error.span.start - last_newline
-    return f"runtime error: {error.message}\n  at {path}:{line}:{column}"
+    lines = source.splitlines()
+
+    def location(span):
+        line = source.count("\n", 0, span.start) + 1
+        last_newline = source.rfind("\n", 0, span.start)
+        column = span.start - last_newline
+        return line, column
+
+    line, column = location(error.span)
+    source_line = lines[line - 1] if line <= len(lines) else ""
+    width = max(1, min(error.span.end - error.span.start, len(source_line) - column + 1))
+    gutter = len(str(line))
+    rendered = [
+        f"runtime error: {error.message}",
+        f"  --> {path}:{line}:{column}",
+        f"{' ' * gutter} |",
+        f"{line:>{gutter}} | {source_line}",
+        f"{' ' * gutter} | {' ' * (column - 1)}{'^' * width}",
+    ]
+    for name, span in error.frames:
+        if span is None:
+            rendered.append(f"  called from {name}")
+        else:
+            frame_line, frame_column = location(span)
+            rendered.append(
+                f"  called from {name} at {path}:{frame_line}:{frame_column}"
+            )
+    return "\n".join(rendered)
 
 
 def main(argv=None) -> int:

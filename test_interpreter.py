@@ -1,7 +1,10 @@
 import unittest
 from pathlib import Path
+import copy
+import tempfile
 
-from thorn import SOURCE_SUFFIXES, thorn_source_path, run_source
+from thorn import SOURCE_SUFFIXES, format_runtime_error, thorn_source_path, run_source
+from runtime import ThornList, ThornRuntimeError
 
 
 class InterpreterTests(unittest.TestCase):
@@ -213,6 +216,60 @@ class InterpreterTests(unittest.TestCase):
         )
         self.assertEqual("2\nredeclared\n", output)
 
+    def test_contextual_types_survive_reassignment_and_nested_collections(self):
+        output = self.run_program(
+            '''
+            struct Person { str name; }
+            Person person = { name = "Ada"; };
+            person = { name = "Grace"; };
+
+            list(Person) people = [{ name = "Lin"; }];
+            people[0] = { name = "Margaret"; };
+
+            print(person.name);
+            print(people[0].name);
+            '''
+        )
+        self.assertEqual("Grace\nMargaret\n", output)
+
+    def test_integer_methods_ascii_and_runic(self):
+        output = self.run_program(
+            '''
+            print(5.gt(3));
+            print(5.lt(3));
+            print(5.between(5, 6));
+            print(5.between("5", 6));
+            print(5.ᛒᛁᛏᚹᛁᛁᚾ(1, "6"));
+            '''
+        )
+        self.assertEqual("true\nfalse\ntrue\nfalse\ntrue\n", output)
+
+    def test_mutating_conversions_change_and_narrow_variables(self):
+        output = self.run_program(
+            '''
+            any number = "41";
+            to_int(number);
+            print(number + 1);
+
+            any word = 123;
+            ᛏᚣ_ᛋᛏᚱ(word);
+            print(c"value: {word}");
+
+            any letters = "abc";
+            to_list(letters);
+            print(letters);
+
+            any fixed = [1, 2, 3];
+            to_arr(fixed, 5);
+            print(fixed);
+            print(is_full(fixed));
+            '''
+        )
+        self.assertEqual(
+            "42\nvalue: 123\n[a, b, c]\n<1, 2, 3>\nfalse\n",
+            output,
+        )
+
 
 class CommandLineTests(unittest.TestCase):
     def test_lowercase_thorn_is_a_source_extension(self):
@@ -255,6 +312,204 @@ class ExampleProgramTests(unittest.TestCase):
         self.assertIn("Completed: Buy milk\n", rendered)
         self.assertIn("Your tasks:\n1. Write Thorn\n", rendered)
         self.assertTrue(rendered.endswith("Farewell!\n"))
+
+
+class RuntimeObjectTests(unittest.TestCase):
+    def test_deep_copy_preserves_cycles_and_shared_references(self):
+        shared = ThornList([1])
+        original = ThornList()
+        original.values.extend([shared, shared, original])
+
+        copied = copy.deepcopy(original)
+
+        self.assertIsNot(copied, original)
+        self.assertIs(copied.values[0], copied.values[1])
+        self.assertIs(copied, copied.values[2])
+        self.assertIsNot(shared, copied.values[0])
+
+    def test_runtime_errors_include_source_excerpt_and_thorn_call_stack(self):
+        source = '''
+float divide(int value) { return 10 / value; }
+float wrapper() { return divide(0); }
+wrapper();
+'''
+        with self.assertRaises(ThornRuntimeError) as context:
+            run_source(source)
+
+        rendered = format_runtime_error(context.exception, source, "errors.þ")
+        self.assertIn("runtime error: division by zero", rendered)
+        self.assertIn("--> errors.þ:2:", rendered)
+        self.assertIn("^", rendered)
+        self.assertIn("called from divide", rendered)
+        self.assertIn("called from wrapper", rendered)
+
+
+class FileIOTests(unittest.TestCase):
+    def test_ascii_file_api_reads_writes_seeks_and_reports_state(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = (Path(directory) / "notes.txt").as_posix()
+            output = []
+            run_source(
+                f'''
+                File file = open("{path}", "w+", encoding = "utf-8");
+                print(file.writable());
+                file.write("thorn\\n");
+                file.flush();
+                int position = file.tell();
+                print(position.gt(0));
+                file.seek(0);
+                print(file.read(), end = "");
+                print(file.closed());
+                file.close();
+                print(file.closed());
+                ''',
+                output=output.append,
+            )
+            self.assertEqual("true\ntrue\nthorn\nfalse\ntrue\n", "".join(output))
+            self.assertEqual("thorn\n", Path(path).read_text(encoding="utf-8"))
+
+    def test_runic_file_api_and_named_arguments(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = (Path(directory) / "runes.txt").as_posix()
+            output = []
+            run_source(
+                f'''
+                ᚠᛠᛚ file = ᚩᛈᛖᚾ(
+                    ᛈᚫᚦ = "{path}",
+                    ᛗᚩᛞ = "w+",
+                    ᛖᚾᚳᚩᛞᛁᛝ = "utf-8"
+                );
+                file.ᚹᚱᛠᛏ(ᚳᚪᚾᛏᛖᚾᛏ = "ᚦorn");
+                file.ᛋᛁᛁᚳ(ᚢᚠᛋᛖᛏ = 0, ᚩᚱᛁᚷᚻᛁᚾ = 0);
+                ᛈᚱᛁᚾᛏ(file.ᚱᛁᛁᛞ());
+                file.ᚳᛚᚩᛋ();
+                ᛈᚱᛁᚾᛏ(file.ᚳᛚᚩᛋᛞ());
+                ''',
+                output=output.append,
+            )
+            self.assertEqual("ᚦorn\ntrue\n", "".join(output))
+
+    def test_closed_file_and_binary_mode_fail_as_thorn_runtime_errors(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = (Path(directory) / "closed.txt").as_posix()
+            with self.assertRaises(ThornRuntimeError) as closed:
+                run_source(
+                    f'''
+                    File file = open("{path}", "w+");
+                    file.close();
+                    file.read();
+                    '''
+                )
+            self.assertIn("cannot read file", closed.exception.message)
+
+            with self.assertRaises(ThornRuntimeError) as binary:
+                run_source(f'File file = open("{path}", "rb");')
+            self.assertIn("bytes type", binary.exception.message)
+
+
+class PythonInteropTests(unittest.TestCase):
+    def test_runic_pyimport_type_builtin_and_named_parameter(self):
+        output = []
+        run_source(
+            '''
+            ᛈᛠᚪᛒᚷᚻᛖᚳᛏ math = ᛈᛠᛁᛗᛈᛟᚱᛏ(
+                ᛗᚫᚷᚻᚣᛚ = "math"
+            );
+            ᛈᚱᛁᚾᛏ(ᚠᛚᚩᛏ(math.sqrt(49)));
+            ''',
+            output=output.append,
+        )
+        self.assertEqual("7.0\n", "".join(output))
+
+    def test_runic_struct_builtin_methods_and_named_other(self):
+        output = []
+        run_source(
+            '''
+            ᛋᛏᚱᚢᚳᛏ Pair { ᛁᚾᛏ value; }
+            Pair left = Pair.ᚾᛁᚢ(3);
+            Pair right = left.ᚳᚪᛈᛁᛁ();
+            ᛈᚱᛁᚾᛏ(left.ᚱᛁᛋᛖᛗᛒᚢᛚ(ᚢᚦᚢ = right));
+            ''',
+            output=output.append,
+        )
+        self.assertEqual("true\n", "".join(output))
+
+    def test_import_members_calls_named_arguments_and_conversions(self):
+        output = []
+        run_source(
+            '''
+            pyobject math = pyimport("math");
+            float root = float(math.sqrt(81.0));
+            float pi = float(math.pi);
+
+            pyobject json = pyimport("json");
+            pyobject encoded = json.dumps([1, 2], indent = 2);
+
+            print(root);
+            print(pi > 3.0);
+            print(str(encoded));
+            ''',
+            output=output.append,
+        )
+        rendered = "".join(output)
+        self.assertTrue(rendered.startswith("9.0\ntrue\n"))
+        self.assertIn("[\n  1,\n  2\n]\n", rendered)
+
+    def test_python_classes_and_direct_foreign_callables(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = (Path(directory) / "created.txt").as_posix()
+            output = []
+            run_source(
+                f'''
+                pyobject pathlib = pyimport("pathlib");
+                pyobject constructor = pathlib.Path;
+                pyobject path = constructor("{path}");
+                path.write_text("hello", encoding = "utf-8");
+                print(bool(path.exists()));
+                print(str(path.read_text(encoding = "utf-8")));
+                ''',
+                output=output.append,
+            )
+            self.assertEqual("true\nhello\n", "".join(output))
+
+    def test_python_index_slice_iteration_and_collection_conversion(self):
+        output = []
+        run_source(
+            '''
+            pyobject json = pyimport("json");
+            pyobject values = json.loads("[10, 20, 30]");
+
+            print(int(values[1]));
+            print(str(values[0:2]));
+
+            foreach (value in values) {
+                print(int(value), end = " ");
+            }
+            print("");
+
+            to_list(values);
+            print(values);
+            ''',
+            output=output.append,
+        )
+        self.assertEqual(
+            "20\n[10, 20]\n10 20 30 \n[10, 20, 30]\n",
+            "".join(output),
+        )
+
+    def test_python_exceptions_become_thorn_runtime_errors(self):
+        with self.assertRaises(ThornRuntimeError) as domain:
+            run_source(
+                '''
+                pyobject math = pyimport("math");
+                math.sqrt(-1);
+                '''
+            )
+        self.assertIn("Python ValueError: math domain error", domain.exception.message)
+
+        with self.assertRaises(ThornRuntimeError) as missing:
+            run_source('pyobject module = pyimport("thorn_module_that_does_not_exist");')
+        self.assertIn("Python ModuleNotFoundError", missing.exception.message)
 
 
 if __name__ == "__main__":

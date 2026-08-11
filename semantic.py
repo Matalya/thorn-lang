@@ -108,7 +108,25 @@ BUILTIN_ALIASES = {
     "is_arr": ("is_arr", "ᛁᛋ_ᚪᚱ"),
     "is_set": ("is_set", "ᛁᛋ_ᛋᛖᛏ"),
     "is_empty": ("is_empty", "ᛁᛋ_ᛖᛗᛈᛏᛁ"),
-    "is_full": ("is_full", "ᛁᛋ_ᚠᚣᛚ")
+    "is_full": ("is_full", "ᛁᛋ_ᚠᚣᛚ"),
+    "to_int": ("to_int", "ᛏᚣ_ᛁᚾᛏ"),
+    "to_char": ("to_char", "ᛏᚣ_ᚳᚻᚪᚱ"),
+    "to_str": ("to_str", "ᛏᚣ_ᛋᛏᚱ"),
+    "to_float": ("to_float", "ᛏᚣ_ᚠᛚᚩᛏ"),
+    "to_bool": ("to_bool", "ᛏᚣ_ᛒᚣᛚ"),
+    "to_list": ("to_list", "ᛏᚣ_ᛚᛁᛋᛏ"),
+    "to_arr": ("to_arr", "ᛏᚣ_ᚪᚱ"),
+    "open": ("open", "ᚩᛈᛖᚾ"),
+    "pyimport": ("pyimport", "ᛈᛠᛁᛗᛈᛟᚱᛏ")
+}
+
+STRUCT_BUILTIN_METHOD_CANONICAL = {
+    "new": "new",
+    "ᚾᛁᚢ": "new",
+    "copy": "copy",
+    "ᚳᚪᛈᛁᛁ": "copy",
+    "resembles": "resembles",
+    "ᚱᛁᛋᛖᛗᛒᚢᛚ": "resembles",
 }
 
 COLLECTION_METHOD_ALIASES = {
@@ -148,6 +166,38 @@ COLLECTION_METHOD_ALIASES = {
 COLLECTION_METHOD_CANONICAL = {
     alias: canonical
     for canonical, aliases in COLLECTION_METHOD_ALIASES.items()
+    for alias in aliases
+}
+
+INTEGER_METHOD_ALIASES = {
+    "gt": ("gt", "ᚷᚦ"),
+    "lt": ("lt", "ᛚᚦ"),
+    "between": ("between", "ᛒᛁᛏᚹᛁᛁᚾ"),
+}
+INTEGER_METHOD_CANONICAL = {
+    alias: canonical
+    for canonical, aliases in INTEGER_METHOD_ALIASES.items()
+    for alias in aliases
+}
+
+FILE_METHOD_ALIASES = {
+    "read": ("read", "ᚱᛁᛁᛞ"),
+    "readline": ("readline", "ᚱᛁᛁᛞᛚᛠᚾ"),
+    "readlines": ("readlines", "ᚱᛁᛁᛞᛚᛠᚾᛋ"),
+    "write": ("write", "ᚹᚱᛠᛏ"),
+    "writelines": ("writelines", "ᚹᚱᛠᛏᛚᛠᚾ"),
+    "flush": ("flush", "ᚠᛚᚢᛋᚻ"),
+    "seek": ("seek", "ᛋᛁᛁᚳ"),
+    "tell": ("tell", "ᛏᛖᛚ"),
+    "close": ("close", "ᚳᛚᚩᛋ"),
+    "closed": ("closed", "ᚳᛚᚩᛋᛞ"),
+    "readable": ("readable", "ᚱᛁᛁᛞᚢᛒᚢᛚ"),
+    "writable": ("writable", "ᚹᚱᛠᛏᚢᛒᚢᛚ"),
+    "seekable": ("seekable", "ᛋᛁᛁᚳᚢᛒᚢᛚ"),
+}
+FILE_METHOD_CANONICAL = {
+    alias: canonical
+    for canonical, aliases in FILE_METHOD_ALIASES.items()
     for alias in aliases
 }
 
@@ -1436,6 +1486,45 @@ class SemanticAnalyzer:
     ) -> bool:
         return self.collectionElementType(typeNode) is not None
 
+    def fileMethodSignature(self, methodName: str) -> CollectionMethodSignature | None:
+        canonical = FILE_METHOD_CANONICAL.get(methodName)
+        if canonical is None:
+            return None
+        runic = methodName != canonical
+        intType = PrimitiveType(Type.INT)
+        strType = PrimitiveType(Type.STR)
+        boolType = PrimitiveType(Type.BOOL)
+        nilType = PrimitiveType(Type.NIL)
+        optionalSize = self.uniqueUnion([intType, nilType])
+
+        def parameter(asciiName, runicName, typeNode, default=False):
+            return ParameterSignature(
+                runicName if runic else asciiName,
+                typeNode,
+                default,
+            )
+
+        methods = {
+            "read": ((parameter("size", "ᛋᛠᛋ", optionalSize, True),), strType),
+            "readline": ((parameter("size", "ᛋᛠᛋ", optionalSize, True),), strType),
+            "readlines": ((), ListType(strType)),
+            "write": ((parameter("content", "ᚳᚪᚾᛏᛖᚾᛏ", strType),), intType),
+            "writelines": ((parameter("lines", "ᛚᛠᚾᛋ", ListType(strType)),), nilType),
+            "flush": ((), nilType),
+            "seek": ((
+                parameter("offset", "ᚢᚠᛋᛖᛏ", intType),
+                parameter("origin", "ᚩᚱᛁᚷᚻᛁᚾ", intType, True),
+            ), intType),
+            "tell": ((), intType),
+            "close": ((), nilType),
+            "closed": ((), boolType),
+            "readable": ((), boolType),
+            "writable": ((), boolType),
+            "seekable": ((), boolType),
+        }
+        parameters, returnType = methods[canonical]
+        return CollectionMethodSignature(canonical, parameters, returnType)
+
     def collectionMethodSignature(
         self,
         receiverType: TypeNode,
@@ -1694,6 +1783,12 @@ class SemanticAnalyzer:
                 node.target
             )
 
+            if (
+                isinstance(targetType, PrimitiveType)
+                and targetType.value == Type.PYOBJECT
+            ):
+                return PrimitiveType(Type.PYOBJECT)
+
             if targetType is not None:
                 return self.collectionElementType(
                     targetType
@@ -1705,6 +1800,12 @@ class SemanticAnalyzer:
             targetType = self.inferExpressionType(
                 node.target
             )
+
+            if (
+                isinstance(targetType, PrimitiveType)
+                and targetType.value == Type.PYOBJECT
+            ):
+                return targetType
 
             if (
                 targetType is not None
@@ -1765,7 +1866,10 @@ class SemanticAnalyzer:
                     return None
 
                 if isinstance(typeOwner, StructDeclaration):
-                    if node.callee.member.name == "new":
+                    structBuiltin = STRUCT_BUILTIN_METHOD_CANONICAL.get(
+                        node.callee.member.name
+                    )
+                    if structBuiltin == "new":
                         return NamedType(typeOwner.name)
                     method = self.structMethod(
                         typeOwner,
@@ -1786,11 +1890,31 @@ class SemanticAnalyzer:
                 if targetType is None:
                     return None
 
-                if node.callee.member.name == "copy" and isinstance(targetType, NamedType):
+                if (
+                    isinstance(targetType, PrimitiveType)
+                    and targetType.value == Type.PYOBJECT
+                ):
+                    return PrimitiveType(Type.PYOBJECT)
+
+                if (
+                    isinstance(targetType, PrimitiveType)
+                    and targetType.value == Type.INT
+                    and node.callee.member.name in INTEGER_METHOD_CANONICAL
+                ):
+                    return PrimitiveType(Type.BOOL)
+
+                if isinstance(targetType, PrimitiveType) and targetType.value == Type.FILE:
+                    signature = self.fileMethodSignature(node.callee.member.name)
+                    return signature.returnType if signature is not None else None
+
+                structBuiltin = STRUCT_BUILTIN_METHOD_CANONICAL.get(
+                    node.callee.member.name
+                )
+                if structBuiltin == "copy" and isinstance(targetType, NamedType):
                     if self.structDeclaration(targetType.name.name) is not None:
                         return targetType
 
-                if node.callee.member.name == "resembles" and isinstance(targetType, NamedType):
+                if structBuiltin == "resembles" and isinstance(targetType, NamedType):
                     if self.structDeclaration(targetType.name.name) is not None:
                         return PrimitiveType(Type.BOOL)
 
@@ -1830,6 +1954,13 @@ class SemanticAnalyzer:
 
             if isinstance(symbol, BuiltinFunctionSymbol):
                 return symbol.returnType
+
+            if (
+                isinstance(symbol, VariableSymbol)
+                and isinstance(symbol.declaredType, PrimitiveType)
+                and symbol.declaredType.value == Type.PYOBJECT
+            ):
+                return PrimitiveType(Type.PYOBJECT)
 
             return None
 
@@ -3243,6 +3374,7 @@ class SemanticAnalyzer:
     ):
         callee = node.callee
         methodName = callee.member.name
+        structBuiltinName = STRUCT_BUILTIN_METHOD_CANONICAL.get(methodName)
         typeOwner, ambiguous = self.qualifiedTypeMemberTarget(
             callee.target,
             methodName,
@@ -3292,7 +3424,7 @@ class SemanticAnalyzer:
         )
 
         if staticOwner is not None:
-            if methodName == "new":
+            if structBuiltinName == "new":
                 parameters = [
                     ParameterSignature(
                         name=field.name.name,
@@ -3381,13 +3513,61 @@ class SemanticAnalyzer:
 
             return
 
+        if (
+            isinstance(targetType, PrimitiveType)
+            and targetType.value == Type.PYOBJECT
+        ):
+            for argument in node.arguments:
+                self.visit(self.callArgumentValue(argument))
+            return
+
+        integerMethod = INTEGER_METHOD_CANONICAL.get(methodName)
+        if isinstance(targetType, PrimitiveType) and targetType.value == Type.INT and integerMethod:
+            anyType = PrimitiveType(Type.ANY)
+            parameters = (
+                [ParameterSignature("value", PrimitiveType(Type.INT), False)]
+                if integerMethod in ("gt", "lt")
+                else [
+                    ParameterSignature("lower", anyType, False),
+                    ParameterSignature("upper", anyType, False),
+                ]
+            )
+            self.checkCallableArguments(
+                node,
+                [parameters],
+                callableKind="Method",
+                callableName=methodName,
+                receiverType=targetType,
+            )
+            return
+
+        if isinstance(targetType, PrimitiveType) and targetType.value == Type.FILE:
+            signature = self.fileMethodSignature(methodName)
+            if signature is None:
+                for argument in node.arguments:
+                    self.visit(self.callArgumentValue(argument))
+                self.report(callee.member, f"File has no method named '{methodName}'.")
+                return
+            self.checkCallableArguments(
+                node,
+                [list(signature.parameters)],
+                callableKind="Method",
+                callableName=methodName,
+                receiverType=targetType,
+            )
+            return
+
         if isinstance(targetType, NamedType):
             declaration = self.structDeclaration(targetType.name.name)
-            if declaration is not None and methodName in ("copy", "resembles"):
+            if declaration is not None and structBuiltinName in ("copy", "resembles"):
                 parameters = (
                     []
-                    if methodName == "copy"
-                    else [ParameterSignature("other", targetType, False)]
+                    if structBuiltinName == "copy"
+                    else [ParameterSignature(
+                        "ᚢᚦᚢ" if methodName == "ᚱᛁᛋᛖᛗᛒᚢᛚ" else "other",
+                        targetType,
+                        False
+                    )]
                 )
                 self.checkCallableArguments(
                     node,
@@ -3556,9 +3736,41 @@ class SemanticAnalyzer:
                 callableKind="Builtin",
                 callableName=symbol.name
             )
+            mutatingTypes = {
+                "to_int": PrimitiveType(Type.INT),
+                "ᛏᚣ_ᛁᚾᛏ": PrimitiveType(Type.INT),
+                "to_char": PrimitiveType(Type.CHAR),
+                "ᛏᚣ_ᚳᚻᚪᚱ": PrimitiveType(Type.CHAR),
+                "to_str": PrimitiveType(Type.STR),
+                "ᛏᚣ_ᛋᛏᚱ": PrimitiveType(Type.STR),
+                "to_float": PrimitiveType(Type.FLOAT),
+                "ᛏᚣ_ᚠᛚᚩᛏ": PrimitiveType(Type.FLOAT),
+                "to_bool": PrimitiveType(Type.BOOL),
+                "ᛏᚣ_ᛒᚣᛚ": PrimitiveType(Type.BOOL),
+                "to_list": ListType(PrimitiveType(Type.ANY)),
+                "ᛏᚣ_ᛚᛁᛋᛏ": ListType(PrimitiveType(Type.ANY)),
+                "to_arr": ArrayType(PrimitiveType(Type.ANY), 0),
+                "ᛏᚣ_ᚪᚱ": ArrayType(PrimitiveType(Type.ANY), 0),
+            }
+            narrowedType = mutatingTypes.get(symbol.name)
+            if narrowedType is not None and node.arguments:
+                target = self.callArgumentValue(node.arguments[0])
+                if isinstance(target, Identifier):
+                    targetSymbol = self.currentScope.resolve(target.name)
+                    if isinstance(targetSymbol, VariableSymbol):
+                        targetSymbol.declaredType = narrowedType
+                        targetSymbol.initialized = True
             return
 
         if not isinstance(symbol, FunctionSymbol):
+            if (
+                isinstance(symbol, VariableSymbol)
+                and isinstance(symbol.declaredType, PrimitiveType)
+                and symbol.declaredType.value == Type.PYOBJECT
+            ):
+                for argument in node.arguments:
+                    self.visit(self.callArgumentValue(argument))
+                return
             for argument in node.arguments:
                 self.visit(self.callArgumentValue(argument))
             self.report(
@@ -3649,6 +3861,12 @@ class SemanticAnalyzer:
         if targetType is None:
             return
 
+        if (
+            isinstance(targetType, PrimitiveType)
+            and targetType.value == Type.PYOBJECT
+        ):
+            return
+
         collectionMethods = self.collectionMethodSignatures(
             targetType,
             node.member.name
@@ -3735,6 +3953,12 @@ class SemanticAnalyzer:
         )
 
         if (
+            isinstance(targetType, PrimitiveType)
+            and targetType.value == Type.PYOBJECT
+        ):
+            return
+
+        if (
             targetType is not None
             and not self.isCollectionType(targetType)
         ):
@@ -3769,6 +3993,12 @@ class SemanticAnalyzer:
         targetType = self.inferExpressionType(
             node.target
         )
+
+        if (
+            isinstance(targetType, PrimitiveType)
+            and targetType.value == Type.PYOBJECT
+        ):
+            return
 
         if (
             targetType is not None
@@ -4747,6 +4977,11 @@ class SemanticAnalyzer:
             iteratorType = self.collectionElementType(
                 collectionType
             )
+        elif (
+            isinstance(collectionType, PrimitiveType)
+            and collectionType.value == Type.PYOBJECT
+        ):
+            iteratorType = PrimitiveType(Type.PYOBJECT)
         else:
             iteratorType = None
 
@@ -5392,7 +5627,41 @@ class SemanticAnalyzer:
                     "is_int", "is_char", "is_str", "is_float", "is_bool",
                     "is_list", "is_arr", "is_set", "is_empty", "is_full"
                 )
-            }
+            },
+            **{
+                name: (
+                    PrimitiveType(Type.NIL),
+                    (anyType,),
+                    ("value",),
+                    1,
+                    1
+                )
+                for name in (
+                    "to_int", "to_char", "to_str", "to_float", "to_bool",
+                    "to_list"
+                )
+            },
+            "to_arr": (
+                PrimitiveType(Type.NIL),
+                (anyType, PrimitiveType(Type.INT)),
+                ("value", "capacity"),
+                1,
+                2
+            ),
+            "open": (
+                PrimitiveType(Type.FILE),
+                (strType, strType, strType),
+                ("path", "mode", "encoding"),
+                1,
+                3
+            ),
+            "pyimport": (
+                PrimitiveType(Type.PYOBJECT),
+                (strType,),
+                ("module",),
+                1,
+                1
+            )
         }
 
         for canonicalName, aliases in BUILTIN_ALIASES.items():
@@ -5405,12 +5674,21 @@ class SemanticAnalyzer:
             ) = signatures[canonicalName]
 
             for alias in aliases:
+                aliasParameterNames = parameterNames
+                if canonicalName == "open" and alias == "ᚩᛈᛖᚾ":
+                    aliasParameterNames = (
+                        "ᛈᚫᚦ",
+                        "ᛗᚩᛞ",
+                        "ᛖᚾᚳᚩᛞᛁᛝ",
+                    )
+                if canonicalName == "pyimport" and alias == "ᛈᛠᛁᛗᛈᛟᚱᛏ":
+                    aliasParameterNames = ("ᛗᚫᚷᚻᚣᛚ",)
                 self.globalScope.define(
                     BuiltinFunctionSymbol(
                         name=alias,
                         returnType=returnType,
                         parameterTypes=parameterTypes,
-                        parameterNames=parameterNames,
+                        parameterNames=aliasParameterNames,
                         minimumArguments=minimumArguments,
                         maximumArguments=maximumArguments
                     )

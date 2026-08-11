@@ -1,19 +1,179 @@
-ᛁᚾᛏ factorial(ᛁᚾᛏ value) {
-    ᛁᚠ (value <= 1) {
-        ᚱᛁᛏᚢᚱᚾ 1;
-    }
+# ============================================
+# Python interoperability / pyimport test
+# ============================================
 
-    ᚱᛁᛏᚢᚱᚾ value * factorial(value - 1);
+print("=== IMPORT / ATTRIBUTE ACCESS ===");
+
+pyobject math = pyimport("math");
+
+# Python attributes remain pyobject until converted.
+float pi = float(math.pi);
+float root = float(math.sqrt(81));
+
+print(c"pi = {pi}");
+print(c"sqrt(81) = {root}");
+
+
+# ============================================
+# PYTHON FUNCTION CALLS
+# ============================================
+
+print("\n=== FUNCTION CALLS ===");
+
+pyobject statistics = pyimport("statistics");
+
+list(float) numbers = [1.0, 2.0, 3.0, 4.0, 5.0];
+
+# Thorn list -> copied Python list
+float mean = float(statistics.mean(numbers));
+float median = float(statistics.median(numbers));
+
+print(c"mean = {mean}");
+print(c"median = {median}");
+
+
+# ============================================
+# RETURNED PYTHON OBJECTS + MEMBER CHAINING
+# ============================================
+
+print("\n=== RETURNED OBJECTS ===");
+
+pyobject pathlib = pyimport("pathlib");
+
+# pathlib.Path(".") returns another Python object.
+pyobject path = pathlib.Path(".");
+
+print(c"path = {str(path)}");
+
+# Calling methods on returned Python objects.
+pyobject absolutePath = path.absolute();
+
+print(c"absolute path = {str(absolutePath)}");
+
+
+# ============================================
+# INDEXING
+# ============================================
+
+print("\n=== INDEXING ===");
+
+pyobject sys = pyimport("sys");
+
+# sys.version_info is a Python object supporting indexing.
+pyobject versionInfo = sys.version_info;
+
+int major = int(versionInfo[0]);
+int minor = int(versionInfo[1]);
+int micro = int(versionInfo[2]);
+
+print(c"Python version = {major}.{minor}.{micro}");
+
+
+# ============================================
+# SLICING
+# ============================================
+
+print("\n=== SLICING ===");
+
+pyobject firstTwo = versionInfo[0:2];
+
+print(c"version_info[0:2] = {str(firstTwo)}");
+
+
+# ============================================
+# FOREACH OVER PYTHON ITERABLE
+# ============================================
+
+print("\n=== PYTHON ITERATION ===");
+
+pyobject platform = pyimport("platform");
+pyobject uname = platform.uname();
+
+foreach (item in uname) {
+    print(c"{index(item)}: {str(item)}");
 }
 
-ᛋᛏᚱ name = "Matías";
-ᛁᚾᛏ answer = factorial(5);
 
-ᛈᚱᛁᚾᛏ(ᚳ"Hello, {name}!");
-ᛈᚱᛁᚾᛏ(ᚳ"5! is {answer}");
+# ============================================
+# NAMED ARGUMENTS
+# ============================================
 
-ᛁᚠ (answer == 120) {
-    ᛈᚱᛁᚾᛏ("The Thorn interpreter works!");
-} ᛖᛚᛋ {
-    ᛈᚱᛁᚾᛏ("Something went wrong.");
-}
+print("\n=== NAMED ARGUMENTS ===");
+
+pyobject random = pyimport("random");
+
+# Python keyword arguments should receive Thorn named arguments.
+pyobject rng = random.Random(12345);
+
+# choices(population, weights=nil, *, cum_weights=nil, k=1)
+list(str) population = ["A", "B", "C"];
+
+pyobject choices = rng.choices(
+    population,
+    k = 5
+);
+
+print(c"random choices = {str(choices)}");
+
+
+# ============================================
+# PYTHON COLLECTION -> THORN COLLECTION
+# ============================================
+
+print("\n=== PYTHON -> THORN COLLECTION ===");
+
+pyobject builtins = pyimport("builtins");
+
+pyobject pythonRange = builtins.range(1, 6);
+
+print(c"before conversion = {str(pythonRange)}");
+
+to_list(pythonRange);
+
+print(c"after conversion = {pythonRange}");
+
+pythonRange.append(100);
+
+print(c"after Thorn mutation = {pythonRange}");
+
+
+# ============================================
+# THORN COLLECTIONS ARE COPIED INTO PYTHON
+# ============================================
+
+print("\n=== COLLECTION COPY SEMANTICS ===");
+
+list(int) original = [3, 1, 4, 1, 5];
+
+pyobject sortedResult = builtins.sorted(original);
+
+to_list(sortedResult);
+
+print(c"original = {original}");
+print(c"sorted = {sortedResult}");
+
+# Should demonstrate:
+# original      = [3, 1, 4, 1, 5]
+# sortedResult  = [1, 1, 3, 4, 5]
+#
+# Python sorted() received a copy, so original remains unchanged.
+
+
+# ============================================
+# DEEP ATTRIBUTE/CALL CHAIN
+# ============================================
+
+print("\n=== CHAINING ===");
+
+pyobject datetime = pyimport("datetime");
+
+pyobject now = datetime.datetime.now();
+
+int year = int(now.year);
+int month = int(now.month);
+int day = int(now.day);
+
+print(c"Python says today is {year}-{month}-{day}");
+
+
+print("\n=== ALL PYIMPORT TESTS COMPLETED ===");

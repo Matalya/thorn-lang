@@ -183,7 +183,7 @@ The ID cannot be changed because it's a security measure, so it's assigned as a 
 All structs come with several important functions that enable certain functionalities. 
 - `StructType StructType.ᚾᛁᚢ(*args)`: creates a new instance of the struct
 - `StructType structInstance.ᚳᚪᛈᛁᛁ()`: creates a deep copy of the struct's instance
-- `ᛒᚣᛚ structInstanceA.ᚱᛁᛋᛖᛗᛒᛚᛋ(structInstanceB)`: makes a deep comparison of the contents of A and B.
+- `ᛒᚣᛚ structInstanceA.ᚱᛁᛋᛖᛗᛒᚢᛚ(StructType ᚢᚦᚢ)`: makes a deep comparison of the contents of A and B.
 ```
 ᛋᛏᚱᚢᚳᛏ Sample {
   ᛁᚾᛏ sample;
@@ -318,6 +318,26 @@ f()  # a becomes 5, b would error @ line 3 if it wasn't commented
 Thorn uses function-level lexical scope. Function bodies create local scopes; control-flow bodies do not. Variables declared within control-flow bodies are added to the nearest containing function scope, or to the global scope when no function contains them. Their initialization remains conditional on whether execution reaches the declaration.
 ## `ᛖᚾᛁ`
 `ᛖᚾᛁ` is close to TypeScript's `unknown`. In practice, a function with a return type of `ᛖᚾᛁ` can only be assigned to variables with a type of `ᛖᚾᛁ`, but `ᛖᚾᛁ` can take on any type. However, performing operations on an `ᛖᚾᛁ`-tagged variable requires you to narrow it down via conversion or type-checking using `is_*` functions.
+
+# File handling
+Thorn provides Python-backed text file handling through the built-in `ᚠᛠᛚ` type. Python supplies buffering, newline conversion, character encoding, seeking, and operating-system integration, while Thorn supplies static types and source-positioned runtime diagnostics.
+
+Files are opened with `ᚩᛈᛖᚾ()`. Relative paths are resolved from the process working directory; absolute paths are used directly. The default encoding is UTF-8.
+
+Supported text modes are `"r"`, `"w"`, `"a"`, `"x"`, `"r+"`, `"w+"`, and `"a+"`. Binary modes are unavailable until Thorn has a `bytes` type.
+
+Files should be closed explicitly with `ᚳᛚᚩᛋ()`. The interpreter also closes remaining files when execution ends, including after a runtime error. `ᛏᛖᛚ()` returns an opaque text-stream position suitable for passing back to `ᛋᛁᛁᚳ()`; it is not guaranteed to be a character or byte count.
+
+Opening failures, permission errors, invalid operations, encoding failures, and operations on closed files produce Thorn runtime errors. File contents are exchanged explicitly as strings and lists of strings.
+
+# Python interoperability
+Thorn can access modules from the Python environment running the interpreter. The boundary is explicitly dynamic: foreign modules, callables, attributes, indexed values, and results use the `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ` type, while ordinary Thorn code remains statically typed.
+
+`ᛈᛠᛁᛗᛈᛟᚱᛏ()` follows Python's normal module discovery rules. A `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ` supports member access, positional and named calls, indexing, slicing, and `ᚠᛟᚱᛁᛁᚳᚻ` iteration. Results remain `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ` until explicitly converted to a Thorn type. Thorn collections are copied when passed into Python, enums use their backing values, and struct conversion is not yet defined.
+
+Python exceptions become source-positioned Thorn runtime errors. Python interoperability is not sandboxed and grants imported modules the privileges of the interpreter.
+
+The future import-statement vocabulary is `ᛁᛗᛈᛟᚱᛏ` (`import`), `ᛈᛠᚦᚣᚾ` (`python`), and `ᚫᛋ` (`as`). These spellings are assigned, but the statement syntax is not implemented yet.
 
 # Built-ins:
 \* This documentation uses `?value` to mean "optional parameter". However, this is merely notational and is not valid Thorn source. Parameters become optional by providing a default evaluation with `=`.
@@ -597,3 +617,41 @@ A non-`ᚳᛟᚾᛋᛏ` variable containing a set may still be rebound to anothe
 - `ᚾᛁᛚ ᛈᚱᛁᚾᛏ(ᛖᚾᛁ output, ᛋᛏᚱ end = "\n")`
   - Prints `output`.
   - `end` is appended after the output and defaults to a newline.
+
+## File handling
+
+- `ᚠᛠᛚ ᚩᛈᛖᚾ(ᛋᛏᚱ ᛈᚫᚦ, ᛋᛏᚱ ᛗᚩᛞ = "r", ᛋᛏᚱ ᛖᚾᚳᚩᛞᛁᛝ = "utf-8")`
+  - Opens a text file using `ᛗᚩᛞ` and `ᛖᚾᚳᚩᛞᛁᛝ`.
+  - Binary modes are unavailable until Thorn has a `bytes` type.
+- `ᛋᛏᚱ ᚠᛠᛚ.ᚱᛁᛁᛞ(ᛁᚾᛏ | ᚾᛁᛚ ᛋᛠᛋ = ᚾᛁᛚ)`
+  - Reads the remaining contents, optionally limited by `ᛋᛠᛋ`.
+- `ᛋᛏᚱ ᚠᛠᛚ.ᚱᛁᛁᛞᛚᛠᚾ(ᛁᚾᛏ | ᚾᛁᛚ ᛋᛠᛋ = ᚾᛁᛚ)`
+  - Reads one line, optionally limited by `ᛋᛠᛋ`.
+- `ᛚᛁᛋᛏ(ᛋᛏᚱ) ᚠᛠᛚ.ᚱᛁᛁᛞᛚᛠᚾᛋ()`
+  - Reads all remaining lines and retains their line terminators.
+- `ᛁᚾᛏ ᚠᛠᛚ.ᚹᚱᛠᛏ(ᛋᛏᚱ ᚳᚪᚾᛏᛖᚾᛏ)`
+  - Writes text and returns the number of characters accepted.
+- `ᚾᛁᛚ ᚠᛠᛚ.ᚹᚱᛠᛏᛚᛠᚾ(ᛚᛁᛋᛏ(ᛋᛏᚱ) ᛚᛠᚾᛋ)`
+  - Writes each string exactly as supplied without inserting newlines.
+- `ᚾᛁᛚ ᚠᛠᛚ.ᚠᛚᚢᛋᚻ()`
+  - Flushes buffered output.
+- `ᛁᚾᛏ ᚠᛠᛚ.ᛋᛁᛁᚳ(ᛁᚾᛏ ᚢᚠᛋᛖᛏ, ᛁᚾᛏ ᚩᚱᛁᚷᚻᛁᚾ = 0)`
+  - Moves the stream position relative to the beginning (`0`), current position (`1`), or end (`2`), subject to text-stream restrictions.
+- `ᛁᚾᛏ ᚠᛠᛚ.ᛏᛖᛚ()`
+  - Returns an opaque position suitable for passing back to `ᛋᛁᛁᚳ()`.
+- `ᚾᛁᛚ ᚠᛠᛚ.ᚳᛚᚩᛋ()`
+  - Flushes and closes the file; closing an already closed file does nothing.
+- `ᛒᚣᛚ ᚠᛠᛚ.ᚳᛚᚩᛋᛞ()`
+  - Returns whether the file is closed.
+- `ᛒᚣᛚ ᚠᛠᛚ.ᚱᛁᛁᛞᚢᛒᚢᛚ()`
+  - Returns whether the selected mode permits reading.
+- `ᛒᚣᛚ ᚠᛠᛚ.ᚹᚱᛠᛏᚢᛒᚢᛚ()`
+  - Returns whether the selected mode permits writing.
+- `ᛒᚣᛚ ᚠᛠᛚ.ᛋᛁᛁᚳᚢᛒᚢᛚ()`
+  - Returns whether the underlying stream supports seeking.
+
+## Python interoperability
+- `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ ᛈᛠᛁᛗᛈᛟᚱᛏ(ᛋᛏᚱ ᛗᚫᚷᚻᚣᛚ)`
+  - Imports a Python module through the active interpreter environment.
+
+A `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ` supports dynamic member access, calls, indexing, slicing, and `ᚠᛟᚱᛁᛁᚳᚻ`. Every foreign result has static type `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ` and must be explicitly converted before it is used as an ordinary Thorn value.

@@ -24,6 +24,8 @@ class TokenKind(Enum):
     ANY           = auto()
     NIL           = auto()
     UNINITIALIZED = auto()
+    FILE          = auto()
+    PYOBJECT      = auto()
 
     LIST          = auto()
     ARR           = auto()
@@ -138,6 +140,12 @@ KEYWORDS: dict[str, TokenKind] = {
     "uninitialized": TokenKind.UNINITIALIZED,
     "ᚢᚾᛁᚾᛁᛋᚻᚢᛚᛡᛋᛏ": TokenKind.UNINITIALIZED,
     "ᚢᚾᛁᚾᛁᛋᚻᚢᛚᛡᛥ": TokenKind.UNINITIALIZED,
+
+    "File": TokenKind.FILE,
+    "ᚠᛠᛚ": TokenKind.FILE,
+
+    "pyobject": TokenKind.PYOBJECT,
+    "ᛈᛠᚪᛒᚷᚻᛖᚳᛏ": TokenKind.PYOBJECT,
 
     # Collections
     "list": TokenKind.LIST,
@@ -341,7 +349,9 @@ DATA_TYPES: list[TokenKind] = [
     TokenKind.CHAR,
     TokenKind.ANY,
     TokenKind.NIL,
-    TokenKind.UNINITIALIZED
+    TokenKind.UNINITIALIZED,
+    TokenKind.FILE,
+    TokenKind.PYOBJECT
 ]
 
 
