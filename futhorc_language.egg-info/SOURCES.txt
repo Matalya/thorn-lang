@@ -1,0 +1,17 @@
+LICENSE
+README.md
+Token.py
+interpreter.py
+lexer.py
+parser.py
+pyproject.toml
+runtime.py
+semantic.py
+th_ast.py
+thorn.py
+futhorc_language.egg-info/PKG-INFO
+futhorc_language.egg-info/SOURCES.txt
+futhorc_language.egg-info/dependency_links.txt
+futhorc_language.egg-info/entry_points.txt
+futhorc_language.egg-info/requires.txt
+futhorc_language.egg-info/top_level.txt

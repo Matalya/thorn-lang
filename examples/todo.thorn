@@ -1,7 +1,7 @@
 list(str) tasks = [];
 bool running = true;
 
-print("Thorn To-Do");
+print("Futhorc To-Do");
 print("===========");
 
 while (running) {

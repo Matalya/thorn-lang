@@ -72,7 +72,7 @@ Truthiness can only be accessed with the built-in `ᛒᚣᛚ()` function, that g
 ᚳᛟᚾᛋᛏ ᛋᛖᛏ  |   ❌  |   ❌   |   ❌
 ```
 \* arrays are not dynamically resizable, but they can be resized with the methods listed further down. The capacity is runtime allocation.
-\* Thorn sets are immutable, ordered collections that permit duplicate elements; they behave like immutable lists rather than mathematical sets.
+\* Futhorc sets are immutable, ordered collections that permit duplicate elements; they behave like immutable lists rather than mathematical sets.
 
 ## Typed arrays
 Typed arrays are arrays that can store multiple types of data in an ordered manner. Their minimum length is determined by the amount of types specified. A typed array is, syntactically, an array whose type passed is a list of types.
@@ -164,7 +164,7 @@ Printing a struct instance, interpolating it into a composite string, or convert
 StructType { fieldName = value, otherField = value }
 ```
 
-Fields are printed in their declaration order. Values use their normal Thorn display form recursively, so nested collections and structs are displayed within the containing struct. Strings are displayed without surrounding quotes.
+Fields are printed in their declaration order. Values use their normal Futhorc display form recursively, so nested collections and structs are displayed within the containing struct. Strings are displayed without surrounding quotes.
 
 ```
 ᛋᛏᚱᚢᚳᛏ Product {
@@ -336,27 +336,27 @@ f()  # a becomes 5, b would error @ line 3 if it wasn't commented
 ᚾᛁᚢ ᛋᛏᚱ x = "hi" # all good
 ```
 ## Scope
-Thorn uses function-level lexical scope. Function bodies create local scopes; control-flow bodies do not. Variables declared within control-flow bodies are added to the nearest containing function scope, or to the global scope when no function contains them. Their initialization remains conditional on whether execution reaches the declaration.
+Futhorc uses function-level lexical scope. Function bodies create local scopes; control-flow bodies do not. Variables declared within control-flow bodies are added to the nearest containing function scope, or to the global scope when no function contains them. Their initialization remains conditional on whether execution reaches the declaration.
 ## `ᛖᚾᛁ`
 `ᛖᚾᛁ` is close to TypeScript's `unknown`. In practice, a function with a return type of `ᛖᚾᛁ` can only be assigned to variables with a type of `ᛖᚾᛁ`, but `ᛖᚾᛁ` can take on any type. However, performing operations on an `ᛖᚾᛁ`-tagged variable requires you to narrow it down via conversion or type-checking using `is_*` functions.
 
 # File handling
-Thorn provides Python-backed text file handling through the built-in `ᚠᛠᛚ` type. Python supplies buffering, newline conversion, character encoding, seeking, and operating-system integration, while Thorn supplies static types and source-positioned runtime diagnostics.
+Futhorc provides Python-backed text file handling through the built-in `ᚠᛠᛚ` type. Python supplies buffering, newline conversion, character encoding, seeking, and operating-system integration, while Futhorc supplies static types and source-positioned runtime diagnostics.
 
 Files are opened with `ᚩᛈᛖᚾ()`. Relative paths are resolved from the process working directory; absolute paths are used directly. The default encoding is UTF-8.
 
-Supported text modes are `"r"`, `"w"`, `"a"`, `"x"`, `"r+"`, `"w+"`, and `"a+"`. Binary modes are unavailable until Thorn has a `bytes` type.
+Supported text modes are `"r"`, `"w"`, `"a"`, `"x"`, `"r+"`, `"w+"`, and `"a+"`. Binary modes are unavailable until Futhorc has a `bytes` type.
 
 Files should be closed explicitly with `ᚳᛚᚩᛋ()`. The interpreter also closes remaining files when execution ends, including after a runtime error. `ᛏᛖᛚ()` returns an opaque text-stream position suitable for passing back to `ᛋᛁᛁᚳ()`; it is not guaranteed to be a character or byte count.
 
-Opening failures, permission errors, invalid operations, encoding failures, and operations on closed files produce Thorn runtime errors. File contents are exchanged explicitly as strings and lists of strings.
+Opening failures, permission errors, invalid operations, encoding failures, and operations on closed files produce Futhorc runtime errors. File contents are exchanged explicitly as strings and lists of strings.
 
 # Python interoperability
-Thorn can access modules from the Python environment running the interpreter. The boundary is explicitly dynamic: foreign modules, callables, attributes, indexed values, and results use the `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ` type, while ordinary Thorn code remains statically typed.
+Futhorc can access modules from the Python environment running the interpreter. The boundary is explicitly dynamic: foreign modules, callables, attributes, indexed values, and results use the `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ` type, while ordinary Futhorc code remains statically typed.
 
-`ᛈᛠᛁᛗᛈᛟᚱᛏ()` follows Python's normal module discovery rules. A `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ` supports member access, positional and named calls, indexing, slicing, and `ᚠᛟᚱᛁᛁᚳᚻ` iteration. Results remain `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ` until explicitly converted to a Thorn type. Thorn collections are copied when passed into Python, enums use their backing values, and struct conversion is not yet defined.
+`ᛈᛠᛁᛗᛈᛟᚱᛏ()` follows Python's normal module discovery rules. A `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ` supports member access, positional and named calls, indexing, slicing, and `ᚠᛟᚱᛁᛁᚳᚻ` iteration. Results remain `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ` until explicitly converted to a Futhorc type. Futhorc collections are copied when passed into Python, enums use their backing values, and struct conversion is not yet defined.
 
-Python exceptions become source-positioned Thorn runtime errors. Python interoperability is not sandboxed and grants imported modules the privileges of the interpreter.
+Python exceptions become source-positioned Futhorc runtime errors. Python interoperability is not sandboxed and grants imported modules the privileges of the interpreter.
 
 Python modules can be imported with a native runic statement:
 ```
@@ -366,10 +366,10 @@ This is syntactic sugar for:
 ```
 ᛈᛠᚪᛒᚷᚻᛖᚳᛏ math = ᛈᛠᛁᛗᛈᛟᚱᛏ("math");
 ```
-The module name must be a string literal, and `ᚫᛋ` must provide a normal Thorn identifier. The binding has static type `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ` and follows ordinary Thorn declaration and function-level scope rules.
+The module name must be a string literal, and `ᚫᛋ` must provide a normal Futhorc identifier. The binding has static type `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ` and follows ordinary Futhorc declaration and function-level scope rules.
 
 # Built-ins:
-\* This documentation uses `?value` to mean "optional parameter". However, this is merely notational and is not valid Thorn source. Parameters become optional by providing a default evaluation with `=`.
+\* This documentation uses `?value` to mean "optional parameter". However, this is merely notational and is not valid Futhorc source. Parameters become optional by providing a default evaluation with `=`.
 
 In collection method signatures, `T` represents the collection's element type. In array signatures, `N` represents runtime capacity. Array capacity is not part of static type identity: `ᚪᚱ(T, 3)` and `ᚪᚱ(T, 8)` have the same static type.
 
@@ -410,16 +410,16 @@ Search methods return `ᚾᛁᛚ` when no matching item or occurrence exists. `�
   - Converts `value` into an array whose element type is `T`.
   - If `capacity` is omitted and `value` is provided, capacity defaults to the resulting length.
   - If both `value` and `capacity` are omitted, returns an empty array with capacity `0`.
-  - If `capacity` is greater than the resulting length, the remaining capacity consists of internal empty slots. Empty slots are not Thorn `ᚾᛁᛚ` values and cannot be read directly.
+  - If `capacity` is greater than the resulting length, the remaining capacity consists of internal empty slots. Empty slots are not Futhorc `ᚾᛁᛚ` values and cannot be read directly.
   - If `capacity` is smaller than the number of converted elements, excess elements are truncated and a warning is emitted.
   - Invocation syntax is `ᚪᚱ(T, value, capacity)`. `ᚪᚱ(T, capacity = N)` creates an empty array with reserved capacity.
 - `ᛋᛖᛏ(T) ᛋᛖᛏ(type T, ᛖᚾᛁ ?value)`
   - Converts `value` into a set whose element type is `T`.
   - Returns `()` if `value` is omitted.
-  - Thorn sets are ordered, immutable collections and may contain duplicate values.
+  - Futhorc sets are ordered, immutable collections and may contain duplicate values.
   - Invocation syntax is `ᛋᛖᛏ(T, value)` or `ᛋᛖᛏ(T)`.
 
-These conversions create a fresh outer collection and never mutate the source. Thorn collections, strings, and foreign Python iterables are copied in iteration order; a non-iterable Thorn value becomes one element. Elements are not individually coerced and must already match `T`. Nested collection elements are checked recursively. Contained object identities are retained, making this an outer-container copy rather than the recursive deep copy performed by `ᚳᚪᛈᛁᛁ()`.
+These conversions create a fresh outer collection and never mutate the source. Futhorc collections, strings, and foreign Python iterables are copied in iteration order; a non-iterable Futhorc value becomes one element. Elements are not individually coerced and must already match `T`. Nested collection elements are checked recursively. Contained object identities are retained, making this an outer-container copy rather than the recursive deep copy performed by `ᚳᚪᛈᛁᛁ()`.
 
 ## Mutating conversion functions
 - `ᚾᛁᛚ ᛏᚣ_ᛁᚾᛏ(ᛖᚾᛁ value)`
@@ -522,7 +522,7 @@ Arrays have both a **length** and a **capacity**.
 - **length** is the number of occupied elements.
 - **capacity** is the number of elements the array can contain before explicit resizing is required.
 - Capacity is runtime allocation and is not part of static type identity.
-- Unoccupied capacity consists of internal empty slots. Empty slots are not Thorn `ᚾᛁᛚ` values and cannot be accessed as elements.
+- Unoccupied capacity consists of internal empty slots. Empty slots are not Futhorc `ᚾᛁᛚ` values and cannot be accessed as elements.
 - Arrays never resize automatically. Operations that would exceed capacity produce a runtime error unless capacity is explicitly increased first.
 - Capacity changes are visible through every alias referring to the same array.
 - Assigning an existing array to a declaration written with a different `N` does not resize it.
@@ -584,7 +584,7 @@ Methods that access, replace, or remove existing items require an occupied index
 - `ᚾᛁᛚ ᚳᚢᛗᛈᚱᛖᛋ()`
   - Removes all actual `ᚾᛁᛚ` values from the occupied portion of the array and shifts the remaining elements together while preserving their order.
   - Capacity remains unchanged.
-  - Internal empty slots are not Thorn `ᚾᛁᛚ` and are unaffected.
+  - Internal empty slots are not Futhorc `ᚾᛁᛚ` and are unaffected.
   - On an array whose element type cannot contain `ᚾᛁᛚ`, this is normally a no-op.
     ```
     <1, 2, 3, ᚾᛁᛚ, 4, ᚾᛁᛚ, 5>
@@ -620,7 +620,7 @@ For both `ᛋᚻᛟᛏᛖᚾ(amount)` and `ᛋᚻᛠᚠ(amount)`:
 Slicing an array produces a new array containing the selected occupied elements. The resulting array's capacity is exactly equal to its resulting length.
 
 ## Set methods
-Thorn sets are ordered, immutable collections. Unlike mathematical sets and sets in many other languages, Thorn sets permit duplicate values and retain their order. Their contents cannot be added to, removed from, replaced, or reordered after construction.
+Futhorc sets are ordered, immutable collections. Unlike mathematical sets and sets in many other languages, Futhorc sets permit duplicate values and retain their order. Their contents cannot be added to, removed from, replaced, or reordered after construction.
 
 A non-`ᚳᛟᚾᛋᛏ` variable containing a set may still be rebound to another set. `ᚳᛟᚾᛋᛏ ᛋᛖᛏ(T)` prevents that rebinding as well.
 
@@ -656,7 +656,7 @@ A non-`ᚳᛟᚾᛋᛏ` variable containing a set may still be rebound to anothe
 
 - `ᚠᛠᛚ ᚩᛈᛖᚾ(ᛋᛏᚱ ᛈᚫᚦ, ᛋᛏᚱ ᛗᚩᛞ = "r", ᛋᛏᚱ ᛖᚾᚳᚩᛞᛁᛝ = "utf-8")`
   - Opens a text file using `ᛗᚩᛞ` and `ᛖᚾᚳᚩᛞᛁᛝ`.
-  - Binary modes are unavailable until Thorn has a `bytes` type.
+  - Binary modes are unavailable until Futhorc has a `bytes` type.
 - `ᛋᛏᚱ ᚠᛠᛚ.ᚱᛁᛁᛞ(ᛁᚾᛏ | ᚾᛁᛚ ᛋᛠᛋ = ᚾᛁᛚ)`
   - Reads the remaining contents, optionally limited by `ᛋᛠᛋ`.
 - `ᛋᛏᚱ ᚠᛠᛚ.ᚱᛁᛁᛞᛚᛠᚾ(ᛁᚾᛏ | ᚾᛁᛚ ᛋᛠᛋ = ᚾᛁᛚ)`
@@ -690,4 +690,4 @@ A non-`ᚳᛟᚾᛋᛏ` variable containing a set may still be rebound to anothe
 - `ᛁᛗᛈᛟᚱᛏ ᛈᛠᚦᚣᚾ "module" ᚫᛋ binding;`
   - Imports the Python module and declares `binding` with static type `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ`.
 
-A `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ` supports dynamic member access, calls, indexing, slicing, and `ᚠᛟᚱᛁᛁᚳᚻ`. Every foreign result has static type `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ` and must be explicitly converted before it is used as an ordinary Thorn value.
+A `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ` supports dynamic member access, calls, indexing, slicing, and `ᚠᛟᚱᛁᛁᚳᚻ`. Every foreign result has static type `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ` and must be explicitly converted before it is used as an ordinary Futhorc value.

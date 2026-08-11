@@ -1,0 +1,35 @@
+{
+  "icon": "images/futhorc-logo.png",
+  "name": "futhorc-language-support",
+  "displayName": "Futhorc Language Support",
+  "description": "Syntax highlighting and language support for the Futhorc programming language.",
+  "publisher" : "matalya",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "futhorc",
+        "aliases": ["Futhorc", "futhorc"],
+        "extensions": [".futhorc", ".þ"],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./images/futhorc-light.png",
+          "dark": "./images/futhorc-dark.png"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "futhorc",
+        "scopeName": "source.futhorc",
+        "path": "./syntaxes/futhorc.tmLanguage.json"
+      }
+    ]
+  }
+}

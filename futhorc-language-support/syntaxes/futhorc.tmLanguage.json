@@ -1,0 +1,115 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Futhorc",
+  "scopeName": "source.futhorc",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#numbers" },
+    { "include": "#keywords" },
+    { "include": "#types" },
+    { "include": "#constants" },
+    { "include": "#builtins" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.number-sign.futhorc",
+          "match": "#.*$"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.composite.futhorc",
+          "begin": "\\bc\"",
+          "end": "\"",
+          "beginCaptures": {
+            "0": { "name": "string.quoted.double.composite.futhorc" }
+          },
+          "patterns": [
+            { "match": "\\\\.", "name": "constant.character.escape.futhorc" },
+            {
+              "match": "\\{[^}]*\\}",
+              "name": "meta.interpolation.futhorc"
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.double.futhorc",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            { "match": "\\\\.", "name": "constant.character.escape.futhorc" }
+          ]
+        },
+        {
+          "name": "string.quoted.single.futhorc",
+          "begin": "'",
+          "end": "'",
+          "patterns": [
+            { "match": "\\\\.", "name": "constant.character.escape.futhorc" }
+          ]
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.futhorc",
+          "match": "\\b(?:0[xX][0-9a-fA-F]+|\\d+(?:\\.\\d+)?(?:[eE][+-]?\\d+)?)\\b"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.futhorc",
+          "match": "\\b(?:if|elsif|else|while|until|for|foreach|in|break|continue|return|new|global|const|import|python|as)\\b"
+        },
+        {
+          "name": "keyword.control.runic.futhorc",
+          "match": "(?:ᛁᛗᛈᛟᚱᛏ|ᛈᛠᚦᚣᚾ|ᚫᛋ)"
+        },
+        {
+          "name": "keyword.operator.futhorc",
+          "match": "\\b(?:and|or|not|is)\\b"
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        {
+          "name": "storage.type.futhorc",
+          "match": "\\b(?:int|float|str|char|bool|nil|any|pyobject|list|arr|set|struct|enum)\\b"
+        },
+        {
+          "name": "storage.type.runic.futhorc",
+          "match": "(?:ᛈᛠᚪᛒᚷᚻᛖᚳᛏ)"
+        }
+      ]
+    },
+    "constants": {
+      "patterns": [
+        {
+          "name": "constant.language.futhorc",
+          "match": "\\b(?:true|false|nil)\\b"
+        }
+      ]
+    },
+    "builtins": {
+      "patterns": [
+        {
+          "name": "support.function.builtin.futhorc",
+          "match": "\\b(?:print|input|len|index|range|int|float|str|char|bool|list|arr|set|to_list|to_arr|to_set|pyimport|open|read|readline|readlines|write|writelines|flush|seek|tell|close|closed|readable|writable|seekable)\\b"
+        },
+        {
+          "name": "support.function.builtin.runic.futhorc",
+          "match": "(?:ᛈᛠᛁᛗᛈᛟᚱᛏ|ᚩᛈᛖᚾ|ᚱᛁᛁᛞ|ᚱᛁᛁᛞᛚᛠᚾ|ᚱᛁᛁᛞᛚᛠᚾᛋ|ᚹᚱᛠᛏ|ᚹᚱᛠᛏᛚᛠᚾ|ᚠᛚᚢᛋᚻ|ᛋᛁᛁᚳ|ᛏᛖᛚ|ᚳᛚᚩᛋ|ᚳᛚᚩᛋᛞ|ᚱᛁᛁᛞᚢᛒᚢᛚ|ᚹᚱᛠᛏᚢᛒᚢᛚ|ᛋᛁᛁᚳᚢᛒᚢᛚ)"
+        }
+      ]
+    }
+  }
+}

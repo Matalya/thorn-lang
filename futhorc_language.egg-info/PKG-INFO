@@ -1,3 +1,13 @@
+Metadata-Version: 2.4
+Name: futhorc-language
+Version: 0.1.0
+Summary: The Thorn programming language interpreter
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: pyperclip>=1.8
+Dynamic: license-file
+
 # The Futhorc Programming Language
 ᚦhe result of a wild night between strong typing and ancient Anglo-Saxon runes.
 

@@ -72,7 +72,7 @@ const arr  |   ✅  |   ❌   |   ❌
 const set  |   ❌  |   ❌   |   ❌
 ```
 \* arrays are not dynamically resizable, but they can be resized with the methods listed further down. The capacity is runtime allocation.
-\* Thorn sets are immutable, ordered collections that permit duplicate elements; they behave like immutable lists rather than mathematical sets.
+\* Futhorc sets are immutable, ordered collections that permit duplicate elements; they behave like immutable lists rather than mathematical sets.
 
 ## Typed arrays
 Typed arrays are arrays that can store multiple types of data in an ordered manner. Their minimum length is determined by the amount of types specified. A typed array is, syntactically, an array whose type passed is a list of types.
@@ -164,7 +164,7 @@ Printing a struct instance, interpolating it into a composite string, or convert
 StructType { fieldName = value, otherField = value }
 ```
 
-Fields are printed in their declaration order. Values use their normal Thorn display form recursively, so nested collections and structs are displayed within the containing struct. Strings are displayed without surrounding quotes.
+Fields are printed in their declaration order. Values use their normal Futhorc display form recursively, so nested collections and structs are displayed within the containing struct. Strings are displayed without surrounding quotes.
 
 ```
 struct Product {
@@ -336,12 +336,12 @@ str x = "hi" # errors
 new str x = "hi" # all good
 ```
 ## Scope
-Thorn uses function-level lexical scope. Function bodies create local scopes; control-flow bodies do not. Variables declared within control-flow bodies are added to the nearest containing function scope, or to the global scope when no function contains them. Their initialization remains conditional on whether execution reaches the declaration.
+Futhorc uses function-level lexical scope. Function bodies create local scopes; control-flow bodies do not. Variables declared within control-flow bodies are added to the nearest containing function scope, or to the global scope when no function contains them. Their initialization remains conditional on whether execution reaches the declaration.
 ## `any`
 `any` is close to TypeScript's `unknown`. In practice, a function with a return type of `any` can only be assigned to variables with a type of `any`, but `any` can take on any type. However, performing operations on an `any`-tagged variable requires you to narrow it down via conversion or type-checking using `is_*` functions.
 
 # File handling
-Thorn provides Python-backed text file handling through the built-in `File` type. Python's mature text I/O implementation supplies buffering, newline conversion, character encoding, seeking, and operating-system integration, while Thorn supplies static types and source-positioned runtime diagnostics.
+Futhorc provides Python-backed text file handling through the built-in `File` type. Python's mature text I/O implementation supplies buffering, newline conversion, character encoding, seeking, and operating-system integration, while Futhorc supplies static types and source-positioned runtime diagnostics.
 
 Files are opened with `open()`. Relative paths are resolved from the process working directory; absolute paths are used directly. The default encoding is UTF-8.
 
@@ -352,16 +352,16 @@ Supported text modes are:
 - `"x"`: create a new file and fail if it already exists.
 - `"r+"`, `"w+"`, and `"a+"`: corresponding modes that permit both reading and writing.
 
-Binary modes such as `"rb"` and `"wb"` are not supported because Thorn does not yet have a `bytes` type.
+Binary modes such as `"rb"` and `"wb"` are not supported because Futhorc does not yet have a `bytes` type.
 
 Files should be closed explicitly with `close()` when no longer needed. The interpreter also closes every remaining open file when program execution ends, including when execution ends because of a runtime error.
 
 `tell()` returns an opaque text-stream position. In particular, it is not guaranteed to equal a character count or UTF-8 byte count. A position returned by `tell()` can safely be passed back to `seek()`.
 
-Opening failures, permission errors, invalid operations, encoding failures, and operations on closed files produce Thorn runtime errors. File contents are not automatically serialized into Thorn values; programs read and write strings and lists of strings explicitly.
+Opening failures, permission errors, invalid operations, encoding failures, and operations on closed files produce Futhorc runtime errors. File contents are not automatically serialized into Futhorc values; programs read and write strings and lists of strings explicitly.
 
 # Python interoperability
-Thorn can access modules from the Python environment running the interpreter. Python interoperability is an explicitly dynamic boundary: ordinary Thorn remains statically typed, while foreign modules, callables, attributes, and results use the `pyobject` type.
+Futhorc can access modules from the Python environment running the interpreter. Python interoperability is an explicitly dynamic boundary: ordinary Futhorc remains statically typed, while foreign modules, callables, attributes, and results use the `pyobject` type.
 
 Runic aliases are `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ` for `pyobject`, `ᛈᛠᛁᛗᛈᛟᚱᛏ` for `pyimport`, and `ᛗᚫᚷᚻᚣᛚ` for its `module` parameter. The native import-statement aliases are `ᛁᛗᛈᛟᚱᛏ`, `ᛈᛠᚦᚣᚾ`, and `ᚫᛋ` for `import`, `python`, and `as` respectively.
 
@@ -373,16 +373,16 @@ This is syntactic sugar for a statically typed `pyobject` declaration initialize
 ```
 pyobject math = pyimport("math");
 ```
-The module name must be a string literal and `as` must provide a normal Thorn identifier. The binding follows ordinary Thorn declaration and function-level scope rules. Importing a missing module produces the same source-positioned runtime error as `pyimport()`.
+The module name must be a string literal and `as` must provide a normal Futhorc identifier. The binding follows ordinary Futhorc declaration and function-level scope rules. Importing a missing module produces the same source-positioned runtime error as `pyimport()`.
 
-`pyimport()` uses Python's normal module discovery rules and therefore sees the standard library and packages installed in the active Python environment. A `pyobject` supports dynamic member access, calls with positional or named arguments, indexing, slicing, and iteration through `foreach`. Each such operation has static result type `pyobject`; programs use explicit Thorn conversions such as `int()`, `float()`, `str()`, `bool()`, or `to_list()` when they need an ordinary Thorn value.
+`pyimport()` uses Python's normal module discovery rules and therefore sees the standard library and packages installed in the active Python environment. A `pyobject` supports dynamic member access, calls with positional or named arguments, indexing, slicing, and iteration through `foreach`. Each such operation has static result type `pyobject`; programs use explicit Futhorc conversions such as `int()`, `float()`, `str()`, `bool()`, or `to_list()` when they need an ordinary Futhorc value.
 
-Thorn primitives cross into Python as their corresponding Python primitives. Lists and arrays cross as copied Python lists, sets cross as copied Python tuples, and enums cross as their backing values. Mutating a copied collection in Python does not mutate the original Thorn collection. Struct conversion and callbacks from Python into Thorn functions are not yet defined.
+Futhorc primitives cross into Python as their corresponding Python primitives. Lists and arrays cross as copied Python lists, sets cross as copied Python tuples, and enums cross as their backing values. Mutating a copied collection in Python does not mutate the original Futhorc collection. Struct conversion and callbacks from Python into Futhorc functions are not yet defined.
 
-Python exceptions are converted into source-positioned Thorn runtime errors containing the Python exception class and message. Python interoperability is not sandboxed: imported modules have the same filesystem, network, process, and native-extension privileges as the interpreter.
+Python exceptions are converted into source-positioned Futhorc runtime errors containing the Python exception class and message. Python interoperability is not sandboxed: imported modules have the same filesystem, network, process, and native-extension privileges as the interpreter.
 
 # Built-ins:
-\* This documentation uses `?value` to mean "optional parameter". However, this is merely notational and is not valid Thorn source. Parameters become optional by providing a default evaluation with `=`.
+\* This documentation uses `?value` to mean "optional parameter". However, this is merely notational and is not valid Futhorc source. Parameters become optional by providing a default evaluation with `=`.
 
 In collection method signatures, `T` represents the collection's element type. In array signatures, `N` represents runtime capacity. Array capacity is not part of static type identity: `arr(T, 3)` and `arr(T, 8)` have the same static type.
 
@@ -423,16 +423,16 @@ Search methods return `nil` when no matching item or occurrence exists. `find_nt
   - Converts `value` into an array whose element type is `T`.
   - If `capacity` is omitted and `value` is provided, capacity defaults to the resulting length.
   - If both `value` and `capacity` are omitted, returns an empty array with capacity `0`.
-  - If `capacity` is greater than the resulting length, the remaining capacity consists of internal empty slots. Empty slots are not Thorn `nil` values and cannot be read directly.
+  - If `capacity` is greater than the resulting length, the remaining capacity consists of internal empty slots. Empty slots are not Futhorc `nil` values and cannot be read directly.
   - If `capacity` is smaller than the number of converted elements, excess elements are truncated and a warning is emitted.
   - Invocation syntax is `arr(T, value, capacity)`. `value` and `capacity` may also be named, so `arr(T, capacity = N)` creates an empty array with reserved capacity.
 - `set(T) set(type T, any ?value)`
   - Converts `value` into a set whose element type is `T`.
   - Returns `()` if `value` is omitted.
-  - Thorn sets are ordered, immutable collections and may contain duplicate values.
+  - Futhorc sets are ordered, immutable collections and may contain duplicate values.
   - Invocation syntax is `set(T, value)` or `set(T)`.
 
-These conversions always create a fresh outer collection and never mutate the source. A Thorn collection, string, or foreign Python iterable is copied in iteration order; a non-iterable Thorn value becomes one element. Elements are not individually coerced through primitive conversion functions: every produced element must already be compatible with `T`, otherwise conversion raises a source-positioned runtime error. Nested collection elements are checked recursively. Contained object identities are retained, so this is an outer-container copy rather than `copy()`'s recursive deep copy.
+These conversions always create a fresh outer collection and never mutate the source. A Futhorc collection, string, or foreign Python iterable is copied in iteration order; a non-iterable Futhorc value becomes one element. Elements are not individually coerced through primitive conversion functions: every produced element must already be compatible with `T`, otherwise conversion raises a source-positioned runtime error. Nested collection elements are checked recursively. Contained object identities are retained, so this is an outer-container copy rather than `copy()`'s recursive deep copy.
 
 ## Mutating conversion functions
 - `nil to_int(any value)`
@@ -535,7 +535,7 @@ Arrays have both a **length** and a **capacity**.
 - **length** is the number of occupied elements.
 - **capacity** is the number of elements the array can contain before explicit resizing is required.
 - Capacity is runtime allocation and is not part of static type identity.
-- Unoccupied capacity consists of internal empty slots. Empty slots are not Thorn `nil` values and cannot be accessed as elements.
+- Unoccupied capacity consists of internal empty slots. Empty slots are not Futhorc `nil` values and cannot be accessed as elements.
 - Arrays never resize automatically. Operations that would exceed capacity produce a runtime error unless capacity is explicitly increased first.
 - Capacity changes are visible through every alias referring to the same array.
 - Assigning an existing array to a declaration written with a different `N` does not resize it.
@@ -597,7 +597,7 @@ Methods that access, replace, or remove existing items require an occupied index
 - `nil compress()`
   - Removes all actual `nil` values from the occupied portion of the array and shifts the remaining elements together while preserving their order.
   - Capacity remains unchanged.
-  - Internal empty slots are not Thorn `nil` and are unaffected.
+  - Internal empty slots are not Futhorc `nil` and are unaffected.
   - On an array whose element type cannot contain `nil`, this is normally a no-op.
     ```
     <1, 2, 3, nil, 4, nil, 5>
@@ -633,7 +633,7 @@ For both `shorten(amount)` and `shave(amount)`:
 Slicing an array produces a new array containing the selected occupied elements. The resulting array's capacity is exactly equal to its resulting length.
 
 ## Set methods
-Thorn sets are ordered, immutable collections. Unlike mathematical sets and sets in many other languages, Thorn sets permit duplicate values and retain their order. Their contents cannot be added to, removed from, replaced, or reordered after construction.
+Futhorc sets are ordered, immutable collections. Unlike mathematical sets and sets in many other languages, Futhorc sets permit duplicate values and retain their order. Their contents cannot be added to, removed from, replaced, or reordered after construction.
 
 A non-`const` variable containing a set may still be rebound to another set. `const set(T)` prevents that rebinding as well.
 
@@ -669,7 +669,7 @@ A non-`const` variable containing a set may still be rebound to another set. `co
 
 - `File open(str path, str mode = "r", str encoding = "utf-8")`
   - Opens a text file. Supported modes are `r`, `w`, `a`, `x`, and their `+` variants.
-  - Binary modes are unavailable until Thorn has a `bytes` type.
+  - Binary modes are unavailable until Futhorc has a `bytes` type.
 - `str File.read(int | nil size = nil)`
   - Reads the rest of the file, or at most `size` characters when supplied.
 - `str File.readline(int | nil size = nil)`
@@ -697,7 +697,7 @@ A non-`const` variable containing a set may still be rebound to another set. `co
 - `bool File.seekable()`
   - Returns whether the underlying stream supports seeking.
 
-File and encoding failures are reported as source-positioned Thorn runtime errors.
+File and encoding failures are reported as source-positioned Futhorc runtime errors.
 
 ## Python interoperability
 - `pyobject pyimport(str module)`
@@ -709,9 +709,9 @@ File and encoding failures are reported as source-positioned Thorn runtime error
 
 Operations supported by `pyobject` values:
 - `object.member`: dynamically retrieves a Python attribute and returns it as `pyobject`.
-- `object(arguments...)`: invokes a wrapped Python callable. Thorn named arguments become Python keyword arguments.
+- `object(arguments...)`: invokes a wrapped Python callable. Futhorc named arguments become Python keyword arguments.
 - `object[index]`: performs Python indexing and returns `pyobject`.
 - `object[start:end]`: performs Python slicing and returns `pyobject`.
 - `foreach (item in object)`: iterates a Python iterable; each item has static type `pyobject`.
 
-Python return values remain `pyobject` even when their runtime value is a Python primitive. Explicit Thorn conversion establishes a statically known Thorn type.
+Python return values remain `pyobject` even when their runtime value is a Python primitive. Explicit Futhorc conversion establishes a statically known Futhorc type.

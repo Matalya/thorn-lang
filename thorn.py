@@ -11,14 +11,14 @@ from interpreter import Interpreter
 from runtime import ThornRuntimeError
 
 
-SOURCE_SUFFIXES = (".þ", ".thorn")
+SOURCE_SUFFIXES = (".þ", ".futhorc")
 
 
 def thorn_source_path(value: str) -> Path:
     path = Path(value)
     if path.suffix not in SOURCE_SUFFIXES:
         raise argparse.ArgumentTypeError(
-            "Thorn source files must use the '.þ' or '.thorn' extension"
+            "Futhorc source files must use the '.þ' or '.thorn' extension"
         )
     return path
 
@@ -75,11 +75,11 @@ def format_runtime_error(error: ThornRuntimeError, source: str, path: str) -> st
 
 
 def main(argv=None) -> int:
-    parser = argparse.ArgumentParser(prog="thorn", description="Run a Thorn program")
+    parser = argparse.ArgumentParser(prog="futhorc", description="Run a Futhorc program")
     parser.add_argument(
         "file",
         type=thorn_source_path,
-        help="Thorn source file (.þ or .thorn)",
+        help="Futhorc source file (.þ or .futhorc)",
     )
     args = parser.parse_args(argv)
     source = args.file.read_text(encoding="utf-8")
