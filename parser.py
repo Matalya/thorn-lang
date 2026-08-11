@@ -732,6 +732,9 @@ class Parser:
         if current.kind == TK.ENUM:
             return self.parseEnumDeclaration()
 
+        if current.kind == TK.IMPORT:
+            return self.parsePythonImport()
+
         if current.kind == TK.IF:
             return self.parseIfStatement()
 
@@ -799,6 +802,52 @@ class Parser:
         self.expectSemicolon()
 
         return ExpressionStatement(expression)
+
+    @located
+    def parsePythonImport(self) -> VarDeclaration:
+        """Parse native Python imports as typed ``pyimport`` declarations."""
+        self.expect(
+            TK.IMPORT,
+            message="'import' keyword not found."
+        )
+        self.expect(
+            TK.PYTHON,
+            message="'python' keyword not found after 'import'."
+        )
+        moduleToken = self.expect(
+            TK.STRING,
+            message="Python module name must be a string literal."
+        )
+        self.expect(
+            TK.AS,
+            message="'as' keyword not found after Python module name."
+        )
+        aliasToken = self.expect(
+            TK.IDENTIFIER,
+            message="Import binding name not found after 'as'."
+        )
+        self.expectSemicolon()
+
+        module = Literal(Type.STR, moduleToken.value).setSpan(
+            moduleToken.index,
+            moduleToken.end
+        )
+        importCall = FunctionCall(
+            Identifier("pyimport").setSpan(
+                moduleToken.index,
+                moduleToken.index
+            ),
+            [module]
+        ).setSpan(moduleToken.index, moduleToken.end)
+
+        return VarDeclaration(
+            PrimitiveType(Type.PYOBJECT),
+            Identifier(aliasToken.value).setSpan(
+                aliasToken.index,
+                aliasToken.end
+            ),
+            importCall
+        )
 
     @located
     def parseStructDeclaration(self) -> StructDeclaration:
@@ -1267,6 +1316,9 @@ class Parser:
 
     @located
     def parsePrimary(self):
+        if self.tokenStream.current_is(TK.LIST, TK.ARR, TK.SET):
+            return self.parseCollectionConversion()
+
         if self.tokenStream.current_is(TK.OPEN_CURLY):
             return self.parseStructLiteral()
 
@@ -1400,6 +1452,34 @@ class Parser:
         return Literal(
             mapLiteralToType(token),
             token.value
+        )
+
+    @located
+    def parseCollectionConversion(self) -> CollectionConversion:
+        kindToken = self.expect(TK.LIST, TK.ARR, TK.SET)
+        collectionKind = {
+            TK.LIST: "list",
+            TK.ARR: "arr",
+            TK.SET: "set",
+        }[kindToken.kind]
+
+        self.expect(
+            TK.OPEN_PAREN,
+            message=f"Opening parenthesis not found after '{collectionKind}'."
+        )
+        elementType = self.parseType()
+        arguments = []
+        if self.match(TK.COMMA):
+            arguments = self.parseCallArgumentList(TK.CLOSE_PAREN)
+        self.expect(
+            TK.CLOSE_PAREN,
+            message=f"Closing parenthesis not found after '{collectionKind}' conversion."
+        )
+
+        return CollectionConversion(
+            collectionKind,
+            elementType,
+            arguments
         )
 
     @located
@@ -1587,6 +1667,25 @@ class Parser:
 
     @located
     def parseParameter(self) -> Parameter:
+        if self.tokenStream.current_is(TK.SELF):
+            token = self.current()
+            spelling = token.value
+            typedForm = (
+                "StructType ᛋᛖᛚᚠ"
+                if spelling == "ᛋᛖᛚᚠ"
+                else "StructType self"
+            )
+            example = (
+                "Product ᛋᛖᛚᚠ"
+                if spelling == "ᛋᛖᛚᚠ"
+                else "Product self"
+            )
+            raise TokenError(
+                f"Parameter '{spelling}' is missing its type. "
+                f"Instance methods must declare it as "
+                f"'{typedForm}', for example '{example}'."
+            )
+
         paramType = self.parseType()
 
         nameToken = self.expect(

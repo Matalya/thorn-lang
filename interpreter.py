@@ -653,16 +653,27 @@ class Interpreter:
         self._assign_target(target, converted)
         return None
 
-    def _conversion_values(self, value):
+    def _conversion_values(self, value, elementType=None):
         if isinstance(value, ThornPyObject):
             try:
                 return [
-                    python_collection_item_to_thorn(item)
+                    (
+                        ThornPyObject(item)
+                        if (
+                            isinstance(elementType, PrimitiveType)
+                            and elementType.value == Type.PYOBJECT
+                        )
+                        else python_collection_item_to_thorn(item)
+                    )
                     for item in value.value
                 ]
             except TypeError as error:
                 raise ThornRuntimeError(
                     f"Python object of type '{value.python_type_name}' is not iterable"
+                ) from error
+            except Exception as error:
+                raise ThornRuntimeError(
+                    f"Python {type(error).__name__}: {error}"
                 ) from error
         if isinstance(value, ThornCollection):
             return list(value.values)
@@ -672,6 +683,170 @@ class Interpreter:
 
     def _convert_list(self, value):
         return ThornList(self._conversion_values(value))
+
+    def execute_CollectionConversion(self, node: CollectionConversion):
+        positional, named = self._evaluate_arguments(node.arguments)
+        parameterNames = (
+            ("value", "capacity")
+            if node.collectionKind == "arr"
+            else ("value",)
+        )
+        if len(positional) > len(parameterNames):
+            raise ThornRuntimeError(
+                f"{node.collectionKind}() accepts at most "
+                f"{len(parameterNames)} value argument(s)",
+                node,
+            )
+        supplied = dict(named)
+        for name, value in zip(parameterNames, positional):
+            if name in supplied:
+                raise ThornRuntimeError(
+                    f"{node.collectionKind}() received '{name}' more than once",
+                    node,
+                )
+            supplied[name] = value
+        unknown = set(supplied) - set(parameterNames)
+        if unknown:
+            name = next(iter(unknown))
+            raise ThornRuntimeError(
+                f"{node.collectionKind}() has no parameter named '{name}'",
+                node,
+            )
+
+        if "value" in supplied:
+            values = self._conversion_values(
+                supplied["value"],
+                node.elementType,
+            )
+        else:
+            values = []
+
+        converted = [
+            self._collection_conversion_element(value, node.elementType, node)
+            for value in values
+        ]
+
+        if node.collectionKind == "list":
+            return ThornList(converted, node.elementType)
+        if node.collectionKind == "set":
+            return ThornSet(converted, node.elementType)
+
+        capacity = supplied.get("capacity", len(converted))
+        if type(capacity) is not int:
+            raise ThornRuntimeError("Array capacity must be an integer", node)
+        return ThornArray(
+            converted,
+            capacity,
+            lambda message: self.output(f"warning: {message}\n"),
+            node.elementType,
+        )
+
+    def _collection_conversion_element(self, value, expectedType, node):
+        if isinstance(expectedType, UnionType):
+            for member in expectedType.members:
+                try:
+                    return self._collection_conversion_element(value, member, node)
+                except ThornRuntimeError:
+                    pass
+            raise ThornRuntimeError(
+                f"Collection element {format_value(value)} does not match "
+                f"type '{self._runtime_type_text(expectedType)}'",
+                node,
+            )
+
+        if isinstance(expectedType, NamedType):
+            runtimeType = self.environment.resolve_type(expectedType.name.name)
+            if isinstance(runtimeType, ThornEnumType):
+                if isinstance(value, ThornEnumValue):
+                    if value.enum_type is runtimeType:
+                        return value
+                else:
+                    try:
+                        return runtimeType.from_raw(value)
+                    except ThornRuntimeError:
+                        pass
+            elif (
+                isinstance(runtimeType, ThornStructType)
+                and isinstance(value, ThornStruct)
+                and value.struct_type is runtimeType
+            ):
+                return value
+            raise ThornRuntimeError(
+                f"Collection element {format_value(value)} does not match "
+                f"type '{expectedType.name.name}'",
+                node,
+            )
+
+        if isinstance(expectedType, ListType):
+            matches = isinstance(value, ThornList) and not isinstance(value, ThornArray)
+            if matches:
+                for item in value.values:
+                    self._collection_conversion_element(
+                        item, expectedType.elementType, node
+                    )
+        elif isinstance(expectedType, ArrayType):
+            matches = isinstance(value, ThornArray)
+            if matches:
+                for item in value.values:
+                    self._collection_conversion_element(
+                        item, expectedType.elementType, node
+                    )
+        elif isinstance(expectedType, SetType):
+            matches = isinstance(value, ThornSet)
+            if matches:
+                for item in value.values:
+                    self._collection_conversion_element(
+                        item, expectedType.elementType, node
+                    )
+        elif isinstance(expectedType, PrimitiveType):
+            expected = expectedType.value
+            if expected == Type.ANY:
+                return value
+            if expected == Type.INT:
+                matches = type(value) is int
+            elif expected == Type.FLOAT:
+                matches = type(value) in (int, float)
+            elif expected == Type.BOOL:
+                matches = type(value) is bool
+            elif expected == Type.CHAR:
+                matches = isinstance(value, str) and len(value) == 1
+            elif expected == Type.STR:
+                matches = isinstance(value, str)
+            elif expected == Type.NIL:
+                matches = value is None
+            elif expected == Type.UNINITIALIZED:
+                matches = value is UNINITIALIZED
+            elif expected == Type.FILE:
+                matches = isinstance(value, ThornFile)
+            elif expected == Type.PYOBJECT:
+                matches = isinstance(value, ThornPyObject)
+            else:
+                matches = False
+        else:
+            matches = False
+
+        if matches:
+            return value
+        raise ThornRuntimeError(
+            f"Collection element {format_value(value)} does not match "
+            f"type '{self._runtime_type_text(expectedType)}'",
+            node,
+        )
+
+    def _runtime_type_text(self, typeNode):
+        if isinstance(typeNode, PrimitiveType):
+            return str(typeNode.value)
+        if isinstance(typeNode, NamedType):
+            return typeNode.name.name
+        if isinstance(typeNode, ListType):
+            return f"list({self._runtime_type_text(typeNode.elementType)})"
+        if isinstance(typeNode, ArrayType):
+            return f"arr({self._runtime_type_text(typeNode.elementType)})"
+        if isinstance(typeNode, SetType):
+            return f"set({self._runtime_type_text(typeNode.elementType)})"
+        if isinstance(typeNode, UnionType):
+            return " | ".join(self._runtime_type_text(member) for member in typeNode.members)
+        return "<unknown>"
 
     def execute_MemberAccess(self, node: MemberAccess):
         target = self.evaluate(node.target)

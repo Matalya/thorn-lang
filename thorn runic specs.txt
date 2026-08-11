@@ -146,6 +146,7 @@ Notice how the named type for the aggregated data isn't one of the contained fie
 A few ground rules to keep in consideration:
 - Methods are implemented as syntax sugar over free functions. `Lucas.grow_up(5)` gets resolved to `Person::grow_up(Lucas, 5)`.
 - An instance method is any function whose first parameter is `StructType ᛋᛖᛚᚠ`; the StructType is mandatory for consistency with the rest of the language, but `ᛋᛖᛚᚠ` is a reserved keyword. Otherwise, the function is considered a static method. For example, `whoIsOlder(Person a, Person b)` would be callable only as `Person.whoIsOlder(Lucas, Marcos)` instead of `Lucas.whoIsOlder(Lucas, Marcos)`.
+- A bare `ᛋᛖᛚᚠ` parameter is invalid. Writing `ᚾᛁᛚ restock(ᛋᛖᛚᚠ, ᛁᚾᛏ amount) {}` produces a specific missing-type error suggesting the required form, such as `ᚾᛁᛚ restock(Product ᛋᛖᛚᚠ, ᛁᚾᛏ amount) {}`.
 - Uninitialized fields with no default raises an error.
 - Re-initializing fields (for example, if you defined `age` twice) raise an error
 - Initializing fields not present in the definition raises an error.
@@ -156,6 +157,26 @@ A few ground rules to keep in consideration:
 ᛈᚱᛁᚾᛏ(Lucas.interests[1])
 >> 17
 pc gaming
+```
+## Printing
+Printing a struct instance, interpolating it into a composite string, or converting it with `ᛋᛏᚱ()` uses a field-oriented representation:
+```
+StructType { fieldName = value, otherField = value }
+```
+
+Fields are printed in their declaration order. Values use their normal Thorn display form recursively, so nested collections and structs are displayed within the containing struct. Strings are displayed without surrounding quotes.
+
+```
+ᛋᛏᚱᚢᚳᛏ Product {
+    ᛋᛏᚱ name;
+    ᚠᛚᚩᛏ price;
+    ᛁᚾᛏ stock;
+}
+
+Product coffee = Product.ᚾᛁᚢ("Coffee", 4.5, 3);
+ᛈᚱᛁᚾᛏ(coffee);
+
+>> Product { name = Coffee, price = 4.5, stock = 3 }
 ```
 ### Default, constant and mandatory fields
 ```
@@ -337,7 +358,15 @@ Thorn can access modules from the Python environment running the interpreter. Th
 
 Python exceptions become source-positioned Thorn runtime errors. Python interoperability is not sandboxed and grants imported modules the privileges of the interpreter.
 
-The future import-statement vocabulary is `ᛁᛗᛈᛟᚱᛏ` (`import`), `ᛈᛠᚦᚣᚾ` (`python`), and `ᚫᛋ` (`as`). These spellings are assigned, but the statement syntax is not implemented yet.
+Python modules can be imported with a native runic statement:
+```
+ᛁᛗᛈᛟᚱᛏ ᛈᛠᚦᚣᚾ "math" ᚫᛋ math;
+```
+This is syntactic sugar for:
+```
+ᛈᛠᚪᛒᚷᚻᛖᚳᛏ math = ᛈᛠᛁᛗᛈᛟᚱᛏ("math");
+```
+The module name must be a string literal, and `ᚫᛋ` must provide a normal Thorn identifier. The binding has static type `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ` and follows ordinary Thorn declaration and function-level scope rules.
 
 # Built-ins:
 \* This documentation uses `?value` to mean "optional parameter". However, this is merely notational and is not valid Thorn source. Parameters become optional by providing a default evaluation with `=`.
@@ -376,16 +405,21 @@ Search methods return `ᚾᛁᛚ` when no matching item or occurrence exists. `�
 - `ᛚᛁᛋᛏ(T) ᛚᛁᛋᛏ(type T, ᛖᚾᛁ ?value)`
   - Converts `value` into a list whose element type is `T`.
   - Returns `[]` if `value` is omitted.
+  - Invocation syntax is `ᛚᛁᛋᛏ(T, value)` or `ᛚᛁᛋᛏ(T)`.
 - `ᚪᚱ(T, N) ᚪᚱ(type T, ᛖᚾᛁ ?value, ᛁᚾᛏ ?capacity)`
   - Converts `value` into an array whose element type is `T`.
   - If `capacity` is omitted and `value` is provided, capacity defaults to the resulting length.
   - If both `value` and `capacity` are omitted, returns an empty array with capacity `0`.
   - If `capacity` is greater than the resulting length, the remaining capacity consists of internal empty slots. Empty slots are not Thorn `ᚾᛁᛚ` values and cannot be read directly.
   - If `capacity` is smaller than the number of converted elements, excess elements are truncated and a warning is emitted.
+  - Invocation syntax is `ᚪᚱ(T, value, capacity)`. `ᚪᚱ(T, capacity = N)` creates an empty array with reserved capacity.
 - `ᛋᛖᛏ(T) ᛋᛖᛏ(type T, ᛖᚾᛁ ?value)`
   - Converts `value` into a set whose element type is `T`.
   - Returns `()` if `value` is omitted.
   - Thorn sets are ordered, immutable collections and may contain duplicate values.
+  - Invocation syntax is `ᛋᛖᛏ(T, value)` or `ᛋᛖᛏ(T)`.
+
+These conversions create a fresh outer collection and never mutate the source. Thorn collections, strings, and foreign Python iterables are copied in iteration order; a non-iterable Thorn value becomes one element. Elements are not individually coerced and must already match `T`. Nested collection elements are checked recursively. Contained object identities are retained, making this an outer-container copy rather than the recursive deep copy performed by `ᚳᚪᛈᛁᛁ()`.
 
 ## Mutating conversion functions
 - `ᚾᛁᛚ ᛏᚣ_ᛁᚾᛏ(ᛖᚾᛁ value)`
@@ -653,5 +687,7 @@ A non-`ᚳᛟᚾᛋᛏ` variable containing a set may still be rebound to anothe
 ## Python interoperability
 - `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ ᛈᛠᛁᛗᛈᛟᚱᛏ(ᛋᛏᚱ ᛗᚫᚷᚻᚣᛚ)`
   - Imports a Python module through the active interpreter environment.
+- `ᛁᛗᛈᛟᚱᛏ ᛈᛠᚦᚣᚾ "module" ᚫᛋ binding;`
+  - Imports the Python module and declares `binding` with static type `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ`.
 
 A `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ` supports dynamic member access, calls, indexing, slicing, and `ᚠᛟᚱᛁᛁᚳᚻ`. Every foreign result has static type `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ` and must be explicitly converted before it is used as an ordinary Thorn value.

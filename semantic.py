@@ -1778,6 +1778,13 @@ class SemanticAnalyzer:
 
             return SetType(elementType)
 
+        if isinstance(node, CollectionConversion):
+            if node.collectionKind == "list":
+                return ListType(node.elementType)
+            if node.collectionKind == "arr":
+                return ArrayType(node.elementType, 0)
+            return SetType(node.elementType)
+
         if isinstance(node, IndexAccess):
             targetType = self.inferExpressionType(
                 node.target
@@ -4825,6 +4832,23 @@ class SemanticAnalyzer:
 
         for element in node.elements:
             self.visit(element, expectedType=elementType)
+
+    def visitCollectionConversion(self, node: CollectionConversion):
+        self.visit(node.elementType)
+        anyType = PrimitiveType(Type.ANY)
+        parameters = [ParameterSignature("value", anyType, True)]
+        if node.collectionKind == "arr":
+            parameters.append(ParameterSignature(
+                "capacity",
+                PrimitiveType(Type.INT),
+                True
+            ))
+        self.checkCallableArguments(
+            node,
+            [parameters],
+            callableKind="Conversion",
+            callableName=node.collectionKind,
+        )
 
     def visitIfStatement(
         self,

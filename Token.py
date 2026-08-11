@@ -43,6 +43,11 @@ class TokenKind(Enum):
     # Reserved identifiers
     SELF          = auto()
 
+    # Python interoperability
+    IMPORT        = auto()
+    PYTHON        = auto()
+    AS            = auto()
+
     # Flow control
     IF            = auto()
     ELSIF         = auto()
@@ -179,6 +184,16 @@ KEYWORDS: dict[str, TokenKind] = {
     # Reserved identifiers
     "self": TokenKind.SELF,
     "ᛋᛖᛚᚠ": TokenKind.SELF,
+
+    # Python interoperability
+    "import": TokenKind.IMPORT,
+    "ᛁᛗᛈᛟᚱᛏ": TokenKind.IMPORT,
+
+    "python": TokenKind.PYTHON,
+    "ᛈᛠᚦᚣᚾ": TokenKind.PYTHON,
+
+    "as": TokenKind.AS,
+    "ᚫᛋ": TokenKind.AS,
 
     # Boolean literals/operators
     "true": TokenKind.TRUE,

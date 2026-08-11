@@ -270,6 +270,87 @@ class InterpreterTests(unittest.TestCase):
             output,
         )
 
+    def test_non_mutating_collection_conversions(self):
+        output = self.run_program(
+            '''
+            list(int) original = [1, 2];
+            list(int) copied = list(int, original);
+            copied.append(3);
+
+            list(char) letters = list(char, "abc");
+            arr(int, 4) fixed = arr(int, original, capacity = 4);
+            set(int) ordered = set(int, [2, 1, 2]);
+            list(list(int)) nested = [[1]];
+            list(list(int)) outerCopy = list(list(int), nested);
+            outerCopy[0].append(2);
+
+            print(original);
+            print(copied);
+            print(letters);
+            print(fixed);
+            print(fixed.capacity());
+            print(ordered);
+            print(nested);
+            '''
+        )
+        self.assertEqual(
+            "[1, 2]\n[1, 2, 3]\n[a, b, c]\n<1, 2>\n4\n"
+            "(2, 1, 2)\n[[1, 2]]\n",
+            output,
+        )
+
+    def test_collection_conversion_defaults_truncation_and_python_iterable(self):
+        output = self.run_program(
+            '''
+            list(int) emptyList = list(int);
+            arr(int, 0) emptyArray = arr(int);
+            arr(int, 3) reserved = arr(int, capacity = 3);
+            set(int) emptySet = set(int);
+
+            arr(int, 2) truncated = arr(int, [1, 2, 3], 2);
+
+            import python "builtins" as builtins;
+            pyobject numbers = builtins.range(1, 4);
+            list(int) fromPython = list(int, numbers);
+
+            print(emptyList);
+            print(emptyArray);
+            print(reserved.capacity());
+            print(emptySet);
+            print(truncated);
+            print(fromPython);
+            '''
+        )
+        self.assertEqual(
+            "warning: array initializer was truncated to fit its capacity\n"
+            "[]\n<>\n3\n()\n<1, 2>\n[1, 2, 3]\n",
+            output,
+        )
+
+    def test_runic_non_mutating_collection_conversions(self):
+        output = self.run_program(
+            '''
+            ᛚᛁᛋᛏ(ᛁᚾᛏ) values = ᛚᛁᛋᛏ(ᛁᚾᛏ, [1, 2]);
+            ᚪᚱ(ᛁᚾᛏ, 3) fixed = ᚪᚱ(ᛁᚾᛏ, values, 3);
+            ᛋᛖᛏ(ᛁᚾᛏ) ordered = ᛋᛖᛏ(ᛁᚾᛏ, values);
+            ᛈᚱᛁᚾᛏ(values);
+            ᛈᚱᛁᚾᛏ(fixed);
+            ᛈᚱᛁᚾᛏ(ordered);
+            '''
+        )
+        self.assertEqual("[1, 2]\n<1, 2>\n(1, 2)\n", output)
+
+    def test_collection_conversion_rejects_dynamic_element_type_mismatch(self):
+        with self.assertRaises(ThornRuntimeError) as context:
+            run_source('list(int) values = list(int, ["wrong"]);')
+        self.assertIn("does not match type 'int'", context.exception.message)
+
+        with self.assertRaises(ThornRuntimeError) as nested:
+            run_source(
+                'list(list(int)) values = list(list(int), [["wrong"]]);'
+            )
+        self.assertIn("does not match type 'int'", nested.exception.message)
+
 
 class CommandLineTests(unittest.TestCase):
     def test_lowercase_thorn_is_a_source_extension(self):
@@ -408,6 +489,20 @@ class FileIOTests(unittest.TestCase):
 
 
 class PythonInteropTests(unittest.TestCase):
+    def test_native_python_import_ascii_and_runic(self):
+        output = []
+        run_source(
+            '''
+            import python "math" as math;
+            ᛁᛗᛈᛟᚱᛏ ᛈᛠᚦᚣᚾ "statistics" ᚫᛋ stats;
+
+            print(float(math.sqrt(64)));
+            print(float(stats.mean([2.0, 4.0, 6.0])));
+            ''',
+            output=output.append,
+        )
+        self.assertEqual("8.0\n4.0\n", "".join(output))
+
     def test_runic_pyimport_type_builtin_and_named_parameter(self):
         output = []
         run_source(

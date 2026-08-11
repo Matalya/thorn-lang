@@ -867,6 +867,24 @@ class SemanticRegressionTests(unittest.TestCase):
         )
 
 class BuiltinSemanticTests(unittest.TestCase):
+    def test_native_python_import_declares_a_pyobject(self):
+        issues = analyze(
+            '''
+            import python "math" as math;
+            pyobject result = math.sqrt(25);
+            '''
+        )
+        self.assertEqual([], issues)
+
+    def test_native_python_import_obeys_duplicate_name_rules(self):
+        issues = analyze(
+            '''
+            int math = 1;
+            import python "math" as math;
+            '''
+        )
+        self.assertTrue(any("already declared" in issue.message for issue in issues))
+
     def test_primitive_conversions_and_builtin_results(self):
         issues = analyze(
             '''
@@ -914,6 +932,27 @@ class BuiltinSemanticTests(unittest.TestCase):
             '''
         )
         self.assertEqual([], issues)
+
+    def test_non_mutating_collection_conversion_types_and_arguments(self):
+        issues = analyze(
+            '''
+            list(int) values = list(int, [1, 2]);
+            arr(int, 4) fixed = arr(int, values, capacity = 4);
+            set(int) ordered = set(int, values);
+            list(str) empty = list(str);
+            '''
+        )
+        self.assertEqual([], issues)
+
+        issues = analyze(
+            '''
+            arr(int, 2) badCapacity = arr(int, [1], capacity = "two");
+            list(int) tooMany = list(int, [1], 2);
+            '''
+        )
+        messages = [issue.message for issue in issues]
+        self.assertTrue(any("must have type 'int'" in message for message in messages))
+        self.assertTrue(any("expects" in message and "got 2" in message for message in messages))
 
 
 class CompositeStringSemanticTests(unittest.TestCase):
@@ -1412,6 +1451,28 @@ class StructMemberSemanticTests(unittest.TestCase):
 
 
 class StructMethodSemanticTests(unittest.TestCase):
+    def test_bare_self_parameter_has_specific_parser_error(self):
+        cases = (
+            (
+                "self",
+                "struct Product { nil restock(self, int amount) {} }",
+                "Product self",
+            ),
+            (
+                "ᛋᛖᛚᚠ",
+                "ᛋᛏᚱᚢᚳᛏ Product { ᚾᛁᛚ restock(ᛋᛖᛚᚠ, ᛁᚾᛏ amount) {} }",
+                "Product ᛋᛖᛚᚠ",
+            ),
+        )
+
+        for spelling, source, expectedForm in cases:
+            with self.subTest(spelling=spelling):
+                with self.assertRaises(TokenError) as context:
+                    parseProgram(source)
+                message = str(context.exception)
+                self.assertIn("is missing its type", message)
+                self.assertIn(expectedForm, message)
+
     def test_instance_static_and_union_methods_support_defaults_and_names(self):
         issues = analyze(
             """

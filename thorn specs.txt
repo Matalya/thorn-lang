@@ -146,6 +146,7 @@ Notice how the named type for the aggregated data isn't one of the contained fie
 A few ground rules to keep in consideration:
 - Methods are implemented as syntax sugar over free functions. `Lucas.grow_up(5)` gets resolved to `Person::grow_up(Lucas, 5)`.
 - An instance method is any function whose first parameter is `StructType self`; the StructType is mandatory for consistency with the rest of the language, but `self` is a reserved keyword. Otherwise, the function is considered a static method. For example, `whoIsOlder(Person a, Person b)` would be callable only as `Person.whoIsOlder(Lucas, Marcos)` instead of `Lucas.whoIsOlder(Lucas, Marcos)`.
+- A bare `self` parameter is invalid. Writing `nil restock(self, int amount) {}` produces a specific missing-type error suggesting the required form, such as `nil restock(Product self, int amount) {}`.
 - Uninitialized fields with no default raises an error.
 - Re-initializing fields (for example, if you defined `age` twice) raise an error
 - Initializing fields not present in the definition raises an error.
@@ -156,6 +157,26 @@ print(Lucas.age)
 print(Lucas.interests[1])
 >> 17
 pc gaming
+```
+## Printing
+Printing a struct instance, interpolating it into a composite string, or converting it with `str()` uses a field-oriented representation:
+```
+StructType { fieldName = value, otherField = value }
+```
+
+Fields are printed in their declaration order. Values use their normal Thorn display form recursively, so nested collections and structs are displayed within the containing struct. Strings are displayed without surrounding quotes.
+
+```
+struct Product {
+    str name;
+    float price;
+    int stock;
+}
+
+Product coffee = Product.new("Coffee", 4.5, 3);
+print(coffee);
+
+>> Product { name = Coffee, price = 4.5, stock = 3 }
 ```
 ### Default, constant and mandatory fields
 ```
@@ -342,7 +363,17 @@ Opening failures, permission errors, invalid operations, encoding failures, and 
 # Python interoperability
 Thorn can access modules from the Python environment running the interpreter. Python interoperability is an explicitly dynamic boundary: ordinary Thorn remains statically typed, while foreign modules, callables, attributes, and results use the `pyobject` type.
 
-Runic aliases are `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ` for `pyobject`, `ᛈᛠᛁᛗᛈᛟᚱᛏ` for `pyimport`, and `ᛗᚫᚷᚻᚣᛚ` for its `module` parameter. The aliases `ᛁᛗᛈᛟᚱᛏ`, `ᛈᛠᚦᚣᚾ`, and `ᚫᛋ` are assigned to the planned `import`, `python`, and `as` statement vocabulary; that syntax is not implemented yet.
+Runic aliases are `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ` for `pyobject`, `ᛈᛠᛁᛗᛈᛟᚱᛏ` for `pyimport`, and `ᛗᚫᚷᚻᚣᛚ` for its `module` parameter. The native import-statement aliases are `ᛁᛗᛈᛟᚱᛏ`, `ᛈᛠᚦᚣᚾ`, and `ᚫᛋ` for `import`, `python`, and `as` respectively.
+
+Python modules can be imported with a native statement:
+```
+import python "math" as math;
+```
+This is syntactic sugar for a statically typed `pyobject` declaration initialized through `pyimport()`:
+```
+pyobject math = pyimport("math");
+```
+The module name must be a string literal and `as` must provide a normal Thorn identifier. The binding follows ordinary Thorn declaration and function-level scope rules. Importing a missing module produces the same source-positioned runtime error as `pyimport()`.
 
 `pyimport()` uses Python's normal module discovery rules and therefore sees the standard library and packages installed in the active Python environment. A `pyobject` supports dynamic member access, calls with positional or named arguments, indexing, slicing, and iteration through `foreach`. Each such operation has static result type `pyobject`; programs use explicit Thorn conversions such as `int()`, `float()`, `str()`, `bool()`, or `to_list()` when they need an ordinary Thorn value.
 
@@ -387,16 +418,21 @@ Search methods return `nil` when no matching item or occurrence exists. `find_nt
 - `list(T) list(type T, any ?value)`
   - Converts `value` into a list whose element type is `T`.
   - Returns `[]` if `value` is omitted.
+  - Invocation syntax is `list(T, value)` or `list(T)`.
 - `arr(T, N) arr(type T, any ?value, int ?capacity)`
   - Converts `value` into an array whose element type is `T`.
   - If `capacity` is omitted and `value` is provided, capacity defaults to the resulting length.
   - If both `value` and `capacity` are omitted, returns an empty array with capacity `0`.
   - If `capacity` is greater than the resulting length, the remaining capacity consists of internal empty slots. Empty slots are not Thorn `nil` values and cannot be read directly.
   - If `capacity` is smaller than the number of converted elements, excess elements are truncated and a warning is emitted.
+  - Invocation syntax is `arr(T, value, capacity)`. `value` and `capacity` may also be named, so `arr(T, capacity = N)` creates an empty array with reserved capacity.
 - `set(T) set(type T, any ?value)`
   - Converts `value` into a set whose element type is `T`.
   - Returns `()` if `value` is omitted.
   - Thorn sets are ordered, immutable collections and may contain duplicate values.
+  - Invocation syntax is `set(T, value)` or `set(T)`.
+
+These conversions always create a fresh outer collection and never mutate the source. A Thorn collection, string, or foreign Python iterable is copied in iteration order; a non-iterable Thorn value becomes one element. Elements are not individually coerced through primitive conversion functions: every produced element must already be compatible with `T`, otherwise conversion raises a source-positioned runtime error. Nested collection elements are checked recursively. Contained object identities are retained, so this is an outer-container copy rather than `copy()`'s recursive deep copy.
 
 ## Mutating conversion functions
 - `nil to_int(any value)`
@@ -667,6 +703,9 @@ File and encoding failures are reported as source-positioned Thorn runtime error
 - `pyobject pyimport(str module)`
   - Imports `module` using Python's normal import system and returns the module as a foreign object.
   - Runic form: `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ ᛈᛠᛁᛗᛈᛟᚱᛏ(ᛋᛏᚱ ᛗᚫᚷᚻᚣᛚ)`.
+- `import python "module" as binding;`
+  - Imports the Python module and declares `binding` with static type `pyobject`.
+  - Equivalent to `pyobject binding = pyimport("module");`.
 
 Operations supported by `pyobject` values:
 - `object.member`: dynamically retrieves a Python attribute and returns it as `pyobject`.

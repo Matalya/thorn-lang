@@ -493,6 +493,34 @@ class SetType(TypeNode):
     def __repr__(self):
         return f"SetType({self.elementType})"
 
+
+class CollectionConversion(Node):
+    """A type-directed, non-mutating collection conversion expression."""
+
+    def __init__(
+        self,
+        collectionKind: str,
+        elementType: TypeNode,
+        arguments: list[Node]
+    ):
+        self.collectionKind = collectionKind
+        self.elementType = elementType
+        self.arguments = arguments
+
+    def pretty(self, indent: int = 0) -> str:
+        prefix = " " * indent
+        return "\n".join([
+            f"{prefix}CollectionConversion: {self.collectionKind}",
+            self.child("elementType", self.elementType, indent + 2),
+            self.child("arguments", self.arguments, indent + 2),
+        ])
+
+    def __repr__(self):
+        return (
+            f"CollectionConversion({self.collectionKind!r}, "
+            f"{self.elementType!r}, {self.arguments!r})"
+        )
+
 class UnionType(TypeNode):
     def __init__(self, members: list[TypeNode]):
         self.members: list[TypeNode] = members
