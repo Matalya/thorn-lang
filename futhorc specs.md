@@ -702,7 +702,7 @@ File and encoding failures are reported as source-positioned Futhorc runtime err
 ## Python interoperability
 - `pyobject pyimport(str module)`
   - Imports `module` using Python's normal import system and returns the module as a foreign object.
-  - Runic form: `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ ᛈᛠᛁᛗᛈᛟᚱᛏ(ᛋᛏᚱ ᛗᚫᚷᚻᚣᛚ)`.
+  - Runic form: `pyobject pyimport(str module)`.
 - `import python "module" as binding;`
   - Imports the Python module and declares `binding` with static type `pyobject`.
   - Equivalent to `pyobject binding = pyimport("module");`.

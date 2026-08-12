@@ -1,0 +1,979 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Futhorc — The Futhorc Programming Language</title>
+
+  <style>
+    :root {
+      --background: #12110f;
+      --surface: #1c1a17;
+      --main-ink: #ccc5ba;
+      --muted-text: #968b8c;
+      --secondary-ink: #a58c6b;
+      --accent: #968b8c;
+      --border: #3b3731;
+      --code-background: #0d0c0b;
+    }
+
+    :root[data-theme="light"] {
+      --background: #ccc5ba;
+      --surface: #ded8cf;
+      --main-ink: #12110f;
+      --muted-text: #686258;
+      --secondary-ink: #2d2723;
+      --accent: #968b8c;
+      --border: #aaa298;
+      --code-background: #bab2a8;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--background);
+      color: var(--main-ink);
+      font-family: "Source Serif 4", Georgia, serif;
+      line-height: 1.6;
+    }
+
+    code,
+    pre,
+    .runes {
+      font-family: "JetBrains Mono", Consolas, monospace;
+    }
+
+    a {
+      color: var(--secondary-ink);
+    }
+
+    a:hover {
+      color: var(--main-ink);
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1rem max(5vw, 1.5rem);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .brand {
+      color: var(--main-ink);
+      font-size: 1.4rem;
+      font-weight: bold;
+      letter-spacing: 0.08em;
+      text-decoration: none;
+    }
+
+    .brand .runes {
+      color: var(--secondary-ink);
+      margin-right: 0.5rem;
+    }
+
+    nav {
+      display: flex;
+      gap: 1rem;
+    }
+
+    nav a {
+      text-decoration: none;
+    }
+
+    button {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--main-ink);
+      border-radius: 4px;
+      cursor: pointer;
+      padding: 0.45rem 0.7rem;
+      font: inherit;
+    }
+
+    button:hover {
+      border-color: var(--secondary-ink);
+    }
+
+    .hero {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 8rem 1.5rem 6rem;
+      text-align: center;
+    }
+
+    .hero-rune {
+      color: var(--secondary-ink);
+      font-size: clamp(5rem, 15vw, 10rem);
+      line-height: 1;
+    }
+
+    h1,
+    h2,
+    h3 {
+      color: var(--main-ink);
+      line-height: 1.2;
+    }
+
+    h1 {
+      margin: 1rem 0;
+      font-size: clamp(3rem, 8vw, 6rem);
+      letter-spacing: 0.05em;
+    }
+
+    .tagline {
+      color: var(--muted-text);
+      font-size: 1.25rem;
+    }
+
+    .button-link {
+      display: inline-block;
+      margin: 1.5rem 0.4rem 0;
+      padding: 0.65rem 1rem;
+      border: 1px solid var(--secondary-ink);
+      color: var(--main-ink);
+      text-decoration: none;
+    }
+
+    .button-link:hover {
+      background: var(--secondary-ink);
+      color: var(--background);
+    }
+
+    .docs {
+      display: grid;
+      grid-template-columns: 240px minmax(0, 760px);
+      justify-content: center;
+      gap: 3rem;
+      padding: 4rem 1.5rem;
+      border-top: 1px solid var(--border);
+    }
+
+    aside {
+      height: fit-content;
+      position: sticky;
+      top: 1rem;
+    }
+
+    aside a {
+      display: block;
+      margin: 0.45rem 0;
+      color: var(--muted-text);
+      text-decoration: none;
+    }
+
+    aside a:hover {
+      color: var(--main-ink);
+    }
+
+    main {
+      min-width: 0;
+    }
+
+    pre {
+      overflow-x: auto;
+      padding: 1rem;
+      background: var(--code-background);
+      border-left: 3px solid var(--accent);
+      color: var(--main-ink);
+    }
+
+    footer {
+      padding: 2rem 1.5rem;
+      border-top: 1px solid var(--border);
+      color: var(--muted-text);
+      text-align: center;
+    }
+
+    @media (max-width: 720px) {
+      header {
+        flex-wrap: wrap;
+      }
+
+      .docs {
+        display: block;
+      }
+
+      aside {
+        position: static;
+        margin-bottom: 3rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <a class="brand" href="#">
+      <span class="runes">ᚠᚢᚦᚩᚱᚳ</span>FUTHORC
+    </a>
+
+    <nav>
+      <a href="#documentation">Documentation</a>
+      <a href="#examples">Examples</a>
+      <a href="https://github.com/">Source</a>
+      <button id="theme-toggle" type="button">Light mode</button>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <div class="hero-rune runes">ᚦ</div>
+    <h1>Futhorc</h1>
+    <p class="tagline">
+      A statically typed hobby programming language with runic aliases
+      and a bridge to Python’s ecosystem.
+    </p>
+
+    <a class="button-link" href="#documentation">Read the specification</a>
+    <a class="button-link" href="#examples">See an example</a>
+  </section>
+
+  <section class="docs" id="documentation">
+    <aside>
+      <strong>Documentation</strong>
+      <a href="#getting-started">Getting started</a>
+      <a href="#types">Types</a>
+      <a href="#control-flow">Control flow</a>
+      <a href="#functions">Functions</a>
+      <a href="#python">Python interoperability</a>
+    </aside>
+
+    <main>
+      <section id="getting-started">
+        <h2>Getting started</h2>
+        <p>
+          Futhorc programs use the <code>.futhorc</code> or <code>.þ</code>
+          extension.
+        </p>
+      </section>
+
+      <section id="examples">
+        <h2>A small Futhorc program</h2>
+
+        <pre><code># Futhorc says hello
+pyobject math = pyimport("math");
+
+float answer = float(math.sqrt(81));
+print(c"The answer is {answer}");</code></pre>
+      </section>
+
+<h2>links</h2>
+<p>https://valhyr.com/pages/rune-converter english to runes converter
+https://www.harysdalvi.com/futhorc webapp runes keyboard</p>
+<h2>Quick rundown</h2>
+<h3>Types</h3>
+<ul>
+<li><code>int</code>, <code>float</code>, <code>char</code>, <code>str</code>, <code>bool</code>, <code>any</code>, <code>nil</code>, <code>uninitialized</code></li>
+</ul>
+<h3>Collections</h3>
+<ul>
+<li><code>list(t) [1, 2, 3]</code></li>
+<li><code>arr(t, n) &lt;1, 2, 3&gt;</code></li>
+<li><code>set(t) (1, 2, 3)</code></li>
+<li><code>enum(t) my_var = (NAME = ?value;)</code></li>
+<li><code>struct MyType = {?const type field = ?value;}</code></li>
+</ul>
+<h3>Operators</h3>
+<ul>
+<li><code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>** ^</code>, <code>%</code>, <code>//</code></li>
+<li><code>==</code>, <code>!= Ôëá</code>, <code>&gt;</code>, <code>&lt;</code>, <code>&gt;= ÔëÑ</code>, <code>&lt;= Ôëñ</code></li>
+<li><code>not</code>, <code>and</code>, <code>or</code>, <code>xor</code></li>
+</ul>
+<h3>Control flow</h3>
+<ul>
+<li><code>if () {} elsif () {} else {}</code></li>
+<li><code>for (i from a to b) {}</code></li>
+<li><code>foreach (item in collection) {}</code></li>
+<li><code>while () {}</code></li>
+<li><code>until () {}</code></li>
+</ul>
+<h3>Assignment</h3>
+<ul>
+<li><code>?new ?global ?const type my_var = value;</code></li>
+</ul>
+<h3>Returns</h3>
+<ul>
+<li><code>return</code></li>
+</ul>
+<h2>Types:</h2>
+<ul>
+<li><strong>integer</strong>: <code>int</code> 1 2 5 67</li>
+<li><strong>character</strong>: <code>char</code> 'a' 'B' '1' '!'</li>
+<li><strong>string</strong>: <code>str</code> "hello" "oh" "why me"</li>
+<li><strong>composite strings</strong>: with a <code>c</code> prefix, you can put variables between curly brackets and they won't be treated as string literals. Example:
+    <code>str ah = "Hello"
+    print("{ah}, world", end = " ")
+    print(c"{ah}, world")
+    &gt;&gt; {ah}, world Hello, world</code></li>
+<li><strong>floating point number</strong>: <code>float</code> 1.0 2.5 0.30000002</li>
+<li><strong>boolean number</strong>: <code>bool</code> <code>true</code> <code>false</code></li>
+<li><strong>type-flexible</strong>: <code>any</code></li>
+<li><strong>null</strong>, <strong>none</strong>, <strong>nothing</strong>: <code>nil</code></li>
+<li><strong>uninitialized</strong>: <code>uninitialized</code><ul>
+<li>special meta-type to mark variables as uninitialized and enable special behavior and circumvent the type checker</li>
+</ul>
+</li>
+</ul>
+<h3>Boolean operations and truthiness:</h3>
+<p>Truthiness can only be accessed with the built-in <code>bool()</code> function, that gets any data as its argument and returns its truthy value. Truthiness can otherwise not be accessed, and instead explicit boolean values must be used in logical operations.
+- <strong>Comparisons</strong> like <code>==</code>, <code>&lt;</code> and <code>&gt;=</code> can take numeric values (<code>int</code>, <code>float</code>), as well as boolean values <code>true</code> and <code>false</code>.
+- <strong>Logic operators</strong> like <code>and</code>, <code>or</code> and <code>xor</code> can only be performed on strict boolean values, or type-casted non-boolean values through the <code>bool()</code> function.
+  - <code>5 and false</code> ❌
+  - <code>bool(5) and false</code> ✅</p>
+<h3>Collections:</h3>
+<ul>
+<li>list: <code>list(type)</code> [1, 2, 3] (mutable, dynamically resizable)</li>
+<li>array: <code>arr(t, n)</code> &lt;1, 2, 3&gt; (mutable, non-dynamically resizable)</li>
+<li>set: <code>set(t)</code> (1, 2, 3) (inmutable)</li>
+<li>item: <code>collection[n]</code></li>
+<li>
+<p>slicing: <code>collection[a:b]</code> (zero-index, b-exclusive)</p>
+</li>
+<li>
+<p><em>mutable: can the items of the collection be changed/added upon?</em></p>
+</li>
+<li><em>resizable: can the collection be dynamically resized with each insertion and deletion?*</em></li>
+<li><em>rebindable: can the variable be reassigned to something else?</em>
+<table>
+  <thead>
+    <tr>
+      <th>Collection</th>
+      <th>Mutable</th>
+      <th>Resizable</th>
+      <th>Rebindable</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><code>list</code></td><td>✅</td><td>✅</td><td>✅</td></tr>
+    <tr><td><code>arr</code></td><td>✅</td><td>❌</td><td>✅</td></tr>
+    <tr><td><code>set</code></td><td>❌</td><td>❌</td><td>✅</td></tr>
+    <tr><td><code>const list</code></td><td>✅</td><td>✅</td><td>❌</td></tr>
+    <tr><td><code>const arr</code></td><td>✅</td><td>❌</td><td>❌</td></tr>
+    <tr><td><code>const set</code></td><td>❌</td><td>❌</td><td>❌</td></tr>
+  </tbody>
+</table>
+* arrays are not dynamically resizable, but they can be resized with the methods listed further down. The capacity is runtime allocation.
+* Futhorc sets are immutable, ordered collections that permit duplicate elements; they behave like immutable lists rather than mathematical sets.</li>
+</ul>
+<h3>Typed arrays</h3>
+<p>Typed arrays are arrays that can store multiple types of data in an ordered manner. Their minimum length is determined by the amount of types specified. A typed array is, syntactically, an array whose type passed is a list of types.</p>
+<h3>Unnumbered types</h3>
+<p><code>arr([int, str, float], 3)</code>: this type can hold 3 items, and the order in which they're held must match that of their definition. As such, <code>[1, "a", 1.5]</code> is a valid form, but <code>["a", 1, 1.0]</code> isn't.</p>
+<p>However, if we change it to <code>arr([] int, str, float, 4)</code>, now you'll see that there are more items than there are types. This allows you to put more than one, as long as the order is preserved and all types are covered. As such, all of the following are valid
+<code>[1, "a", 1.0]
+[1, 2, "a", 1.0]
+[1, "a", "b", 1.0]
+[1, "a", 1.0, 2.0]</code></p>
+<h3>Numbered types</h3>
+<p>No number next to the type means "any amount". However, a number means "this exact amount, no more, no less". For example: <code>arr([str, int3], 10)</code> represents an array that contains between 1 and 7 strings, and exactly 3 integers, and <code>arr([str1, int3], 4)</code> <em>has</em> to contain one string and 3 integers. This is similar to Rust's tuple structs. It goes without saying that, if the length of the array doesn't match the amount expressed in the types, the program will error. However, it can be left empty and the interpreter will automatically pre-compute the correct minimal amount, which for numbered type arrays, is in fact the recommended approach to keep typoes and confusions from causing errors.</p>
+<h3>Structs</h3>
+<p>Structs are named custom types that bundle an assortment of declared variable fields with their own types. A <code>struct</code> can hold data of any type. The basic structure is:
+```
+struct StructType {
+  type field_name;
+  type field_name = default_value;</p>
+<p>type func(StructType self, type arg) {
+    # func body
+  }
+}</p>
+<p>Example:</p>
+<h3>Declaration and instantiation</h3>
+<p>
+struct Person {
+    str name;
+    int age;
+    str citizen;
+    int height;
+    float weight;
+    list(str) interests;</p>
+<pre><code>nil grow_up(Person self, int years) {
+  self.age += years;
+}
+
+Person whoIsOlder(Person a, Person b) {
+  if (a.age &gt; b.age) {
+    return a;
+  } else {
+    return b;
+  }
+}
+<p>}</p>
+Person Lucas = {
+    name = "Lucas";
+    age = 17;
+    citizen = "Argentine";
+    height = 175;
+    weight = 82.9;
+    interests = ["rock", "pc gaming", "football", "girls"];
+}</code></pre>
+<h2>in-line</h2>
+<p><code>func(Person {name = "Lucas"; ...})</code>
+Notice how the named type for the aggregated data isn't one of the contained field types but a custom-named one. This integration with the type checker is the biggest advantage structs offer.</p>
+A few ground rules to keep in consideration:
+<ul>
+<li>Methods are implemented as syntax sugar over free functions. <code>Lucas.grow_up(5)</code> gets resolved to <code>Person::grow_up(Lucas, 5)</code>.</li>
+<li>An instance method is any function whose first parameter is <code>StructType self</code>; the StructType is mandatory for consistency with the rest of the language, but <code>self</code> is a reserved keyword. Otherwise, the function is considered a static method. For example, <code>whoIsOlder(Person a, Person b)</code> would be callable only as <code>Person.whoIsOlder(Lucas, Marcos)</code> instead of <code>Lucas.whoIsOlder(Lucas, Marcos)</code>.</li>
+<li>A bare <code>self</code> parameter is invalid. Writing <code>nil restock(self, int amount) {}</code> produces a specific missing-type error suggesting the required form, such as <code>nil restock(Product self, int amount) {}</code>.</li>
+<li>Uninitialized fields with no default raises an error.</li>
+<li>Re-initializing fields (for example, if you defined <code>age</code> twice) raise an error</li>
+<li>Initializing fields not present in the definition raises an error.</li>
+<li>Struct literals behave as expressions and evaluate to the newly created object without requiring it to be bound to a variable.</li>
+</ul>
+<h3>Accessing</h3>
+<pre><code>
+print(Lucas.age)
+print(Lucas.interests[1])
+17
+pc gaming
+</code></pre>
+<h3>Printing</h3>
+<p>Printing a struct instance, interpolating it into a composite string, or converting it with <code>str()</code> uses a field-oriented representation:
+<code>StructType { fieldName = value, otherField = value }</code></p>
+<p>Fields are printed in their declaration order. Values use their normal Futhorc display form recursively, so nested collections and structs are displayed within the containing struct. Strings are displayed without surrounding quotes.</p>
+<pre><code>
+struct Product {
+    str name;
+    float price;
+    int stock;
+}
+Product coffee = Product.new("Coffee", 4.5, 3);
+print(coffee);
+
+Product { name = Coffee, price = 4.5, stock = 3 }
+</code></pre>
+<h3>Default, constant and mandatory fields</h3>
+<p><pre><code>enum Clearance = (
+    LEVEL_ONE;
+    LEVEL_TWO;
+    LEVEL_THREE;
+    LEVEL_FOUR;
+    MAXIMUM_LEVEL;
+)
+struct Employee {
+    str name;
+    const int id;
+    Clearance clearance = LEVEL_ONE;
+    const str manual = EMPLOYEE_MANUAL;
+}
+Employee johnSmith = {
+    name = "John Smith";
+    id = 25684978
+}</code></pre></p>
+<p>The ID cannot be changed because it's a security measure, so it's assigned as a constant. This constant, in turn, is initialized upon instanciation. Clearance level is assumed to be the lowest possible unless stated otherwise. Finally, all employees must carry the employee manual, so it is assigned automatically and cannot be reassigned.</p>
+<h3>Built-in functions and equality</h3>
+All structs come with several important functions that enable certain functionalities. 
+- <code>StructType StructType.new(*args)</code>: creates a new instance of the struct
+- <code>StructType structInstance.copy()</code>: creates a deep copy of the struct's instance
+- <code>bool structInstanceA.resembles(structInstanceB)</code>: makes a deep comparison of the contents of A and B.
+<pre><code>
+struct Sample {
+  int sample;
+}
+Sample a = Sample.new(1)
+Sample b = a
+Sample c = a.copy()
+print(a == b)         # true
+print(a == c)         # false
+print(a.resembles(c)) # true
+</code></pre>
+- Equality of structs is based on memory identity (Like Python's<code>is</code> keyword).
+<h3>Enumerations</h3>
+<p>Enumerations (Abbreviated as enums) are a closed collection of discrete data instances related by their custom named type.
+<code>enum(int) Directions = (
+    UP = 0;
+    DOWN = 1;
+    LEFT = 2;
+    RIGHT = 3;
+)</code>
+All of them have a unified type of int so they don't need to have it specified inline.</p>
+Enums support auto-incremented values. To do this, you have to not define a value on all fields, and they'll be initialized with + 1 from the previous one. By default the first field will start at 0, but you can define the initial value instead. Enums are always constants and cannot be reassigned, even with the <code>new</code> keyword.
+<pre><code>
+enum(int) Positions = (
+    FIRST = 1;
+    SECOND; #2
+    THIRD; #3
+    FOURTH; #4
+    FIFTH; #5
+)
+enum(int) Weather = (
+    SUNNY; #0
+    RAINY; #1
+    STORMY; #2
+)
+enum(str) Color = (
+    YELLOW = "yellow";
+    BLACK = "black";
+    GREEN = "green";
+    RED = "red";
+    BLUE = "blue"
+)
+</code></pre>
+In a similar vein, enums create a custom type whose valid values can be checked up against the known valid values specified at the enum definition. This way: <code>Weather CLOUDY = 3;</code> will result in an error, becaus even though it's an int as specified, it's an invalid value for the <code>Weather</code> type.
+<h2>Operators</h2>
+<h3>Arithmetic operators:</h3>
+<ul>
+<li><code>+</code>: addition</li>
+<li><code>-</code>: substraction</li>
+<li><code>*</code>: multiplication</li>
+<li><code>/</code>: division</li>
+<li><code>**</code> (<code>^</code>): exponentiation</li>
+<li><code>%</code>: modulo, division reminder</li>
+<li><code>//</code>: integer division, floored division</li>
+</ul>
+<h3>Boolean operators:</h3>
+<ul>
+<li><code>==</code>: equals (No type coercion)</li>
+<li><code>!=</code> (<code>≠</code>): does not equal (No type coercion)</li>
+<li><code>&gt;</code>: greater than</li>
+<li><code>&lt;</code>: less than</li>
+<li><code>&gt;=</code> (<code>≥</code>): greater or equal than</li>
+<li><code>&lt;=</code> (<code>≤</code>): less or equal than
+<code>i|o i|o
+`not` 1|0 0|1
+       A|B|AB A|B|AB A|B|AB A|B|AB
+`and`  0|0|0; 1|0|0; 0|1|0; 1|1|1
+`or`   0|0|0; 1|0|1; 0|1|1; 1|1|1
+`xor`  0|0|0; 1|0|1; 0|1|1; 1|1|0</code></li>
+</ul>
+<h2>Flow control:</h2>
+<ul>
+<li><code>if(cond){} elsif(cond) {} else{}</code></li>
+<li><code>while(star/cont_cond){}</code> (checks bef exe)</li>
+<li><code>until(stop_cond){}</code> (checks aft exe)</li>
+<li><code>for (i from a to b){}</code> (b-exclusive)</li>
+<li><code>foreach(item in collection){}</code></li>
+<li>⚠️ each item is an object with its index attached. It's not identical to <code>for (i from 0 to length(collection)){collection[i]}</code> as that simply returns the item. The object behaves otherwise like its value, except that certain functions like <code>index()</code> can extract and return the index</li>
+</ul>
+<h2>Functions:</h2>
+<ul>
+<li><code>f(x)</code>: function <code>f(x)</code> call</li>
+<li><code>t f(x){}</code>: function <code>f(x)</code> definition, with a return of type t</li>
+<li><code>return [expression]</code>: return statement</li>
+</ul>
+<h2>Variable declarations:</h2>
+<ul>
+<li><code>int i = 5;</code></li>
+<li><code>char c = 'c';</code></li>
+<li><code>str hello = "hello";</code></li>
+<li><code>list(int) int_list = [1, 2, 3];</code></li>
+<li><code>list(char) char_list = ['h','e','l','l','o'];</code></li>
+<li><code>arr(str, 3) names = &lt;"john", "sarah", "arthur"&gt;;</code></li>
+<li><code>set(int) magic_numbers = (35, 55, 75)</code></li>
+<li><code>const</code>: prevents the variable from being reassigned (Though mutable collections can still be edited)
+<code>int x;
+str x; # this errors</code></li>
+<li><code>global</code>: places the variable in the global scope instead of the current local scope.
+```
+nil f(){
+    a += 1;</li>
+</ul>
+<h2>b += 1;</h2>
+<pre><code>int b = 6;
+print(c"b: {b}");
+global int c = 7;
+</code></pre>
+<p>}</p>
+<p>global int a = 4
+int b = 5
+f()  # a becomes 5, b would error @ line 3 if it wasn't commented
+print(c"{a}, {c}")</p>
+<blockquote>
+<blockquote>
+<p>b: 6
+5, 7
+<code>- the order of all three assignment keywords is `new global const int var_name`.
+- `new`: allows the programmer to redeclare variables.</code>
+int x = 5;
+str x = "hi" # errors
+new str x = "hi" # all good
+```</p>
+</blockquote>
+</blockquote>
+<h3>Scope</h3>
+<p>Futhorc uses function-level lexical scope. Function bodies create local scopes; control-flow bodies do not. Variables declared within control-flow bodies are added to the nearest containing function scope, or to the global scope when no function contains them. Their initialization remains conditional on whether execution reaches the declaration.</p>
+<h3><code>any</code></h3>
+<p><code>any</code> is close to TypeScript's <code>unknown</code>. In practice, a function with a return type of <code>any</code> can only be assigned to variables with a type of <code>any</code>, but <code>any</code> can take on any type. However, performing operations on an <code>any</code>-tagged variable requires you to narrow it down via conversion or type-checking using <code>is_*</code> functions.</p>
+<h2>File handling</h2>
+<p>Futhorc provides Python-backed text file handling through the built-in <code>File</code> type. Python's mature text I/O implementation supplies buffering, newline conversion, character encoding, seeking, and operating-system integration, while Futhorc supplies static types and source-positioned runtime diagnostics.</p>
+<p>Files are opened with <code>open()</code>. Relative paths are resolved from the process working directory; absolute paths are used directly. The default encoding is UTF-8.</p>
+<p>Supported text modes are:
+- <code>"r"</code>: read an existing file.
+- <code>"w"</code>: write a file, truncating existing contents.
+- <code>"a"</code>: append to the end of a file.
+- <code>"x"</code>: create a new file and fail if it already exists.
+- <code>"r+"</code>, <code>"w+"</code>, and <code>"a+"</code>: corresponding modes that permit both reading and writing.</p>
+<p>Binary modes such as <code>"rb"</code> and <code>"wb"</code> are not supported because Futhorc does not yet have a <code>bytes</code> type.</p>
+<p>Files should be closed explicitly with <code>close()</code> when no longer needed. The interpreter also closes every remaining open file when program execution ends, including when execution ends because of a runtime error.</p>
+<p><code>tell()</code> returns an opaque text-stream position. In particular, it is not guaranteed to equal a character count or UTF-8 byte count. A position returned by <code>tell()</code> can safely be passed back to <code>seek()</code>.</p>
+<p>Opening failures, permission errors, invalid operations, encoding failures, and operations on closed files produce Futhorc runtime errors. File contents are not automatically serialized into Futhorc values; programs read and write strings and lists of strings explicitly.</p>
+<h2>Python interoperability</h2>
+<p>Futhorc can access modules from the Python environment running the interpreter. Python interoperability is an explicitly dynamic boundary: ordinary Futhorc remains statically typed, while foreign modules, callables, attributes, and results use the <code>pyobject</code> type.</p>
+<p>Runic aliases are <code>ßøêßøáßÜ¬ßøÆßÜÀßÜ╗ßøûßÜ│ßøÅ</code> for <code>pyobject</code>, <code>ßøêßøáßøüßøùßøêßøƒßÜ▒ßøÅ</code> for <code>pyimport</code>, and <code>ßøùßÜ½ßÜÀßÜ╗ßÜúßøÜ</code> for its <code>module</code> parameter. The native import-statement aliases are <code>ßøüßøùßøêßøƒßÜ▒ßøÅ</code>, <code>ßøêßøáßÜªßÜúßÜ¥</code>, and <code>ßÜ½ßøï</code> for <code>import</code>, <code>python</code>, and <code>as</code> respectively.</p>
+<p>Python modules can be imported with a native statement:
+<code>import python "math" as math;</code>
+This is syntactic sugar for a statically typed <code>pyobject</code> declaration initialized through <code>pyimport()</code>:
+<code>pyobject math = pyimport("math");</code>
+The module name must be a string literal and <code>as</code> must provide a normal Futhorc identifier. The binding follows ordinary Futhorc declaration and function-level scope rules. Importing a missing module produces the same source-positioned runtime error as <code>pyimport()</code>.</p>
+<p><code>pyimport()</code> uses Python's normal module discovery rules and therefore sees the standard library and packages installed in the active Python environment. A <code>pyobject</code> supports dynamic member access, calls with positional or named arguments, indexing, slicing, and iteration through <code>foreach</code>. Each such operation has static result type <code>pyobject</code>; programs use explicit Futhorc conversions such as <code>int()</code>, <code>float()</code>, <code>str()</code>, <code>bool()</code>, or <code>to_list()</code> when they need an ordinary Futhorc value.</p>
+<p>Futhorc primitives cross into Python as their corresponding Python primitives. Lists and arrays cross as copied Python lists, sets cross as copied Python tuples, and enums cross as their backing values. Mutating a copied collection in Python does not mutate the original Futhorc collection. Struct conversion and callbacks from Python into Futhorc functions are not yet defined.</p>
+<p>Python exceptions are converted into source-positioned Futhorc runtime errors containing the Python exception class and message. Python interoperability is not sandboxed: imported modules have the same filesystem, network, process, and native-extension privileges as the interpreter.</p>
+<h2>Built-ins:</h2>
+<p>* This documentation uses <code>?value</code> to mean "optional parameter". However, this is merely notational and is not valid Futhorc source. Parameters become optional by providing a default evaluation with <code>=</code>.</p>
+<p>In collection method signatures, <code>T</code> represents the collection's element type. In array signatures, <code>N</code> represents runtime capacity. Array capacity is not part of static type identity: <code>arr(T, 3)</code> and <code>arr(T, 8)</code> have the same static type.</p>
+<p>Collection indexes are zero-based. Negative indexes count backwards from the end of the collection:</p>
+<pre><code>collection[-n] == collection[collection.length() - n]</code></pre>
+<p>For example, <code>collection[-1]</code> accesses the last item and <code>collection[-2]</code> accesses the second-to-last item. An index outside the occupied range is a runtime error.</p>
+<p>For methods that insert at an index, <code>index == length()</code> is valid and inserts at the end. An index greater than the collection's length is an error; insertion never creates gaps filled with <code>nil</code>.</p>
+<p>Search methods return <code>nil</code> when no matching item or occurrence exists. <code>find_nth(item, number)</code> uses one-based occurrence numbering: <code>1</code> means the first occurrence, <code>2</code> the second, and so on. A <code>number</code> below <code>1</code> is a runtime error.</p>
+<p><code>copy()</code> performs a deep copy. Nested collections and structs are recursively copied. Repeated references and cycles preserve their topology: if two references in the original point to the same object, their copies point to the same copied object rather than two independent copies.</p>
+<h3>Non-mutating conversion functions:</h3>
+<ul>
+<li><code>int int(any ?value)</code></li>
+<li>Converts <code>value</code> to an integer.</li>
+<li>Returns <code>0</code> if omitted.</li>
+<li><code>char char(any ?value)</code></li>
+<li>Converts <code>value</code> to a character.</li>
+<li>Returns <code>'\0'</code> if omitted.</li>
+<li><code>str str(any ?value)</code></li>
+<li>Converts <code>value</code> to a string.</li>
+<li>Returns <code>""</code> if omitted.</li>
+<li><code>float float(any ?value)</code></li>
+<li>Converts <code>value</code> to a floating-point number.</li>
+<li>Returns <code>0.0</code> if omitted.</li>
+<li><code>bool bool(any value)</code></li>
+<li>Converts <code>value</code> according to its truthiness.</li>
+<li><code>list(T) list(type T, any ?value)</code></li>
+<li>Converts <code>value</code> into a list whose element type is <code>T</code>.</li>
+<li>Returns <code>[]</code> if <code>value</code> is omitted.</li>
+<li>Invocation syntax is <code>list(T, value)</code> or <code>list(T)</code>.</li>
+<li><code>arr(T, N) arr(type T, any ?value, int ?capacity)</code></li>
+<li>Converts <code>value</code> into an array whose element type is <code>T</code>.</li>
+<li>If <code>capacity</code> is omitted and <code>value</code> is provided, capacity defaults to the resulting length.</li>
+<li>If both <code>value</code> and <code>capacity</code> are omitted, returns an empty array with capacity <code>0</code>.</li>
+<li>If <code>capacity</code> is greater than the resulting length, the remaining capacity consists of internal empty slots. Empty slots are not Futhorc <code>nil</code> values and cannot be read directly.</li>
+<li>If <code>capacity</code> is smaller than the number of converted elements, excess elements are truncated and a warning is emitted.</li>
+<li>Invocation syntax is <code>arr(T, value, capacity)</code>. <code>value</code> and <code>capacity</code> may also be named, so <code>arr(T, capacity = N)</code> creates an empty array with reserved capacity.</li>
+<li><code>set(T) set(type T, any ?value)</code></li>
+<li>Converts <code>value</code> into a set whose element type is <code>T</code>.</li>
+<li>Returns <code>()</code> if <code>value</code> is omitted.</li>
+<li>Futhorc sets are ordered, immutable collections and may contain duplicate values.</li>
+<li>Invocation syntax is <code>set(T, value)</code> or <code>set(T)</code>.</li>
+</ul>
+<p>These conversions always create a fresh outer collection and never mutate the source. A Futhorc collection, string, or foreign Python iterable is copied in iteration order; a non-iterable Futhorc value becomes one element. Elements are not individually coerced through primitive conversion functions: every produced element must already be compatible with <code>T</code>, otherwise conversion raises a source-positioned runtime error. Nested collection elements are checked recursively. Contained object identities are retained, so this is an outer-container copy rather than <code>copy()</code>'s recursive deep copy.</p>
+<h3>Mutating conversion functions</h3>
+<ul>
+<li><code>nil to_int(any value)</code></li>
+<li><code>nil to_char(any value)</code></li>
+<li><code>nil to_str(any value)</code></li>
+<li><code>nil to_float(any value)</code></li>
+<li><code>nil to_bool(any value)</code></li>
+<li><code>nil to_list(any value)</code></li>
+<li><code>nil to_arr(any value, int ?capacity)</code></li>
+<li>Converts <code>value</code> into an array in place.</li>
+<li>If <code>capacity</code> is omitted, capacity defaults to the resulting length.</li>
+<li>If <code>capacity</code> exceeds the resulting length, the remaining capacity consists of internal empty slots.</li>
+<li>If <code>capacity</code> is smaller than the resulting length, excess elements are truncated and a warning is emitted.</li>
+</ul>
+<h3>Verification functions</h3>
+<ul>
+<li><code>bool is_int(any value)</code></li>
+<li><code>bool is_char(any value)</code></li>
+<li><code>bool is_str(any value)</code></li>
+<li><code>bool is_float(any value)</code></li>
+<li><code>bool is_bool(any value)</code></li>
+<li><code>bool is_list(any value)</code></li>
+<li><code>bool is_arr(any value)</code></li>
+<li><code>bool is_set(any value)</code></li>
+<li><code>bool is_empty(any collec)</code></li>
+<li>Returns whether the collection contains no occupied elements.</li>
+<li>Raises an error if <code>collec</code> is not a collection.</li>
+<li><code>bool is_full(arr(T, N) collec)</code></li>
+<li>Returns whether <code>collec.length() == collec.capacity()</code>.</li>
+</ul>
+<h3>Integer methods:</h3>
+<ul>
+<li><code>bool gt(int value)</code></li>
+<li>Returns whether the integer is greater than <code>value</code>.</li>
+<li><code>bool lt(int value)</code></li>
+<li>Returns whether the integer is less than <code>value</code>.</li>
+<li><code>bool between(any lower, any upper)</code></li>
+<li>Returns whether the integer is between two values. If a boundary is provided as an integer, that boundary is inclusive; if it is provided as a string, that boundary is exclusive.
+    <code>5.between(1, 6) = [1, 6] = 1 Ôëñ 5 Ôëñ 6
+    5.between("1", 6) = (1, 6] = 1 &lt; 5 Ôëñ 6
+    5.between(1, "6") = [1, 6) = 1 Ôëñ 5 &lt; 6
+    5.between("1", "6") = (1, 6) = 1 &lt; 5 &lt; 6</code></li>
+</ul>
+<h3>List methods</h3>
+<ul>
+<li><code>nil append(T item)</code></li>
+<li>Adds <code>item</code> to the end of the list.</li>
+<li><code>nil insert(T item, int index)</code></li>
+<li>Adds <code>item</code> at <code>index</code> and shifts the item previously at that index and all following items one position forward.</li>
+<li><code>index == length()</code> inserts at the end.</li>
+<li>An index outside the valid insertion range is an error.</li>
+<li><code>nil prepend(T item)</code></li>
+<li>Adds <code>item</code> at the beginning of the list and shifts all existing items one position forward.</li>
+<li><code>T replace_at(T item, int index)</code></li>
+<li>Replaces the item at <code>index</code> with <code>item</code>.</li>
+<li>Returns the previous item.</li>
+<li><code>list(T) shorten(int amount = 1)</code></li>
+<li>Removes <code>amount</code> items from the end of the list.</li>
+<li>Returns the removed items in their original order.</li>
+<li><code>T remove_at(int index)</code></li>
+<li>Removes the item at <code>index</code> and shifts all following items one position backward.</li>
+<li>Returns the removed item.</li>
+<li><code>list(T) shave(int amount = 1)</code></li>
+<li>Removes <code>amount</code> items from the beginning of the list.</li>
+<li>Shifts the remaining items backward and returns the removed items in their original order.</li>
+<li><code>int length()</code></li>
+<li>Returns the number of items in the list.</li>
+<li><code>int | nil find_first(any item)</code></li>
+<li>Returns the index of the first occurrence of <code>item</code>.</li>
+<li>Returns <code>nil</code> if no occurrence exists.</li>
+<li><code>int | nil find_nth(any item, int number)</code></li>
+<li>Returns the index of the specified occurrence of <code>item</code>.</li>
+<li><code>number</code> is one-based.</li>
+<li>Returns <code>nil</code> if that occurrence does not exist.</li>
+<li>A <code>number</code> below <code>1</code> is an error.</li>
+<li><code>int | nil find_last(any item)</code></li>
+<li>Returns the index of the last occurrence of <code>item</code>.</li>
+<li>Returns <code>nil</code> if no occurrence exists.</li>
+<li><code>T locate(int index)</code></li>
+<li>Returns the item at <code>index</code>.</li>
+<li>Negative indexes count backwards from the end.</li>
+<li><code>nil compress()</code></li>
+<li>Removes all actual <code>nil</code> values from the list while preserving the order of all remaining items.</li>
+<li>On a list whose element type cannot contain <code>nil</code>, this is normally a no-op.
+    <code>[1, 2, 3, nil, 4, nil, 5]
+    Ôåô
+    [1, 2, 3, 4, 5]</code></li>
+<li><code>list(T) copy()</code></li>
+<li>Returns a deep copy of the list.</li>
+</ul>
+<p>For both <code>shorten(amount)</code> and <code>shave(amount)</code>:
+- <code>amount == 0</code> returns an empty list and does not modify the collection.
+- <code>amount &lt; 0</code> is an error.
+- <code>amount &gt; length()</code> is an error.</p>
+<h3>Array methods</h3>
+<p>Arrays have both a <strong>length</strong> and a <strong>capacity</strong>.</p>
+<ul>
+<li><strong>length</strong> is the number of occupied elements.</li>
+<li><strong>capacity</strong> is the number of elements the array can contain before explicit resizing is required.</li>
+<li>Capacity is runtime allocation and is not part of static type identity.</li>
+<li>Unoccupied capacity consists of internal empty slots. Empty slots are not Futhorc <code>nil</code> values and cannot be accessed as elements.</li>
+<li>Arrays never resize automatically. Operations that would exceed capacity produce a runtime error unless capacity is explicitly increased first.</li>
+<li>Capacity changes are visible through every alias referring to the same array.</li>
+<li>Assigning an existing array to a declaration written with a different <code>N</code> does not resize it.</li>
+</ul>
+<p>Methods that access, replace, or remove existing items require an occupied index. An index below the array's capacity may still be invalid when it refers to an empty slot.</p>
+<ul>
+<li><code>nil resize(int new_size)</code></li>
+<li>Explicitly changes the array's capacity.</li>
+<li><code>new_size &lt; 0</code> is an error.</li>
+<li><code>new_size == capacity()</code> does nothing.</li>
+<li>Increasing capacity creates additional internal empty slots and does not change length.</li>
+<li>Reducing capacity below the current length truncates elements from the end until <code>length() &lt;= new_size</code> and emits a runtime warning.</li>
+<li>Resizing to <code>0</code> is valid; any occupied elements are truncated with a warning.</li>
+<li><code>int length()</code></li>
+<li>Returns the number of occupied elements in the array.</li>
+<li><code>int capacity()</code></li>
+<li>Returns the current runtime capacity of the array.</li>
+<li><code>nil append(T item)</code></li>
+<li>Adds <code>item</code> to the end of the occupied portion of the array.</li>
+<li>Raises an error if the array is full.</li>
+<li><code>nil insert(T item, int index)</code></li>
+<li>Adds <code>item</code> at <code>index</code> and shifts the item previously at that index and all following occupied items one position forward.</li>
+<li><code>index == length()</code> inserts at the end.</li>
+<li>Raises an error if the array is full.</li>
+<li>An index greater than the current length is an error.</li>
+<li><code>nil prepend(T item)</code></li>
+<li>Adds <code>item</code> to the beginning of the array and shifts all occupied items one position forward.</li>
+<li>Raises an error if the array is full.</li>
+<li><code>T replace_at(T item, int index)</code></li>
+<li>Replaces the occupied item at <code>index</code> with <code>item</code>.</li>
+<li>Returns the previous item.</li>
+<li>Does not change length or capacity.</li>
+<li><code>list(T) shorten(int amount = 1)</code></li>
+<li>Removes <code>amount</code> occupied items from the end of the array.</li>
+<li>Returns the removed items as a list in their original order.</li>
+<li>Does not change array capacity.</li>
+<li><code>T remove_at(int index)</code></li>
+<li>Removes the occupied item at <code>index</code>, shifts all following occupied items one position backward, and leaves an empty slot at the end of the occupied portion.</li>
+<li>Returns the removed item.</li>
+<li>Does not change capacity.</li>
+<li><code>list(T) shave(int amount = 1)</code></li>
+<li>Removes <code>amount</code> occupied items from the beginning of the array.</li>
+<li>Shifts the remaining occupied items backward and returns the removed items as a list in their original order.</li>
+<li>Does not change array capacity.</li>
+<li><code>int | nil find_first(any item)</code></li>
+<li>Returns the index of the first occurrence of <code>item</code>.</li>
+<li>Returns <code>nil</code> if no occurrence exists.</li>
+<li><code>int | nil find_nth(any item, int number)</code></li>
+<li>Returns the index of the specified occurrence of <code>item</code>.</li>
+<li><code>number</code> is one-based.</li>
+<li>Returns <code>nil</code> if that occurrence does not exist.</li>
+<li>A <code>number</code> below <code>1</code> is an error.</li>
+<li><code>int | nil find_last(any item)</code></li>
+<li>Returns the index of the last occurrence of <code>item</code>.</li>
+<li>Returns <code>nil</code> if no occurrence exists.</li>
+<li><code>T locate(int index)</code></li>
+<li>Returns the occupied item at <code>index</code>.</li>
+<li>Negative indexes count backwards from the end of the occupied elements, not from capacity.</li>
+<li><code>nil compress()</code></li>
+<li>Removes all actual <code>nil</code> values from the occupied portion of the array and shifts the remaining elements together while preserving their order.</li>
+<li>Capacity remains unchanged.</li>
+<li>Internal empty slots are not Futhorc <code>nil</code> and are unaffected.</li>
+<li>On an array whose element type cannot contain <code>nil</code>, this is normally a no-op.
+    <code>&lt;1, 2, 3, nil, 4, nil, 5&gt;
+    Ôåô
+    &lt;1, 2, 3, 4, 5&gt;</code></li>
+<li><code>arr(T, N) copy()</code></li>
+<li>Returns a deep copy of the array.</li>
+<li>The copied array initially has the same current capacity as the source array.</li>
+<li><code>nil fill(T value)</code></li>
+<li>Fills every currently unoccupied slot with <code>value</code>.</li>
+<li>Existing occupied elements are not replaced.</li>
+<li>After the operation, <code>length() == capacity()</code>.</li>
+<li>
+<p>If the array is already full, the operation does nothing.
+    ```
+    arr(int, 5) array = &lt;1, 2, 3&gt;
+    array.fill(1)</p>
+<blockquote>
+<blockquote>
+<p>&lt;1, 2, 3, 1, 1&gt;
+<code>``
+  - A value incompatible with</code>T<code>is a type error.
+-</code>nil skintight()<code>- Reduces capacity until it equals length.
+  - Emits the warning:</code>warning: using internal name "skintight". Consider "shrink_to_fit()" instead, weirdo<code>.
+-</code>nil shrink_to_fit()<code>- Reduces capacity until it equals length without emitting the</code>skintight()` warning.</p>
+</blockquote>
+</blockquote>
+</li>
+</ul>
+<p>For both <code>shorten(amount)</code> and <code>shave(amount)</code>:
+- <code>amount == 0</code> returns an empty list and does not modify the array.
+- <code>amount &lt; 0</code> is an error.
+- <code>amount &gt; length()</code> is an error.</p>
+<p>Slicing an array produces a new array containing the selected occupied elements. The resulting array's capacity is exactly equal to its resulting length.</p>
+<h3>Set methods</h3>
+<p>Futhorc sets are ordered, immutable collections. Unlike mathematical sets and sets in many other languages, Futhorc sets permit duplicate values and retain their order. Their contents cannot be added to, removed from, replaced, or reordered after construction.</p>
+<p>A non-<code>const</code> variable containing a set may still be rebound to another set. <code>const set(T)</code> prevents that rebinding as well.</p>
+<ul>
+<li><code>int length()</code></li>
+<li>Returns the number of items in the set.</li>
+<li><code>int | nil find_first(any item)</code></li>
+<li>Returns the index of the first occurrence of <code>item</code>.</li>
+<li>Returns <code>nil</code> if no occurrence exists.</li>
+<li><code>int | nil find_nth(any item, int number)</code></li>
+<li>Returns the index of the specified occurrence of <code>item</code>.</li>
+<li><code>number</code> is one-based.</li>
+<li>Returns <code>nil</code> if that occurrence does not exist.</li>
+<li>A <code>number</code> below <code>1</code> is an error.</li>
+<li><code>int | nil find_last(any item)</code></li>
+<li>Returns the index of the last occurrence of <code>item</code>.</li>
+<li>Returns <code>nil</code> if no occurrence exists.</li>
+<li><code>T locate(int index)</code></li>
+<li>Returns the item at <code>index</code>.</li>
+<li>Negative indexes count backwards from the end.</li>
+<li><code>set(T) copy()</code></li>
+<li>Returns a deep copy of the set.</li>
+</ul>
+<h3>Functional</h3>
+<ul>
+<li><code>int index(any item)</code></li>
+<li>Extracts the index attached to an item obtained through a <code>foreach</code>.</li>
+<li><code>str input(str ?preview)</code></li>
+<li>Prints the optional <code>preview</code>, then returns the contents read from standard input.</li>
+<li><code>nil print(any output, str end = "\n")</code></li>
+<li>Prints <code>output</code>.</li>
+<li><code>end</code> is appended after the output and defaults to a newline.</li>
+</ul>
+<h3>File handling</h3>
+<ul>
+<li><code>File open(str path, str mode = "r", str encoding = "utf-8")</code></li>
+<li>Opens a text file. Supported modes are <code>r</code>, <code>w</code>, <code>a</code>, <code>x</code>, and their <code>+</code> variants.</li>
+<li>Binary modes are unavailable until Futhorc has a <code>bytes</code> type.</li>
+<li><code>str File.read(int | nil size = nil)</code></li>
+<li>Reads the rest of the file, or at most <code>size</code> characters when supplied.</li>
+<li><code>str File.readline(int | nil size = nil)</code></li>
+<li>Reads one line, optionally limited to <code>size</code> characters. A retained line terminator is part of the returned string.</li>
+<li><code>list(str) File.readlines()</code></li>
+<li>Reads all remaining lines, retaining their line terminators.</li>
+<li><code>int File.write(str content)</code></li>
+<li>Writes <code>content</code> at the current position and returns the number of characters accepted.</li>
+<li><code>nil File.writelines(list(str) lines)</code></li>
+<li>Writes each string exactly as supplied. Newline characters are not added automatically.</li>
+<li><code>nil File.flush()</code></li>
+<li>Flushes buffered output to the underlying stream.</li>
+<li><code>int File.seek(int offset, int origin = 0)</code></li>
+<li>Moves the stream position. <code>origin</code> uses Python-compatible values: <code>0</code> for the beginning, <code>1</code> for the current position, and <code>2</code> for the end, subject to text-stream restrictions.</li>
+<li><code>int File.tell()</code></li>
+<li>Returns an opaque text-stream position suitable for passing back to <code>seek()</code>.</li>
+<li><code>nil File.close()</code></li>
+<li>Flushes and closes the file. Calling <code>close()</code> on an already closed file does nothing.</li>
+<li><code>bool File.closed()</code></li>
+<li>Returns whether the file is closed.</li>
+<li><code>bool File.readable()</code></li>
+<li>Returns whether the selected mode permits reading.</li>
+<li><code>bool File.writable()</code></li>
+<li>Returns whether the selected mode permits writing.</li>
+<li><code>bool File.seekable()</code></li>
+<li>Returns whether the underlying stream supports seeking.</li>
+</ul>
+<p>File and encoding failures are reported as source-positioned Futhorc runtime errors.</p>
+<h3>Python interoperability</h3>
+<ul>
+<li><code>pyobject pyimport(str module)</code></li>
+<li>Imports <code>module</code> using Python's normal import system and returns the module as a foreign object.</li>
+<li>Runic form: <code>pyobject pyimport(str module)</code>.</li>
+<li><code>import python "module" as binding;</code></li>
+<li>Imports the Python module and declares <code>binding</code> with static type <code>pyobject</code>.</li>
+<li>Equivalent to <code>pyobject binding = pyimport("module");</code>.</li>
+</ul>
+<p>Operations supported by <code>pyobject</code> values:
+- <code>object.member</code>: dynamically retrieves a Python attribute and returns it as <code>pyobject</code>.
+- <code>object(arguments...)</code>: invokes a wrapped Python callable. Futhorc named arguments become Python keyword arguments.
+- <code>object[index]</code>: performs Python indexing and returns <code>pyobject</code>.
+- <code>object[start:end]</code>: performs Python slicing and returns <code>pyobject</code>.
+- <code>foreach (item in object)</code>: iterates a Python iterable; each item has static type <code>pyobject</code>.</p>
+<p>Python return values remain <code>pyobject</code> even when their runtime value is a Python primitive. Explicit Futhorc conversion establishes a statically known Futhorc type.</p>
+</main>
+</section>
+
+  <footer>
+    Futhorc — made with questionable quantities of runes.
+  </footer>
+
+  <script>
+    const root = document.documentElement;
+    const button = document.querySelector("#theme-toggle");
+
+    const savedTheme = localStorage.getItem("futhorc-theme");
+    if (savedTheme) {
+      root.dataset.theme = savedTheme;
+    } else if (window.matchMedia("(prefers-color-scheme: light)").matches) {
+      root.dataset.theme = "light";
+    }
+
+    function updateButton() {
+      button.textContent =
+        root.dataset.theme === "dark" ? "Light mode" : "Dark mode";
+    }
+
+    updateButton();
+
+    button.addEventListener("click", () => {
+      root.dataset.theme =
+        root.dataset.theme === "dark" ? "light" : "dark";
+
+      localStorage.setItem("futhorc-theme", root.dataset.theme);
+      updateButton();
+    });
+  </script>
+</body>
+</html>

@@ -345,28 +345,41 @@ Futhorc provides Python-backed text file handling through the built-in `ᚠᛠ�
 
 Files are opened with `ᚩᛈᛖᚾ()`. Relative paths are resolved from the process working directory; absolute paths are used directly. The default encoding is UTF-8.
 
-Supported text modes are `"r"`, `"w"`, `"a"`, `"x"`, `"r+"`, `"w+"`, and `"a+"`. Binary modes are unavailable until Futhorc has a `bytes` type.
+Supported text modes are:
+- `"r"`: read an existing file.
+- `"w"`: write a file, truncating existing contents.
+- `"a"`: append to the end of a file.
+- `"x"`: create a new file and fail if it already exists.
+- `"r+"`, `"w+"`, and `"a+"`: corresponding modes that permit both reading and writing.
 
-Files should be closed explicitly with `ᚳᛚᚩᛋ()`. The interpreter also closes remaining files when execution ends, including after a runtime error. `ᛏᛖᛚ()` returns an opaque text-stream position suitable for passing back to `ᛋᛁᛁᚳ()`; it is not guaranteed to be a character or byte count.
+Binary modes such as `"rb"` and `"wb"` are not supported because Futhorc does not yet have a `bytes` type.
+
+Files should be closed explicitly with `ᚳᛚᚩᛋ()` when no longer needed. The interpreter also closes every remaining open file when program execution ends, including when execution ends because of a runtime error.
+
+`ᛏᛖᛚ()` returns an opaque text-stream position. In particular, it is not guaranteed to equal a character count or UTF-8 byte count. A position returned by `ᛏᛖᛚ()` can safely be passed back to `ᛋᛁᛁᚳ()`.
 
 Opening failures, permission errors, invalid operations, encoding failures, and operations on closed files produce Futhorc runtime errors. File contents are exchanged explicitly as strings and lists of strings.
 
 # Python interoperability
-Futhorc can access modules from the Python environment running the interpreter. The boundary is explicitly dynamic: foreign modules, callables, attributes, indexed values, and results use the `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ` type, while ordinary Futhorc code remains statically typed.
+Futhorc can access modules from the Python environment running the interpreter. Python interoperability is an explicitly dynamic boundary: ordinary Futhorc remains statically typed, while foreign modules, callables, attributes, and results use the `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ` type.
 
-`ᛈᛠᛁᛗᛈᛟᚱᛏ()` follows Python's normal module discovery rules. A `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ` supports member access, positional and named calls, indexing, slicing, and `ᚠᛟᚱᛁᛁᚳᚻ` iteration. Results remain `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ` until explicitly converted to a Futhorc type. Futhorc collections are copied when passed into Python, enums use their backing values, and struct conversion is not yet defined.
-
-Python exceptions become source-positioned Futhorc runtime errors. Python interoperability is not sandboxed and grants imported modules the privileges of the interpreter.
+Runic aliases are `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ` for `pyobject`, `ᛈᛠᛁᛗᛈᛟᚱᛏ` for `pyimport`, and `ᛗᚫᚷᚻᚣᛚ` for its `module` parameter. The native import-statement aliases are `ᛁᛗᛈᛟᚱᛏ`, `ᛈᛠᚦᚣᚾ`, and `ᚫᛋ` for `import`, `python`, and `as` respectively.
 
 Python modules can be imported with a native runic statement:
 ```
 ᛁᛗᛈᛟᚱᛏ ᛈᛠᚦᚣᚾ "math" ᚫᛋ math;
 ```
-This is syntactic sugar for:
+This is syntactic sugar for a statically typed `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ` declaration initialized through `ᛈᛠᛁᛗᛈᛟᚱᛏ()`:
 ```
 ᛈᛠᚪᛒᚷᚻᛖᚳᛏ math = ᛈᛠᛁᛗᛈᛟᚱᛏ("math");
 ```
-The module name must be a string literal, and `ᚫᛋ` must provide a normal Futhorc identifier. The binding has static type `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ` and follows ordinary Futhorc declaration and function-level scope rules.
+The module name must be a string literal and `ᚫᛋ` must provide a normal Futhorc identifier. The binding follows ordinary Futhorc declaration and function-level scope rules. Importing a missing module produces the same source-positioned runtime error as `ᛈᛠᛁᛗᛈᛟᚱᛏ()`.
+
+`ᛈᛠᛁᛗᛈᛟᚱᛏ()` uses Python's normal module discovery rules and therefore sees the standard library and packages installed in the active Python environment. A `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ` supports dynamic member access, calls with positional or named arguments, indexing, slicing, and iteration through `ᚠᛟᚱᛁᛁᚳᚻ`. Each such operation has static result type `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ`; programs use explicit Futhorc conversions such as `ᛁᚾᛏ()`, `ᚠᛚᚩᛏ()`, `ᛋᛏᚱ()`, `ᛒᚣᛚ()`, or `ᛏᚣ_ᛚᛁᛋᛏ()` when they need an ordinary Futhorc value.
+
+Futhorc primitives cross into Python as their corresponding Python primitives. Lists and arrays cross as copied Python lists, sets cross as copied Python tuples, and enums cross as their backing values. Mutating a copied collection in Python does not mutate the original Futhorc collection. Struct conversion and callbacks from Python into Futhorc functions are not yet defined.
+
+Python exceptions are converted into source-positioned Futhorc runtime errors containing the Python exception class and message. Python interoperability is not sandboxed: imported modules have the same filesystem, network, process, and native-extension privileges as the interpreter.
 
 # Built-ins:
 \* This documentation uses `?value` to mean "optional parameter". However, this is merely notational and is not valid Futhorc source. Parameters become optional by providing a default evaluation with `=`.
@@ -655,7 +668,7 @@ A non-`ᚳᛟᚾᛋᛏ` variable containing a set may still be rebound to anothe
 ## File handling
 
 - `ᚠᛠᛚ ᚩᛈᛖᚾ(ᛋᛏᚱ ᛈᚫᚦ, ᛋᛏᚱ ᛗᚩᛞ = "r", ᛋᛏᚱ ᛖᚾᚳᚩᛞᛁᛝ = "utf-8")`
-  - Opens a text file using `ᛗᚩᛞ` and `ᛖᚾᚳᚩᛞᛁᛝ`.
+  - Opens a text file. Supported modes are `r`, `w`, `a`, `x`, and their `+` variants.
   - Binary modes are unavailable until Futhorc has a `bytes` type.
 - `ᛋᛏᚱ ᚠᛠᛚ.ᚱᛁᛁᛞ(ᛁᚾᛏ | ᚾᛁᛚ ᛋᛠᛋ = ᚾᛁᛚ)`
   - Reads the remaining contents, optionally limited by `ᛋᛠᛋ`.
@@ -684,10 +697,21 @@ A non-`ᚳᛟᚾᛋᛏ` variable containing a set may still be rebound to anothe
 - `ᛒᚣᛚ ᚠᛠᛚ.ᛋᛁᛁᚳᚢᛒᚢᛚ()`
   - Returns whether the underlying stream supports seeking.
 
+File and encoding failures are reported as source-positioned Futhorc runtime errors.
+
 ## Python interoperability
 - `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ ᛈᛠᛁᛗᛈᛟᚱᛏ(ᛋᛏᚱ ᛗᚫᚷᚻᚣᛚ)`
-  - Imports a Python module through the active interpreter environment.
+  - Imports `ᛗᚫᚷᚻᚣᛚ` using Python's normal import system and returns the module as a foreign object.
+  - English form: `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ ᛈᛠᛁᛗᛈᛟᚱᛏ(ᛋᛏᚱ ᛗᚫᚷᚻᚣᛚ)`.
 - `ᛁᛗᛈᛟᚱᛏ ᛈᛠᚦᚣᚾ "module" ᚫᛋ binding;`
   - Imports the Python module and declares `binding` with static type `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ`.
+  - Equivalent to `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ binding = ᛈᛠᛁᛗᛈᛟᚱᛏ("module");`.
 
-A `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ` supports dynamic member access, calls, indexing, slicing, and `ᚠᛟᚱᛁᛁᚳᚻ`. Every foreign result has static type `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ` and must be explicitly converted before it is used as an ordinary Futhorc value.
+Operations supported by `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ` values:
+- `object.member`: dynamically retrieves a Python attribute and returns it as `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ`.
+- `object(arguments...)`: invokes a wrapped Python callable. Futhorc named arguments become Python keyword arguments.
+- `object[index]`: performs Python indexing and returns `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ`.
+- `object[start:end]`: performs Python slicing and returns `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ`.
+- `ᚠᛟᚱᛁᛁᚳᚻ (item in object)`: iterates a Python iterable; each item has static type `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ`.
+
+Python return values remain `ᛈᛠᚪᛒᚷᚻᛖᚳᛏ` even when their runtime value is a Python primitive. Explicit Futhorc conversion establishes a statically known Futhorc type.
