@@ -154,9 +154,11 @@
     }
 
     aside {
-      height: fit-content;
       position: sticky;
       top: 1rem;
+      height: calc(100vh - 2rem);
+      overflow-y: auto;
+      padding-right: 1rem;
     }
 
     aside a {
@@ -168,6 +170,11 @@
 
     aside a:hover {
       color: var(--main-ink);
+    }
+
+    aside .sub-link {
+      margin-left: 1rem;
+      font-size: 0.92rem;
     }
 
     main {
@@ -233,14 +240,39 @@
   </section>
 
   <section class="docs" id="documentation">
-    <aside>
-      <strong>Documentation</strong>
-      <a href="#getting-started">Getting started</a>
-      <a href="#types">Types</a>
-      <a href="#control-flow">Control flow</a>
-      <a href="#functions">Functions</a>
-      <a href="#python">Python interoperability</a>
-    </aside>
+  <aside>
+    <strong>Documentation</strong>
+
+    <a href="#quick-rundown">Quick rundown</a>
+
+    <a href="#types">Types</a>
+    <a class="sub-link" href="#truthiness">Boolean operations and truthiness</a>
+    <a class="sub-link" href="#collections">Collections</a>
+    <a class="sub-link" href="#typed-arrays">Typed arrays</a>
+    <a class="sub-link" href="#structs">Structs</a>
+    <a class="sub-link" href="#enumerations">Enumerations</a>
+
+    <a href="#operators">Operators</a>
+    <a href="#flow-control">Flow control</a>
+    <a href="#functions">Functions</a>
+    <a href="#variable-declarations">Variable declarations</a>
+    <a class="sub-link" href="#scope">Scope</a>
+    <a class="sub-link" href="#any">any</a>
+
+    <a href="#file-handling">File handling</a>
+    <a href="#python-interoperability">Python interoperability</a>
+
+    <a href="#built-ins">Built-ins</a>
+    <a class="sub-link" href="#conversions">Conversions</a>
+    <a class="sub-link" href="#verification">Verification functions</a>
+    <a class="sub-link" href="#integer-methods">Integer methods</a>
+    <a class="sub-link" href="#list-methods">List methods</a>
+    <a class="sub-link" href="#array-methods">Array methods</a>
+    <a class="sub-link" href="#set-methods">Set methods</a>
+    <a class="sub-link" href="#functional">Functional</a>
+    <a class="sub-link" href="#builtin-file-handling">File handling</a>
+    <a class="sub-link" href="#builtin-python">Python interoperability</a>
+  </aside>
 
     <main>
       <section id="getting-started">
@@ -262,9 +294,10 @@ print(c"The answer is {answer}");</code></pre>
       </section>
 
 <h2>links</h2>
-<p>https://valhyr.com/pages/rune-converter english to runes converter
-https://www.harysdalvi.com/futhorc webapp runes keyboard</p>
-<h2>Quick rundown</h2>
+<a href="https://valhyr.com/pages/rune-converter"> english to runes converter</a>
+<br>
+<a href="https://www.harysdalvi.com/futhorc">webapp runes keyboard</a>
+<h2 id="quick-rundown">Quick rundown</h2>
 <h3>Types</h3>
 <ul>
 <li><code>int</code>, <code>float</code>, <code>char</code>, <code>str</code>, <code>bool</code>, <code>any</code>, <code>nil</code>, <code>uninitialized</code></li>
@@ -299,7 +332,7 @@ https://www.harysdalvi.com/futhorc webapp runes keyboard</p>
 <ul>
 <li><code>return</code></li>
 </ul>
-<h2>Types:</h2>
+<h2 id="types">Types:</h2>
 <ul>
 <li><strong>integer</strong>: <code>int</code> 1 2 5 67</li>
 <li><strong>character</strong>: <code>char</code> 'a' 'B' '1' '!'</li>
@@ -318,13 +351,13 @@ https://www.harysdalvi.com/futhorc webapp runes keyboard</p>
 </ul>
 </li>
 </ul>
-<h3>Boolean operations and truthiness:</h3>
+<h3 id="truthiness">Boolean operations and truthiness:</h3>
 <p>Truthiness can only be accessed with the built-in <code>bool()</code> function, that gets any data as its argument and returns its truthy value. Truthiness can otherwise not be accessed, and instead explicit boolean values must be used in logical operations.
 - <strong>Comparisons</strong> like <code>==</code>, <code>&lt;</code> and <code>&gt;=</code> can take numeric values (<code>int</code>, <code>float</code>), as well as boolean values <code>true</code> and <code>false</code>.
 - <strong>Logic operators</strong> like <code>and</code>, <code>or</code> and <code>xor</code> can only be performed on strict boolean values, or type-casted non-boolean values through the <code>bool()</code> function.
   - <code>5 and false</code> ❌
   - <code>bool(5) and false</code> ✅</p>
-<h3>Collections:</h3>
+<h3 id="collections">Collections:</h3>
 <ul>
 <li>list: <code>list(type)</code> [1, 2, 3] (mutable, dynamically resizable)</li>
 <li>array: <code>arr(t, n)</code> &lt;1, 2, 3&gt; (mutable, non-dynamically resizable)</li>
@@ -359,7 +392,7 @@ https://www.harysdalvi.com/futhorc webapp runes keyboard</p>
 * arrays are not dynamically resizable, but they can be resized with the methods listed further down. The capacity is runtime allocation.
 * Futhorc sets are immutable, ordered collections that permit duplicate elements; they behave like immutable lists rather than mathematical sets.</li>
 </ul>
-<h3>Typed arrays</h3>
+<h3 id="typed-arrays">Typed arrays</h3>
 <p>Typed arrays are arrays that can store multiple types of data in an ordered manner. Their minimum length is determined by the amount of types specified. A typed array is, syntactically, an array whose type passed is a list of types.</p>
 <h3>Unnumbered types</h3>
 <p><code>arr([int, str, float], 3)</code>: this type can hold 3 items, and the order in which they're held must match that of their definition. As such, <code>[1, "a", 1.5]</code> is a valid form, but <code>["a", 1, 1.0]</code> isn't.</p>
@@ -370,7 +403,7 @@ https://www.harysdalvi.com/futhorc webapp runes keyboard</p>
 [1, "a", 1.0, 2.0]</code></p>
 <h3>Numbered types</h3>
 <p>No number next to the type means "any amount". However, a number means "this exact amount, no more, no less". For example: <code>arr([str, int3], 10)</code> represents an array that contains between 1 and 7 strings, and exactly 3 integers, and <code>arr([str1, int3], 4)</code> <em>has</em> to contain one string and 3 integers. This is similar to Rust's tuple structs. It goes without saying that, if the length of the array doesn't match the amount expressed in the types, the program will error. However, it can be left empty and the interpreter will automatically pre-compute the correct minimal amount, which for numbered type arrays, is in fact the recommended approach to keep typoes and confusions from causing errors.</p>
-<h3>Structs</h3>
+<h3 id="structs">Structs</h3>
 <p>Structs are named custom types that bundle an assortment of declared variable fields with their own types. A <code>struct</code> can hold data of any type. The basic structure is:
 ```
 struct StructType {
@@ -481,7 +514,7 @@ print(a == c)         # false
 print(a.resembles(c)) # true
 </code></pre>
 - Equality of structs is based on memory identity (Like Python's<code>is</code> keyword).
-<h3>Enumerations</h3>
+<h3 id="enumerations">Enumerations</h3>
 <p>Enumerations (Abbreviated as enums) are a closed collection of discrete data instances related by their custom named type.
 <code>enum(int) Directions = (
     UP = 0;
@@ -513,7 +546,7 @@ enum(str) Color = (
 )
 </code></pre>
 In a similar vein, enums create a custom type whose valid values can be checked up against the known valid values specified at the enum definition. This way: <code>Weather CLOUDY = 3;</code> will result in an error, becaus even though it's an int as specified, it's an invalid value for the <code>Weather</code> type.
-<h2>Operators</h2>
+<h2 id="operators">Operators</h2>
 <h3>Arithmetic operators:</h3>
 <ul>
 <li><code>+</code>: addition</li>
@@ -539,7 +572,7 @@ In a similar vein, enums create a custom type whose valid values can be checked 
 `or`   0|0|0; 1|0|1; 0|1|1; 1|1|1
 `xor`  0|0|0; 1|0|1; 0|1|1; 1|1|0</code></li>
 </ul>
-<h2>Flow control:</h2>
+<h2 id="flow-control">Flow control:</h2>
 <ul>
 <li><code>if(cond){} elsif(cond) {} else{}</code></li>
 <li><code>while(star/cont_cond){}</code> (checks bef exe)</li>
@@ -548,13 +581,13 @@ In a similar vein, enums create a custom type whose valid values can be checked 
 <li><code>foreach(item in collection){}</code></li>
 <li>⚠️ each item is an object with its index attached. It's not identical to <code>for (i from 0 to length(collection)){collection[i]}</code> as that simply returns the item. The object behaves otherwise like its value, except that certain functions like <code>index()</code> can extract and return the index</li>
 </ul>
-<h2>Functions:</h2>
+<h2 id="functions">Functions:</h2>
 <ul>
 <li><code>f(x)</code>: function <code>f(x)</code> call</li>
 <li><code>t f(x){}</code>: function <code>f(x)</code> definition, with a return of type t</li>
 <li><code>return [expression]</code>: return statement</li>
 </ul>
-<h2>Variable declarations:</h2>
+<h2 id="variable-declarations">Variable declarations:</h2>
 <ul>
 <li><code>int i = 5;</code></li>
 <li><code>char c = 'c';</code></li>
@@ -593,11 +626,11 @@ new str x = "hi" # all good
 ```</p>
 </blockquote>
 </blockquote>
-<h3>Scope</h3>
+<h3 id="scope">Scope</h3>
 <p>Futhorc uses function-level lexical scope. Function bodies create local scopes; control-flow bodies do not. Variables declared within control-flow bodies are added to the nearest containing function scope, or to the global scope when no function contains them. Their initialization remains conditional on whether execution reaches the declaration.</p>
-<h3><code>any</code></h3>
+<h3 id="any"><code>any</code></h3>
 <p><code>any</code> is close to TypeScript's <code>unknown</code>. In practice, a function with a return type of <code>any</code> can only be assigned to variables with a type of <code>any</code>, but <code>any</code> can take on any type. However, performing operations on an <code>any</code>-tagged variable requires you to narrow it down via conversion or type-checking using <code>is_*</code> functions.</p>
-<h2>File handling</h2>
+<h2 id="file-handling">File handling</h2>
 <p>Futhorc provides Python-backed text file handling through the built-in <code>File</code> type. Python's mature text I/O implementation supplies buffering, newline conversion, character encoding, seeking, and operating-system integration, while Futhorc supplies static types and source-positioned runtime diagnostics.</p>
 <p>Files are opened with <code>open()</code>. Relative paths are resolved from the process working directory; absolute paths are used directly. The default encoding is UTF-8.</p>
 <p>Supported text modes are:
@@ -610,7 +643,7 @@ new str x = "hi" # all good
 <p>Files should be closed explicitly with <code>close()</code> when no longer needed. The interpreter also closes every remaining open file when program execution ends, including when execution ends because of a runtime error.</p>
 <p><code>tell()</code> returns an opaque text-stream position. In particular, it is not guaranteed to equal a character count or UTF-8 byte count. A position returned by <code>tell()</code> can safely be passed back to <code>seek()</code>.</p>
 <p>Opening failures, permission errors, invalid operations, encoding failures, and operations on closed files produce Futhorc runtime errors. File contents are not automatically serialized into Futhorc values; programs read and write strings and lists of strings explicitly.</p>
-<h2>Python interoperability</h2>
+<h2 id="python-interoperability">Python interoperability</h2>
 <p>Futhorc can access modules from the Python environment running the interpreter. Python interoperability is an explicitly dynamic boundary: ordinary Futhorc remains statically typed, while foreign modules, callables, attributes, and results use the <code>pyobject</code> type.</p>
 <p>Runic aliases are <code>ßøêßøáßÜ¬ßøÆßÜÀßÜ╗ßøûßÜ│ßøÅ</code> for <code>pyobject</code>, <code>ßøêßøáßøüßøùßøêßøƒßÜ▒ßøÅ</code> for <code>pyimport</code>, and <code>ßøùßÜ½ßÜÀßÜ╗ßÜúßøÜ</code> for its <code>module</code> parameter. The native import-statement aliases are <code>ßøüßøùßøêßøƒßÜ▒ßøÅ</code>, <code>ßøêßøáßÜªßÜúßÜ¥</code>, and <code>ßÜ½ßøï</code> for <code>import</code>, <code>python</code>, and <code>as</code> respectively.</p>
 <p>Python modules can be imported with a native statement:
@@ -621,7 +654,7 @@ The module name must be a string literal and <code>as</code> must provide a norm
 <p><code>pyimport()</code> uses Python's normal module discovery rules and therefore sees the standard library and packages installed in the active Python environment. A <code>pyobject</code> supports dynamic member access, calls with positional or named arguments, indexing, slicing, and iteration through <code>foreach</code>. Each such operation has static result type <code>pyobject</code>; programs use explicit Futhorc conversions such as <code>int()</code>, <code>float()</code>, <code>str()</code>, <code>bool()</code>, or <code>to_list()</code> when they need an ordinary Futhorc value.</p>
 <p>Futhorc primitives cross into Python as their corresponding Python primitives. Lists and arrays cross as copied Python lists, sets cross as copied Python tuples, and enums cross as their backing values. Mutating a copied collection in Python does not mutate the original Futhorc collection. Struct conversion and callbacks from Python into Futhorc functions are not yet defined.</p>
 <p>Python exceptions are converted into source-positioned Futhorc runtime errors containing the Python exception class and message. Python interoperability is not sandboxed: imported modules have the same filesystem, network, process, and native-extension privileges as the interpreter.</p>
-<h2>Built-ins:</h2>
+<h2 id="built-ins">Built-ins:</h2>
 <p>* This documentation uses <code>?value</code> to mean "optional parameter". However, this is merely notational and is not valid Futhorc source. Parameters become optional by providing a default evaluation with <code>=</code>.</p>
 <p>In collection method signatures, <code>T</code> represents the collection's element type. In array signatures, <code>N</code> represents runtime capacity. Array capacity is not part of static type identity: <code>arr(T, 3)</code> and <code>arr(T, 8)</code> have the same static type.</p>
 <p>Collection indexes are zero-based. Negative indexes count backwards from the end of the collection:</p>
@@ -630,7 +663,7 @@ The module name must be a string literal and <code>as</code> must provide a norm
 <p>For methods that insert at an index, <code>index == length()</code> is valid and inserts at the end. An index greater than the collection's length is an error; insertion never creates gaps filled with <code>nil</code>.</p>
 <p>Search methods return <code>nil</code> when no matching item or occurrence exists. <code>find_nth(item, number)</code> uses one-based occurrence numbering: <code>1</code> means the first occurrence, <code>2</code> the second, and so on. A <code>number</code> below <code>1</code> is a runtime error.</p>
 <p><code>copy()</code> performs a deep copy. Nested collections and structs are recursively copied. Repeated references and cycles preserve their topology: if two references in the original point to the same object, their copies point to the same copied object rather than two independent copies.</p>
-<h3>Non-mutating conversion functions:</h3>
+<h3 id="conversions">Non-mutating conversion functions:</h3>
 <ul>
 <li><code>int int(any ?value)</code></li>
 <li>Converts <code>value</code> to an integer.</li>
@@ -678,7 +711,7 @@ The module name must be a string literal and <code>as</code> must provide a norm
 <li>If <code>capacity</code> exceeds the resulting length, the remaining capacity consists of internal empty slots.</li>
 <li>If <code>capacity</code> is smaller than the resulting length, excess elements are truncated and a warning is emitted.</li>
 </ul>
-<h3>Verification functions</h3>
+<h3 id="verification">Verification functions</h3>
 <ul>
 <li><code>bool is_int(any value)</code></li>
 <li><code>bool is_char(any value)</code></li>
@@ -694,7 +727,7 @@ The module name must be a string literal and <code>as</code> must provide a norm
 <li><code>bool is_full(arr(T, N) collec)</code></li>
 <li>Returns whether <code>collec.length() == collec.capacity()</code>.</li>
 </ul>
-<h3>Integer methods:</h3>
+<h3 id="integer-methods">Integer methods:</h3>
 <ul>
 <li><code>bool gt(int value)</code></li>
 <li>Returns whether the integer is greater than <code>value</code>.</li>
@@ -707,7 +740,7 @@ The module name must be a string literal and <code>as</code> must provide a norm
     5.between(1, "6") = [1, 6) = 1 Ôëñ 5 &lt; 6
     5.between("1", "6") = (1, 6) = 1 &lt; 5 &lt; 6</code></li>
 </ul>
-<h3>List methods</h3>
+<h3 id="list-methods">List methods</h3>
 <ul>
 <li><code>nil append(T item)</code></li>
 <li>Adds <code>item</code> to the end of the list.</li>
@@ -758,7 +791,7 @@ The module name must be a string literal and <code>as</code> must provide a norm
 - <code>amount == 0</code> returns an empty list and does not modify the collection.
 - <code>amount &lt; 0</code> is an error.
 - <code>amount &gt; length()</code> is an error.</p>
-<h3>Array methods</h3>
+<h3 id="array-methods">Array methods</h3>
 <p>Arrays have both a <strong>length</strong> and a <strong>capacity</strong>.</p>
 <ul>
 <li><strong>length</strong> is the number of occupied elements.</li>
@@ -860,7 +893,7 @@ The module name must be a string literal and <code>as</code> must provide a norm
 - <code>amount &lt; 0</code> is an error.
 - <code>amount &gt; length()</code> is an error.</p>
 <p>Slicing an array produces a new array containing the selected occupied elements. The resulting array's capacity is exactly equal to its resulting length.</p>
-<h3>Set methods</h3>
+<h3 id="set-methods">Set methods</h3>
 <p>Futhorc sets are ordered, immutable collections. Unlike mathematical sets and sets in many other languages, Futhorc sets permit duplicate values and retain their order. Their contents cannot be added to, removed from, replaced, or reordered after construction.</p>
 <p>A non-<code>const</code> variable containing a set may still be rebound to another set. <code>const set(T)</code> prevents that rebinding as well.</p>
 <ul>
@@ -883,7 +916,7 @@ The module name must be a string literal and <code>as</code> must provide a norm
 <li><code>set(T) copy()</code></li>
 <li>Returns a deep copy of the set.</li>
 </ul>
-<h3>Functional</h3>
+<h3 id="functional">Functional</h3>
 <ul>
 <li><code>int index(any item)</code></li>
 <li>Extracts the index attached to an item obtained through a <code>foreach</code>.</li>
@@ -893,7 +926,7 @@ The module name must be a string literal and <code>as</code> must provide a norm
 <li>Prints <code>output</code>.</li>
 <li><code>end</code> is appended after the output and defaults to a newline.</li>
 </ul>
-<h3>File handling</h3>
+<h3 id="builtin-file-handling">File handling</h3>
 <ul>
 <li><code>File open(str path, str mode = "r", str encoding = "utf-8")</code></li>
 <li>Opens a text file. Supported modes are <code>r</code>, <code>w</code>, <code>a</code>, <code>x</code>, and their <code>+</code> variants.</li>
@@ -926,7 +959,7 @@ The module name must be a string literal and <code>as</code> must provide a norm
 <li>Returns whether the underlying stream supports seeking.</li>
 </ul>
 <p>File and encoding failures are reported as source-positioned Futhorc runtime errors.</p>
-<h3>Python interoperability</h3>
+<h3 id="builtin-python">Python interoperability</h3>
 <ul>
 <li><code>pyobject pyimport(str module)</code></li>
 <li>Imports <code>module</code> using Python's normal import system and returns the module as a foreign object.</li>
