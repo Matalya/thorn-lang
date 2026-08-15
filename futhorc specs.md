@@ -8,7 +8,9 @@ https://www.harysdalvi.com/futhorc webapp runes keyboard
 ## Collections
 - `list(t) [1, 2, 3]`
 - `arr(t, n) <1, 2, 3>`
+- `arr(t1, t2 * count, ...) <value1, value2, ...>`
 - `set(t) (1, 2, 3)`
+- `dict(k, v) {key -> value;}`
 - `enum(t) my_var = (NAME = ?value;)`
 - `struct MyType = {?const type field = ?value;}`
 ## Operators
@@ -21,6 +23,7 @@ https://www.harysdalvi.com/futhorc webapp runes keyboard
 - `foreach (item in collection) {}`
 - `while () {}`
 - `until () {}`
+- `break;`, `continue;`
 ## Assignment
 - `?new ?global ?const type my_var = value;`
 ## Returns
@@ -37,6 +40,7 @@ https://www.harysdalvi.com/futhorc webapp runes keyboard
     print(c"{ah}, world")
     >> {ah}, world Hello, world
     ```
+  Literal portions of a composite string use the same escapes as ordinary strings, including `\n`, `\r`, `\t`, `\xNN`, and `\uNNNN`. Use `\{` and `\}` for braces that should be printed rather than interpreted as interpolation delimiters.
 - **floating point number**: `float` 1.0 2.5 0.30000002
 - **boolean number**: `bool` `true` `false`
 - **type-flexible**: `any`
@@ -56,6 +60,7 @@ Truthiness can only be accessed with the built-in `bool()` function, that gets a
 - list: `list(type)` [1, 2, 3] (mutable, dynamically resizable)
 - array: `arr(t, n)` <1, 2, 3> (mutable, non-dynamically resizable)
 - set: `set(t)` (1, 2, 3) (inmutable)
+- dictionary: `dict(k, v)` `{key -> value;}` (mutable, dynamically resizable)
 - item: `collection[n]`
 - slicing: `collection[a:b]` (zero-index, b-exclusive)
 
@@ -67,29 +72,71 @@ Truthiness can only be accessed with the built-in `bool()` function, that gets a
 list       |   ✅  |   ✅   |   ✅
 arr        |   ✅  |   ❌   |   ✅
 set        |   ❌  |   ❌   |   ✅ 
+dict       |   ✅  |   ✅   |   ✅
 const list |   ✅  |   ✅   |   ❌
 const arr  |   ✅  |   ❌   |   ❌ 
 const set  |   ❌  |   ❌   |   ❌
+const dict |   ✅  |   ✅   |   ❌
 ```
 \* arrays are not dynamically resizable, but they can be resized with the methods listed further down. The capacity is runtime allocation.
 \* Futhorc sets are immutable, ordered collections that permit duplicate elements; they behave like immutable lists rather than mathematical sets.
 
-## Typed arrays
-Typed arrays are arrays that can store multiple types of data in an ordered manner. Their minimum length is determined by the amount of types specified. A typed array is, syntactically, an array whose type passed is a list of types.
+## Dictionaries
+Dictionaries are mutable, insertion-ordered collections of key-value pairs. Their type is `dict(K, V)`, where `K` is the key type and `V` is the value type. Dictionary literals use `->` between each key and value and semicolons between entries; the final semicolon is optional.
 
-### Unnumbered types
-`arr([int, str, float], 3)`: this type can hold 3 items, and the order in which they're held must match that of their definition. As such, `[1, "a", 1.5]` is a valid form, but `["a", 1, 1.0]` isn't.
+The runic type alias is `ᛞᛁᚳᛏ`. Dictionary method aliases are `ᛚᛖᛝᚦ`, `ᚷᛖᛏ`, `ᚻᚫᛋ`, `ᚱᛁᛗᚣᚠ`, `ᚳᛁᛁᛋ`, `ᚠᚫᛚᛄᚣᛋ`, `ᛠᛏᛖᛗᛋ`, `ᚳᛚᛁᚢᚱ`, and `ᚳᚪᛈᛁ` for `length`, `get`, `has`, `remove`, `keys`, `values`, `items`, `clear`, and `copy`, respectively.
 
-However, if we change it to `arr([] int, str, float, 4)`, now you'll see that there are more items than there are types. This allows you to put more than one, as long as the order is preserved and all types are covered. As such, all of the following are valid
 ```
-[1, "a", 1.0]
-[1, 2, "a", 1.0]
-[1, "a", "b", 1.0]
-[1, "a", 1.0, 2.0]
-```
-### Numbered types
+dict(str | int, int) scores = {
+    "Ada" -> 10;
+    "Grace" -> 20;
+    3 -> 30
+};
 
-No number next to the type means "any amount". However, a number means "this exact amount, no more, no less". For example: `arr([str, int3], 10)` represents an array that contains between 1 and 7 strings, and exactly 3 integers, and `arr([str1, int3], 4)` *has* to contain one string and 3 integers. This is similar to Rust's tuple structs. It goes without saying that, if the length of the array doesn't match the amount expressed in the types, the program will error. However, it can be left empty and the interpreter will automatically pre-compute the correct minimal amount, which for numbered type arrays, is in fact the recommended approach to keep typoes and confusions from causing errors.
+print(scores["Ada"]); # 10
+scores["Linus"] = 40; # creates a new entry
+scores["Ada"] += 5;   # updates an existing entry
+```
+
+Direct indexing with a missing key is a runtime error. `get()` provides nullable or default-backed access. Dictionaries cannot be sliced. `foreach (key in dictionary)` iterates keys in insertion order, and `index(key)` reports the key's insertion index within that iteration.
+
+Keys must be hashable. Supported statically known key types are `int`, `float`, `str`, `char`, `bool`, `nil`, enum types, and `pyobject`; unions of hashable types are also supported. `any` in key position means any value that is hashable at runtime, not literally every Futhorc value. Lists, arrays, sets, dictionaries, files, and structs are not valid keys. A `pyobject` key is accepted only when its wrapped Python value is hashable.
+
+Futhorc keeps key types distinct: `true`, `1`, and `1.0` may coexist as three different keys. Dictionary equality compares key-value contents and does not depend on insertion order. Reassigning an existing key does not move it to the end.
+
+An empty dictionary may be written as `{}` when its declared variable type is a concrete `dict(K, V)`. The constructor `dict(K, V)` is unambiguous in every expression context and also creates an empty dictionary.
+
+## Heterogeneous arrays
+Heterogeneous arrays are fixed positional schemas: compact, unnamed structs whose fields are addressed by index. Every slot has its own declared type.
+
+```
+arr(int, str, bool) data = <10, "hello">;
+
+int number = data[0];
+str greeting = data[1];
+data[2] = true;
+```
+
+The schema above has capacity `3`, inferred from its three type entries. Initializers may occupy any prefix of the schema, including the empty prefix. Unoccupied slots retain their declared types but cannot be read until initialized. Assigning at `length()` initializes the next slot; assigning beyond it is an error because heterogeneous arrays cannot contain gaps.
+
+A type followed by `*` and a positive integer declares several consecutive slots of that type. Primitive, collection, enum, and struct types are all accepted:
+
+```
+arr(Person * 2, int, str * 3) record;
+```
+
+This expands to two `Person` slots, one `int` slot, and three `str` slots. Its capacity is inferred as `6`. An explicit final capacity is optional, but when supplied it must equal the expanded schema exactly:
+
+```
+arr(Person * 2, int, str * 3, 6) valid;
+arr(Person * 2, int, str * 3, 5) invalid; # schema/capacity error
+```
+
+An uncounted type contributes exactly one slot. Counts must be positive. The `type * count` syntax is contextual to an array type, so names such as `Person3` remain ordinary, unambiguous type names.
+
+A constant non-negative index has its precise positional type. A runtime-computed or negative index has the union of all types in the schema and is checked against the selected slot at runtime. Heterogeneous array schemas are part of static type identity: `arr(int, str)` and `arr(str, int)` are different types.
+
+Operations that shift slots or alter capacity would invalidate the schema. Consequently, heterogeneous arrays support `length`, `capacity`, `append`, `replace_at`, `shorten`, search methods, `locate`, `copy`, and `join` when every slot is textual. They do not support `resize`, `insert`, `prepend`, `remove_at`, `shave`, `compress`, `fill`, `skintight`, or `shrink_to_fit`. Slicing is supported when its bounds are constant non-negative integers and produces the corresponding sliced schema.
 
 ## Structs
 Structs are named custom types that bundle an assortment of declared variable fields with their own types. A `struct` can hold data of any type. The basic structure is:
@@ -291,6 +338,12 @@ In a similar vein, enums create a custom type whose valid values can be checked 
 - `for (i from a to b){}` (b-exclusive)
 - `foreach(item in collection){}`
 - ⚠️ each item is an object with its index attached. It's not identical to `for (i from 0 to length(collection)){collection[i]}` as that simply returns the item. The object behaves otherwise like its value, except that certain functions like `index()` can extract and return the index
+- `break;` immediately exits the nearest enclosing loop.
+- `continue;` skips the rest of the current iteration of the nearest enclosing loop. In an `until` loop, its stop condition is still evaluated before the next iteration.
+
+`break` and `continue` may only appear lexically inside a loop in the same function or method. A function declared inside a loop cannot use them to control that outer loop.
+
+Their runic aliases are `ᛒᚱᛠᚳ` and `ᚳᚢᚾᛏᛁᚾᛄᚣ`, respectively.
 
 # Functions:
 - `f(x)`: function `f(x)` call
@@ -345,6 +398,11 @@ Futhorc provides Python-backed text file handling through the built-in `File` ty
 
 Files are opened with `open()`. Relative paths are resolved from the process working directory; absolute paths are used directly. The default encoding is UTF-8.
 
+Printing a `File`, interpolating it into a composite string, or converting it with `str()` displays its supplied path, mode, and closed state:
+```
+File { path = examples/notes.txt, mode = r, closed = false }
+```
+
 Supported text modes are:
 - `"r"`: read an existing file.
 - `"w"`: write a file, truncating existing contents.
@@ -359,6 +417,25 @@ Files should be closed explicitly with `close()` when no longer needed. The inte
 `tell()` returns an opaque text-stream position. In particular, it is not guaranteed to equal a character count or UTF-8 byte count. A position returned by `tell()` can safely be passed back to `seek()`.
 
 Opening failures, permission errors, invalid operations, encoding failures, and operations on closed files produce Futhorc runtime errors. File contents are not automatically serialized into Futhorc values; programs read and write strings and lists of strings explicitly.
+
+# Native modules
+Each `.futhorc` or `.þ` source file is a module. Native imports preserve Futhorc's static types across file boundaries:
+```
+import tools;
+import tools as t;
+from tools import helper;
+from tools import helper as h;
+```
+
+`import tools;` binds the module object as the constant `tools`. `import tools as t;` chooses another binding name. A `from` import binds one exported value or type directly; `as` can rename it. Imported variables, functions, structs, and enums retain their declared types, so calls, assignments, member access, and nominal struct identity are still checked statically.
+
+Module names are single identifiers and resolve to files directly inside the entry source file's directory. For example, `import people;` searches for `people.þ` and `people.futhorc`. It is an error when neither candidate exists or when both exist. Dots retain their ordinary member-access meaning and are not translated into filesystem separators; use `from world import people;` to import the exported member `people` from module `world`. Native imports require execution from a source file because an in-memory source string without a path has no module root.
+
+Every top-level variable, function, struct, enum, enum member, or imported binding is exported. Module objects expose exported values and functions through member access, such as `tools.answer` or `tools.calculate()`. Import types directly with `from tools import Result;` before using them in declarations or constructors.
+
+A module has its own global environment and is initialized on its first executed import. The initialized module is cached, so importing it again does not rerun its top-level statements. `from` imports capture the exported value when the import statement executes, while member access reads through the module environment. Circular imports are rejected with the import chain in the diagnostic.
+
+The runic aliases are `ᛁᛗᛈᛟᚱᛏ`, `ᚠᚱᛟᛗ`, and `ᚫᛋ` for `import`, `from`, and `as` respectively.
 
 # Python interoperability
 Futhorc can access modules from the Python environment running the interpreter. Python interoperability is an explicitly dynamic boundary: ordinary Futhorc remains statically typed, while foreign modules, callables, attributes, and results use the `pyobject` type.
@@ -377,7 +454,7 @@ The module name must be a string literal and `as` must provide a normal Futhorc 
 
 `pyimport()` uses Python's normal module discovery rules and therefore sees the standard library and packages installed in the active Python environment. A `pyobject` supports dynamic member access, calls with positional or named arguments, indexing, slicing, and iteration through `foreach`. Each such operation has static result type `pyobject`; programs use explicit Futhorc conversions such as `int()`, `float()`, `str()`, `bool()`, or `to_list()` when they need an ordinary Futhorc value.
 
-Futhorc primitives cross into Python as their corresponding Python primitives. Lists and arrays cross as copied Python lists, sets cross as copied Python tuples, and enums cross as their backing values. Mutating a copied collection in Python does not mutate the original Futhorc collection. Struct conversion and callbacks from Python into Futhorc functions are not yet defined.
+Futhorc primitives cross into Python as their corresponding Python primitives. Lists and arrays cross as copied Python lists, sets cross as copied Python tuples, dictionaries cross as copied Python dictionaries, and enums cross as their backing values. Mutating a copied collection in Python does not mutate the original Futhorc collection. If distinct Futhorc keys would collide under Python equality, such as `true` and `1`, conversion raises a runtime error rather than silently losing an entry. Struct conversion and callbacks from Python into Futhorc functions are not yet defined.
 
 Python exceptions are converted into source-positioned Futhorc runtime errors containing the Python exception class and message. Python interoperability is not sandboxed: imported modules have the same filesystem, network, process, and native-extension privileges as the interpreter.
 
@@ -431,6 +508,12 @@ Search methods return `nil` when no matching item or occurrence exists. `find_nt
   - Returns `()` if `value` is omitted.
   - Futhorc sets are ordered, immutable collections and may contain duplicate values.
   - Invocation syntax is `set(T, value)` or `set(T)`.
+- `dict(K, V) dict(type K, type V, any ?value)`
+  - Creates a dictionary whose keys have type `K` and values have type `V`.
+  - Returns an empty dictionary if `value` is omitted.
+  - Copies entries from another Futhorc dictionary or from a Python mapping held by `pyobject`.
+  - The returned dictionary is a fresh outer collection; later mutation does not affect the source.
+  - Every key and value must already match its declared type. Keys must additionally be hashable.
 
 These conversions always create a fresh outer collection and never mutate the source. A Futhorc collection, string, or foreign Python iterable is copied in iteration order; a non-iterable Futhorc value becomes one element. Elements are not individually coerced through primitive conversion functions: every produced element must already be compatible with `T`, otherwise conversion raises a source-positioned runtime error. Nested collection elements are checked recursively. Contained object identities are retained, so this is an outer-container copy rather than `copy()`'s recursive deep copy.
 
@@ -456,6 +539,7 @@ These conversions always create a fresh outer collection and never mutate the so
 - `bool is_list(any value)`
 - `bool is_arr(any value)`
 - `bool is_set(any value)`
+- `bool is_dict(any value)`
 - `bool is_empty(any collec)`
   - Returns whether the collection contains no occupied elements.
   - Raises an error if `collec` is not a collection.
@@ -476,7 +560,37 @@ These conversions always create a fresh outer collection and never mutate the so
     5.between("1", "6") = (1, 6) = 1 < 5 < 6
     ```
 
+## String methods
+- `int length()`
+  - Returns the number of Unicode code points in the string.
+- `str lower()`
+  - Returns a lowercase copy of the string.
+- `str upper()`
+  - Returns an uppercase copy of the string.
+- `str strip(str characters = whitespace)`
+  - Returns a copy with leading and trailing whitespace removed when `characters` is omitted.
+  - When `characters` is provided, removes any of those characters from both ends.
+- `list(str) split(str separator = whitespace)`
+  - Splits on runs of whitespace when `separator` is omitted.
+  - When `separator` is provided, splits on that exact substring.
+- `str replace(str old, str replacement, int count = -1)`
+  - Replaces non-overlapping occurrences of `old` from left to right.
+  - A negative `count` replaces every occurrence.
+- `bool contains(str substring)`
+  - Returns whether `substring` occurs in the string.
+- `bool starts_with(str prefix)`
+  - Returns whether the string begins with `prefix`.
+- `bool ends_with(str suffix)`
+  - Returns whether the string ends with `suffix`.
+- `int | nil find(str substring)`
+  - Returns the zero-based index of the first occurrence of `substring`, or `nil` when it is absent.
+- `int count(str substring)`
+  - Returns the number of non-overlapping occurrences of `substring`.
+
 ## List methods
+- `str join(str separator = "")`
+  - Available only on lists whose element type contains only `str`, `char`, or both.
+  - Returns the elements joined by `separator` without coercing non-text values.
 - `nil append(T item)`
   - Adds `item` to the end of the list.
 - `nil insert(T item, int index)`
@@ -532,11 +646,15 @@ For both `shorten(amount)` and `shave(amount)`:
 ## Array methods
 Arrays have both a **length** and a **capacity**.
 
+- `str join(str separator = "")`
+  - Available only on arrays whose element type contains only `str`, `char`, or both.
+  - Returns the occupied elements joined by `separator` without coercing non-text values.
+
 - **length** is the number of occupied elements.
 - **capacity** is the number of elements the array can contain before explicit resizing is required.
-- Capacity is runtime allocation and is not part of static type identity.
+- For homogeneous `arr(T, N)`, capacity is runtime allocation and is not part of static type identity. For heterogeneous arrays, capacity is fixed by the positional schema and the complete schema is part of static type identity.
 - Unoccupied capacity consists of internal empty slots. Empty slots are not Futhorc `nil` values and cannot be accessed as elements.
-- Arrays never resize automatically. Operations that would exceed capacity produce a runtime error unless capacity is explicitly increased first.
+- Arrays never resize automatically. Operations that would exceed capacity produce a runtime error. Homogeneous capacity may be increased explicitly; heterogeneous capacity cannot be changed because every position has a declared type.
 - Capacity changes are visible through every alias referring to the same array.
 - Assigning an existing array to a declaration written with a different `N` does not resize it.
 
@@ -556,6 +674,7 @@ Methods that access, replace, or remove existing items require an occupied index
 - `nil append(T item)`
   - Adds `item` to the end of the occupied portion of the array.
   - Raises an error if the array is full.
+  - On a heterogeneous array, `item` must match the next slot's declared type.
 - `nil insert(T item, int index)`
   - Adds `item` at `index` and shifts the item previously at that index and all following occupied items one position forward.
   - `index == length()` inserts at the end.
@@ -568,6 +687,7 @@ Methods that access, replace, or remove existing items require an occupied index
   - Replaces the occupied item at `index` with `item`.
   - Returns the previous item.
   - Does not change length or capacity.
+  - On a heterogeneous array, `item` must match the selected slot's declared type.
 - `list(T) shorten(int amount = 1)`
   - Removes `amount` occupied items from the end of the array.
   - Returns the removed items as a list in their original order.
@@ -630,10 +750,14 @@ For both `shorten(amount)` and `shave(amount)`:
 - `amount < 0` is an error.
 - `amount > length()` is an error.
 
-Slicing an array produces a new array containing the selected occupied elements. The resulting array's capacity is exactly equal to its resulting length.
+Slicing a homogeneous array produces a new array containing the selected occupied elements with capacity equal to its resulting length. Heterogeneous array slices require constant non-negative bounds and retain the corresponding portion of the positional schema, including unoccupied typed slots.
 
 ## Set methods
 Futhorc sets are ordered, immutable collections. Unlike mathematical sets and sets in many other languages, Futhorc sets permit duplicate values and retain their order. Their contents cannot be added to, removed from, replaced, or reordered after construction.
+
+- `str join(str separator = "")`
+  - Available only on sets whose element type contains only `str`, `char`, or both.
+  - Returns the elements joined by `separator` without coercing non-text values.
 
 A non-`const` variable containing a set may still be rebound to another set. `const set(T)` prevents that rebinding as well.
 
@@ -655,6 +779,28 @@ A non-`const` variable containing a set may still be rebound to another set. `co
   - Negative indexes count backwards from the end.
 - `set(T) copy()`
   - Returns a deep copy of the set.
+
+## Dictionary methods
+- `int length()`
+  - Returns the number of key-value pairs.
+- `V | nil get(K key, V | nil default = nil)`
+  - Returns the value associated with `key`.
+  - Returns `default` when the key is absent.
+- `bool has(K key)`
+  - Returns whether `key` exists.
+- `V remove(K key)`
+  - Removes `key` and returns its associated value.
+  - A missing key is a runtime error.
+- `list(K) keys()`
+  - Returns the keys in insertion order.
+- `list(V) values()`
+  - Returns the values in key insertion order.
+- `list(arr(K | V, 2)) items()`
+  - Returns the entries in insertion order as two-element arrays containing each key and value.
+- `nil clear()`
+  - Removes every entry.
+- `dict(K, V) copy()`
+  - Returns a deep copy of the dictionary.
 
 ## Functional
 - `int index(any item)`

@@ -3,16 +3,19 @@ from __future__ import annotations
 import ast
 import builtins as python_builtins
 import importlib
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 
 from th_ast import *
 from runtime import (
     Cell,
     Environment,
     ReturnSignal,
+    BreakSignal,
+    ContinueSignal,
     ThornFunction,
     ThornArray,
     ThornCollection,
+    ThornDict,
     ThornList,
     ThornRuntimeError,
     ThornSet,
@@ -22,6 +25,7 @@ from runtime import (
     ThornEnumValue,
     ThornFile,
     ThornPyObject,
+    ThornModule,
     thorn_to_python,
     python_to_thorn,
     python_collection_item_to_thorn,
@@ -38,12 +42,16 @@ class Interpreter:
         *,
         output: Callable[[str], None] | None = None,
         input_function: Callable[[str], str] | None = None,
+        module_loader=None,
+        module_path=None,
     ):
         self.globals = Environment(name="global")
         self.environment = self.globals
         self.current_return_type = None
         self.output = output or (lambda text: print(text, end=""))
         self.input_function = input_function or input
+        self.moduleLoader = module_loader
+        self.modulePath = module_path
         self.foreach_index = None
         self.foreach_value = UNINITIALIZED
         self.open_files = []
@@ -67,6 +75,7 @@ class Interpreter:
             ("is_list", "ᛁᛋ_ᛚᛁᛋᛏ"): lambda value: isinstance(value, ThornList) and not isinstance(value, ThornArray),
             ("is_arr", "ᛁᛋ_ᚪᚱ"): lambda value: isinstance(value, ThornArray),
             ("is_set", "ᛁᛋ_ᛋᛖᛏ"): lambda value: isinstance(value, ThornSet),
+            ("is_dict",): lambda value: isinstance(value, ThornDict),
             ("is_empty", "ᛁᛋ_ᛖᛗᛈᛏᛁ"): self._builtin_is_empty,
             ("is_full", "ᛁᛋ_ᚠᚣᛚ"): self._builtin_is_full,
             ("open", "ᚩᛈᛖᚾ"): self._builtin_open,
@@ -98,7 +107,7 @@ class Interpreter:
         return self.foreach_index
 
     def _builtin_is_empty(self, value):
-        if not isinstance(value, ThornCollection):
+        if not isinstance(value, (ThornCollection, ThornDict)):
             raise ThornRuntimeError("is_empty() requires a collection")
         return len(value) == 0
 
@@ -282,6 +291,29 @@ class Interpreter:
                 expected_type.elementType,
             )
         if isinstance(node, ArrayLiteral) and isinstance(expected_type, ArrayType):
+            if expected_type.isHeterogeneous:
+                slot_types = expected_type.slotTypes or []
+                if len(node.elements) > len(slot_types):
+                    raise ThornRuntimeError(
+                        "Heterogeneous array initializer exceeds its schema capacity",
+                        node,
+                    )
+                values = (
+                    self.evaluate_as(item, slot_types[index])
+                    for index, item in enumerate(node.elements)
+                )
+                return ThornArray(
+                    values,
+                    expected_type.capacity,
+                    lambda message: self.output(f"warning: {message}\n"),
+                    expected_type.elementType,
+                    slot_types,
+                    lambda value, slot_type: self._collection_conversion_element(
+                        value,
+                        slot_type,
+                        node,
+                    ),
+                )
             return ThornArray(
                 (self.evaluate_as(item, expected_type.elementType) for item in node.elements),
                 expected_type.capacity,
@@ -293,8 +325,33 @@ class Interpreter:
                 (self.evaluate_as(item, expected_type.elementType) for item in node.elements),
                 expected_type.elementType,
             )
+        if isinstance(node, DictLiteral) and isinstance(expected_type, DictType):
+            return ThornDict(
+                (
+                    (
+                        self.evaluate_as(entry.key, expected_type.keyType),
+                        self.evaluate_as(entry.value, expected_type.valueType),
+                    )
+                    for entry in node.entries
+                ),
+                expected_type.keyType,
+                expected_type.valueType,
+            )
         value = self.evaluate(node)
         if isinstance(expected_type, NamedType):
+            declaration = expected_type.resolvedDeclaration
+            if (
+                isinstance(value, ThornStruct)
+                and declaration is not None
+                and value.struct_type.declaration is declaration
+            ):
+                return value
+            if (
+                isinstance(value, ThornEnumValue)
+                and declaration is not None
+                and value.enum_type.declaration is declaration
+            ):
+                return value
             runtime_type = self.environment.resolve_type(expected_type.name.name)
             if isinstance(runtime_type, ThornEnumType) and not isinstance(value, ThornEnumValue):
                 return runtime_type.from_raw(value)
@@ -337,7 +394,17 @@ class Interpreter:
     def execute_CompositeString(self, node: CompositeString):
         parts = []
         for component in node.components:
-            value = self.evaluate(component.value)
+            if component.type == CompositeStringType.STRING_COMPONENT:
+                raw = component.value.litValue
+                # Braces have composite-string-specific escaping, while all
+                # other escapes follow ordinary string-literal behavior.
+                raw = raw.replace(r"\{", "{").replace(r"\}", "}")
+                try:
+                    value = ast.literal_eval(f'"""{raw}"""')
+                except (SyntaxError, ValueError):
+                    value = raw
+            else:
+                value = self.evaluate(component.value)
             parts.append(value if isinstance(value, str) else format_value(value))
         return "".join(parts)
 
@@ -381,11 +448,29 @@ class Interpreter:
 
     def execute_VarDeclaration(self, node: VarDeclaration):
         target = self.globals if node.modifiers.isGlobal else self.environment
-        value = (
-            UNINITIALIZED
-            if isinstance(node.varValue, Uninitialized)
-            else self.evaluate_as(node.varValue, node.varType)
-        )
+        if (
+            isinstance(node.varValue, Uninitialized)
+            and isinstance(node.varType, ArrayType)
+            and node.varType.isHeterogeneous
+        ):
+            value = ThornArray(
+                (),
+                node.varType.capacity,
+                lambda message: self.output(f"warning: {message}\n"),
+                node.varType.elementType,
+                node.varType.slotTypes,
+                lambda item, slot_type: self._collection_conversion_element(
+                    item,
+                    slot_type,
+                    node,
+                ),
+            )
+        else:
+            value = (
+                UNINITIALIZED
+                if isinstance(node.varValue, Uninitialized)
+                else self.evaluate_as(node.varValue, node.varType)
+            )
         if isinstance(node.varType, ArrayType) and isinstance(value, ThornArray):
             # Capacity written on a declaration initializes a fresh literal,
             # but never resizes an array value that already exists elsewhere.
@@ -395,6 +480,8 @@ class Interpreter:
                     node.varType.capacity,
                     value.warning,
                     node.varType.elementType,
+                    node.varType.slotTypes,
+                    value.validator,
                 )
         name = node.varName.name
         if node.modifiers.isNew:
@@ -407,6 +494,51 @@ class Interpreter:
                 name, value, constant=node.modifiers.isConst,
                 declared_type=node.varType
             )
+        return None
+
+    def execute_ImportStatement(self, node: ImportStatement):
+        if self.moduleLoader is None:
+            raise ThornRuntimeError(
+                f"Cannot import module '{node.moduleName}' without a module loader",
+                node,
+            )
+        try:
+            module = self.moduleLoader.loadRuntime(node.moduleName)
+        except Exception as error:
+            from module_system import ModuleLoadError
+            if isinstance(error, ModuleLoadError):
+                raise ThornRuntimeError(str(error), node) from error
+            raise
+        self.environment.declare(
+            node.bindingName,
+            module,
+            constant=True,
+            declared_type=ModuleType(node.moduleName, None),
+        )
+        return None
+
+    def execute_FromImportStatement(self, node: FromImportStatement):
+        if self.moduleLoader is None:
+            raise ThornRuntimeError(
+                f"Cannot import module '{node.moduleName}' without a module loader",
+                node,
+            )
+        try:
+            module = self.moduleLoader.loadRuntime(node.moduleName)
+            value = module.read(node.importedName.name)
+        except Exception as error:
+            from module_system import ModuleLoadError
+            if isinstance(error, (ModuleLoadError, ThornRuntimeError)):
+                raise ThornRuntimeError(str(error), node) from error
+            raise
+
+        self.environment.declare(
+            node.bindingName,
+            value,
+            constant=True,
+        )
+        if isinstance(value, (ThornStructType, ThornEnumType)):
+            self.environment.declare_type(node.bindingName, value)
         return None
 
     def execute_VarAssign(self, node: VarAssign):
@@ -424,7 +556,12 @@ class Interpreter:
         if isinstance(target, IndexAccess):
             collection = self.evaluate(target.target)
             if isinstance(collection, ThornCollection):
+                if isinstance(collection, ThornArray):
+                    index = self.evaluate(target.index)
+                    return collection.slot_type(index)
                 return collection.element_type
+            if isinstance(collection, ThornDict):
+                return collection.value_type
         return None
 
     def execute_CompoundAssign(self, node: CompoundAssign):
@@ -490,11 +627,21 @@ class Interpreter:
 
     def execute_WhileStatement(self, node: WhileStatement):
         while self.evaluate(node.condition):
-            self.execute(node.body)
+            try:
+                self.execute(node.body)
+            except ContinueSignal:
+                continue
+            except BreakSignal:
+                break
 
     def execute_UntilStatement(self, node: UntilStatement):
         while True:
-            self.execute(node.body)
+            try:
+                self.execute(node.body)
+            except ContinueSignal:
+                pass
+            except BreakSignal:
+                break
             if self.evaluate(node.condition):
                 break
 
@@ -505,7 +652,12 @@ class Interpreter:
             cell = self.environment.declare(node.iterator.name)
         for value in range(start, end):
             cell.value = value
-            self.execute(node.body)
+            try:
+                self.execute(node.body)
+            except ContinueSignal:
+                continue
+            except BreakSignal:
+                break
 
     def execute_ForeachStatement(self, node: ForeachStatement):
         cell = self.environment.cells.get(node.iterator.name)
@@ -520,9 +672,20 @@ class Interpreter:
                     value = python_to_thorn(value)
                 self.foreach_index, self.foreach_value = index, value
                 cell.value = value
-                self.execute(node.body)
+                try:
+                    self.execute(node.body)
+                except ContinueSignal:
+                    continue
+                except BreakSignal:
+                    break
         finally:
             self.foreach_index, self.foreach_value = old_index, old_value
+
+    def execute_BreakStatement(self, node: BreakStatement):
+        raise BreakSignal()
+
+    def execute_ContinueStatement(self, node: ContinueStatement):
+        raise ContinueSignal()
 
     def execute_FunctionDeclaration(self, node: FunctionDeclaration):
         return None
@@ -755,7 +918,23 @@ class Interpreter:
             )
 
         if isinstance(expectedType, NamedType):
-            runtimeType = self.environment.resolve_type(expectedType.name.name)
+            declaration = expectedType.resolvedDeclaration
+            if (
+                isinstance(value, ThornStruct)
+                and declaration is not None
+                and value.struct_type.declaration is declaration
+            ):
+                return value
+            if (
+                isinstance(value, ThornEnumValue)
+                and declaration is not None
+                and value.enum_type.declaration is declaration
+            ):
+                return value
+            try:
+                runtimeType = self.environment.resolve_type(expectedType.name.name)
+            except ThornRuntimeError:
+                runtimeType = None
             if isinstance(runtimeType, ThornEnumType):
                 if isinstance(value, ThornEnumValue):
                     if value.enum_type is runtimeType:
@@ -787,16 +966,37 @@ class Interpreter:
         elif isinstance(expectedType, ArrayType):
             matches = isinstance(value, ThornArray)
             if matches:
-                for item in value.values:
-                    self._collection_conversion_element(
-                        item, expectedType.elementType, node
-                    )
+                if expectedType.isHeterogeneous:
+                    slots = expectedType.slotTypes or []
+                    matches = len(value.values) <= len(slots)
+                    if matches:
+                        for index, item in enumerate(value.values):
+                            self._collection_conversion_element(
+                                item,
+                                slots[index],
+                                node,
+                            )
+                else:
+                    for item in value.values:
+                        self._collection_conversion_element(
+                            item, expectedType.elementType, node
+                        )
         elif isinstance(expectedType, SetType):
             matches = isinstance(value, ThornSet)
             if matches:
                 for item in value.values:
                     self._collection_conversion_element(
                         item, expectedType.elementType, node
+                    )
+        elif isinstance(expectedType, DictType):
+            matches = isinstance(value, ThornDict)
+            if matches:
+                for key, item in value.items_raw():
+                    self._collection_conversion_element(
+                        key, expectedType.keyType, node
+                    )
+                    self._collection_conversion_element(
+                        item, expectedType.valueType, node
                     )
         elif isinstance(expectedType, PrimitiveType):
             expected = expectedType.value
@@ -841,9 +1041,22 @@ class Interpreter:
         if isinstance(typeNode, ListType):
             return f"list({self._runtime_type_text(typeNode.elementType)})"
         if isinstance(typeNode, ArrayType):
+            if typeNode.isHeterogeneous:
+                slots = typeNode.slotTypes or []
+                if len(slots) == 1:
+                    return f"arr({self._runtime_type_text(slots[0])} * 1)"
+                return "arr(" + ", ".join(
+                    self._runtime_type_text(slotType)
+                    for slotType in slots
+                ) + ")"
             return f"arr({self._runtime_type_text(typeNode.elementType)})"
         if isinstance(typeNode, SetType):
             return f"set({self._runtime_type_text(typeNode.elementType)})"
+        if isinstance(typeNode, DictType):
+            return (
+                f"dict({self._runtime_type_text(typeNode.keyType)}, "
+                f"{self._runtime_type_text(typeNode.valueType)})"
+            )
         if isinstance(typeNode, UnionType):
             return " | ".join(self._runtime_type_text(member) for member in typeNode.members)
         return "<unknown>"
@@ -851,6 +1064,8 @@ class Interpreter:
     def execute_MemberAccess(self, node: MemberAccess):
         target = self.evaluate(node.target)
         if isinstance(target, ThornCollection):
+            return target.method(node.member.name)
+        if isinstance(target, ThornDict):
             return target.method(node.member.name)
         if isinstance(target, ThornFile):
             return target.method(node.member.name)
@@ -861,6 +1076,32 @@ class Interpreter:
                 raise ThornRuntimeError(
                     f"Python {type(error).__name__}: {error}", node
                 ) from error
+        if isinstance(target, ThornModule):
+            return target.read(node.member.name)
+        if isinstance(target, str):
+            string_methods = {
+                "length": lambda: len(target),
+                "ᛚᛖᛝᚦ": lambda: len(target),
+                "lower": target.lower,
+                "upper": target.upper,
+                "strip": lambda characters=None: target.strip(characters),
+                "split": lambda separator=None: ThornList(
+                    target.split(separator),
+                    PrimitiveType(Type.STR)
+                ),
+                "replace": lambda old, replacement, count=-1: target.replace(
+                    old, replacement, count
+                ),
+                "contains": lambda substring: substring in target,
+                "starts_with": target.startswith,
+                "ends_with": target.endswith,
+                "find": lambda substring: self._string_find(
+                    target, substring
+                ),
+                "count": target.count,
+            }
+            if node.member.name in string_methods:
+                return string_methods[node.member.name]
         if type(target) is int:
             integer_methods = {
                 "gt": lambda value: target > value,
@@ -878,7 +1119,7 @@ class Interpreter:
             name = node.member.name
             if name in target.fields:
                 return target.read(name)
-            if name in ("copy", "ᚳᚪᛈᛁᛁ"):
+            if name in ("copy", "ᚳᚪᛈᛁ", "ᚳᚪᛈᛁᛁ"):
                 return target.copy
             if name in ("resembles", "ᚱᛁᛋᛖᛗᛒᚢᛚ"):
                 return target.resembles
@@ -908,6 +1149,11 @@ class Interpreter:
         above = value > lower_value if lower_exclusive else value >= lower_value
         below = value < upper_value if upper_exclusive else value <= upper_value
         return above and below
+
+    @staticmethod
+    def _string_find(value, substring):
+        index = value.find(substring)
+        return None if index == -1 else index
 
     def _struct_method(self, struct_type, name):
         for method in struct_type.declaration.methods:
@@ -1023,6 +1269,68 @@ class Interpreter:
 
     def execute_SetLiteral(self, node: SetLiteral):
         return ThornSet(self.evaluate(element) for element in node.elements)
+
+    def execute_DictEntry(self, node: DictEntry):
+        return self.evaluate(node.key), self.evaluate(node.value)
+
+    def execute_DictLiteral(self, node: DictLiteral):
+        return ThornDict(self.execute(entry) for entry in node.entries)
+
+    def execute_DictConversion(self, node: DictConversion):
+        positional, named = self._evaluate_arguments(node.arguments)
+        if len(positional) > 1:
+            raise ThornRuntimeError(
+                "dict() accepts at most one value argument", node
+            )
+        supplied = dict(named)
+        if positional:
+            if "value" in supplied:
+                raise ThornRuntimeError(
+                    "dict() received 'value' more than once", node
+                )
+            supplied["value"] = positional[0]
+        unknown = set(supplied) - {"value"}
+        if unknown:
+            name = next(iter(unknown))
+            raise ThornRuntimeError(
+                f"dict() has no parameter named '{name}'", node
+            )
+
+        if "value" not in supplied:
+            entries = []
+        else:
+            source = supplied["value"]
+            if isinstance(source, ThornDict):
+                entries = source.items_raw()
+            elif isinstance(source, ThornPyObject):
+                if not isinstance(source.value, Mapping):
+                    raise ThornRuntimeError(
+                        f"Python object of type '{source.python_type_name}' is not a mapping",
+                        node,
+                    )
+                entries = [
+                    (
+                        python_collection_item_to_thorn(key),
+                        python_collection_item_to_thorn(value),
+                    )
+                    for key, value in source.value.items()
+                ]
+            else:
+                raise ThornRuntimeError(
+                    "dict() conversion requires a Futhorc dict or Python mapping",
+                    node,
+                )
+
+        converted = ThornDict((), node.keyType, node.valueType)
+        for key, value in entries:
+            converted_key = self._collection_conversion_element(
+                key, node.keyType, node
+            )
+            converted_value = self._collection_conversion_element(
+                value, node.valueType, node
+            )
+            converted[converted_key] = converted_value
+        return converted
 
     def execute_IndexAccess(self, node: IndexAccess):
         target = self.evaluate(node.target)

@@ -5,7 +5,7 @@ from Token import TokenKind as TK
 from lexer import Lexer, LexerError
 from th_ast import *
 
-class TokenError(Exception):
+class TokenError(SyntaxError):
     pass
 
 class TokenKindError(Exception):
@@ -132,8 +132,9 @@ def mapLiteralToType(literalToken: Token) -> Type:
             )
 
 class TokenStream:
-    def __init__(self, tokens: list[Token]):
+    def __init__(self, tokens: list[Token], source: str | None = None):
         self.tokens: list[Token] = tokens
+        self.source = source
         self.pos = 0
         self.tokenCount = len(self.tokens)
     
@@ -226,8 +227,49 @@ class Parser:
         return self.tokenStream.match(*args)
     def expectEqualSign(self):
         return self.tokenStream.expect(TK.ASSIGN, message = "Equal sign not found.")
-    def expectSemicolon(self):
-        return self.tokenStream.expect(TK.SEMICOLON, message = "Semicolon not found.")
+    def expectSemicolon(self, context: str = "statement"):
+        semicolon = self.match(TK.SEMICOLON)
+
+        if semicolon is not None:
+            return semicolon
+
+        previous = self.tokenStream.previous()
+        insertionIndex = previous.end
+        source = self.tokenStream.source
+
+        if source is None:
+            raise TokenError(
+                f"Missing semicolon after {context} at source "
+                f"index {insertionIndex}. Add ';' here."
+            )
+
+        line = source.count("\n", 0, insertionIndex) + 1
+        lastNewline = source.rfind("\n", 0, insertionIndex)
+        column = insertionIndex - lastNewline
+        sourceLines = source.splitlines()
+        sourceLine = (
+            sourceLines[line - 1]
+            if line <= len(sourceLines)
+            else ""
+        )
+        gutter = len(str(line))
+
+        raise TokenError("\n".join((
+            f"Missing semicolon after {context} at line {line}, "
+            f"column {column}.",
+            f"{line:>{gutter}} | {sourceLine}",
+            f"{' ' * gutter} | {' ' * (column - 1)}^ add ';' here",
+        )))
+
+    def tokensAreOnDifferentLines(
+        self,
+        left: Token,
+        right: Token
+    ) -> bool:
+        source = self.tokenStream.source
+        if source is None:
+            return False
+        return "\n" in source[left.end:right.index]
 
     def cover(self, node: Node, *children: Node) -> Node:
         spans = [child.span for child in children if child.span is not None]
@@ -574,7 +616,34 @@ class Parser:
 
             return elementLength + 3
 
-        # arr(type, capacity)
+        # dict(key_type, value_type)
+        if token.kind == TK.DICT:
+            opening = self.tokenStream.peek(offset + 1)
+            if opening is None or opening.kind != TK.OPEN_PAREN:
+                return None
+
+            keyLength = self.typeLengthAhead(offset + 2)
+            if keyLength is None:
+                return None
+
+            comma = self.tokenStream.peek(offset + 2 + keyLength)
+            if comma is None or comma.kind != TK.COMMA:
+                return None
+
+            valueLength = self.typeLengthAhead(offset + 3 + keyLength)
+            if valueLength is None:
+                return None
+
+            closing = self.tokenStream.peek(
+                offset + 3 + keyLength + valueLength
+            )
+            if closing is None or closing.kind != TK.CLOSE_PAREN:
+                return None
+
+            return keyLength + valueLength + 4
+
+        # arr(type, capacity) or a heterogeneous positional schema such as
+        # arr(int, str * 2). The final capacity is optional for a schema.
         if token.kind == TK.ARR:
             opening = self.tokenStream.peek(
                 offset + 1
@@ -586,36 +655,40 @@ class Parser:
             ):
                 return None
 
-            elementLength = self.typeLengthAhead(
-                offset + 2
-            )
+            cursor = offset + 2
 
-            if elementLength is None:
-                return None
+            while True:
+                elementLength = self.typeLengthAhead(cursor)
+                if elementLength is None:
+                    return None
+                cursor += elementLength
 
-            comma = self.tokenStream.peek(
-                offset + 2 + elementLength
-            )
+                repeat = self.tokenStream.peek(cursor)
+                if repeat is not None and repeat.kind == TK.ASTERISK:
+                    count = self.tokenStream.peek(cursor + 1)
+                    if count is None or count.kind != TK.INTEGER:
+                        return None
+                    cursor += 2
 
-            capacity = self.tokenStream.peek(
-                offset + 3 + elementLength
-            )
+                delimiter = self.tokenStream.peek(cursor)
+                if delimiter is None:
+                    return None
+                if delimiter.kind == TK.CLOSE_PAREN:
+                    return cursor - offset + 1
+                if delimiter.kind != TK.COMMA:
+                    return None
 
-            closing = self.tokenStream.peek(
-                offset + 4 + elementLength
-            )
+                possibleCapacity = self.tokenStream.peek(cursor + 1)
+                possibleClosing = self.tokenStream.peek(cursor + 2)
+                if (
+                    possibleCapacity is not None
+                    and possibleCapacity.kind == TK.INTEGER
+                    and possibleClosing is not None
+                    and possibleClosing.kind == TK.CLOSE_PAREN
+                ):
+                    return cursor - offset + 3
 
-            if (
-                comma is None
-                or comma.kind != TK.COMMA
-                or capacity is None
-                or capacity.kind != TK.INTEGER
-                or closing is None
-                or closing.kind != TK.CLOSE_PAREN
-            ):
-                return None
-
-            return elementLength + 5
+                cursor += 1
 
         return None
 
@@ -672,8 +745,17 @@ class Parser:
 
         if afterName.kind in (
             TK.ASSIGN,
-            TK.SEMICOLON
+            TK.SEMICOLON,
+            TK.CLOSE_CURLY,
+            TK.EOF_KIND
         ):
+            return "variable"
+
+        # Without this recovery, `int count` followed by a new
+        # statement is parsed as an expression and produces an
+        # unrelated error. Treat the line break as evidence that this
+        # was an uninitialized declaration with a missing semicolon.
+        if self.tokensAreOnDifferentLines(nameToken, afterName):
             return "variable"
 
         return None
@@ -733,7 +815,15 @@ class Parser:
             return self.parseEnumDeclaration()
 
         if current.kind == TK.IMPORT:
-            return self.parsePythonImport()
+            if (
+                self.tokenStream.peek() is not None
+                and self.tokenStream.peek().kind == TK.PYTHON
+            ):
+                return self.parsePythonImport()
+            return self.parseImportStatement()
+
+        if current.kind == TK.FROM:
+            return self.parseFromImportStatement()
 
         if current.kind == TK.IF:
             return self.parseIfStatement()
@@ -749,6 +839,12 @@ class Parser:
 
         if current.kind == TK.FOREACH:
             return self.parseForeachStatement()
+
+        if current.kind == TK.BREAK:
+            return self.parseBreakStatement()
+
+        if current.kind == TK.CONTINUE:
+            return self.parseContinueStatement()
 
         if current.kind == TK.RETURN:
             return self.parseReturnStatement()
@@ -783,7 +879,7 @@ class Parser:
                 )
 
             value = self.parseExpression()
-            self.expectSemicolon()
+            self.expectSemicolon("assignment")
 
             if assignmentToken.kind == TK.ASSIGN:
                 return VarAssign(
@@ -799,7 +895,7 @@ class Parser:
                 value
             )
 
-        self.expectSemicolon()
+        self.expectSemicolon("expression statement")
 
         return ExpressionStatement(expression)
 
@@ -826,7 +922,7 @@ class Parser:
             TK.IDENTIFIER,
             message="Import binding name not found after 'as'."
         )
-        self.expectSemicolon()
+        self.expectSemicolon("Python import")
 
         module = Literal(Type.STR, moduleToken.value).setSpan(
             moduleToken.index,
@@ -848,6 +944,60 @@ class Parser:
             ),
             importCall
         )
+
+    def parseModuleName(self) -> Identifier:
+        token = self.expect(
+            TK.IDENTIFIER,
+            message="Module name not found."
+        )
+        return Identifier(token.value).setSpan(token.index, token.end)
+
+    @located
+    def parseImportStatement(self) -> ImportStatement:
+        self.expect(TK.IMPORT, message="'import' keyword not found.")
+        module = self.parseModuleName()
+        if self.current().kind == TK.DOT:
+            raise TokenError(
+                "Dotted module names are not supported. To import a member "
+                "of a module, use 'from module import member;'."
+            )
+        alias = None
+        if self.match(TK.AS):
+            token = self.expect(
+                TK.IDENTIFIER,
+                message="Import binding name not found after 'as'."
+            )
+            alias = Identifier(token.value).setSpan(token.index, token.end)
+        self.expectSemicolon("module import")
+        return ImportStatement(module, alias)
+
+    @located
+    def parseFromImportStatement(self) -> FromImportStatement:
+        self.expect(TK.FROM, message="'from' keyword not found.")
+        module = self.parseModuleName()
+        if self.current().kind == TK.DOT:
+            raise TokenError(
+                "Dotted module names are not supported; module names must "
+                "be single identifiers."
+            )
+        self.expect(
+            TK.IMPORT,
+            message="'import' keyword not found after module path."
+        )
+        token = self.expect(
+            TK.IDENTIFIER,
+            message="Imported name not found after 'import'."
+        )
+        importedName = Identifier(token.value).setSpan(token.index, token.end)
+        alias = None
+        if self.match(TK.AS):
+            token = self.expect(
+                TK.IDENTIFIER,
+                message="Import binding name not found after 'as'."
+            )
+            alias = Identifier(token.value).setSpan(token.index, token.end)
+        self.expectSemicolon("from import")
+        return FromImportStatement(module, importedName, alias)
 
     @located
     def parseStructDeclaration(self) -> StructDeclaration:
@@ -991,9 +1141,7 @@ class Parser:
 
         if not self.match(TK.SEMICOLON):
             if not self.tokenStream.current_is(TK.CLOSE_PAREN):
-                raise SyntaxError(
-                    "Semicolon not found after enum member."
-                )
+                self.expectSemicolon("enum member")
 
         return EnumMemberDeclaration(name, value)
 
@@ -1018,10 +1166,7 @@ class Parser:
         else:
             defaultValue = UNINITIALIZED
 
-        self.expect(
-            TK.SEMICOLON,
-            message="Semicolon not found after struct field."
-        )
+        self.expectSemicolon("struct field declaration")
 
         return StructFieldDeclaration(
             fieldType,
@@ -1042,14 +1187,19 @@ class Parser:
         )
 
         if self.match(TK.ASSIGN):
-            varDeclVal = self.parseExpression()
+            if (
+                isinstance(varDeclType, DictType)
+                and self.tokenStream.current_is(TK.OPEN_CURLY)
+                and self.tokenStream.peek() is not None
+                and self.tokenStream.peek().kind == TK.CLOSE_CURLY
+            ):
+                varDeclVal = self.parseDictLiteral()
+            else:
+                varDeclVal = self.parseExpression()
         else:
             varDeclVal = UNINITIALIZED
 
-        self.expect(
-            TK.SEMICOLON,
-            message="Semicolon not found."
-        )
+        self.expectSemicolon("variable declaration")
 
         return VarDeclaration(
             varDeclType,
@@ -1220,6 +1370,8 @@ class Parser:
                 member = self.expect(
                     TK.IDENTIFIER,
                     TK.NEW,
+                    *DATA_TYPES,
+                    *COLLECTION_TYPES,
                     message="Member identifier not found after '.'."
                 )
 
@@ -1316,11 +1468,11 @@ class Parser:
 
     @located
     def parsePrimary(self):
-        if self.tokenStream.current_is(TK.LIST, TK.ARR, TK.SET):
+        if self.tokenStream.current_is(TK.LIST, TK.ARR, TK.SET, TK.DICT):
             return self.parseCollectionConversion()
 
         if self.tokenStream.current_is(TK.OPEN_CURLY):
-            return self.parseStructLiteral()
+            return self.parseCurlyLiteral()
 
         if (
             self.tokenStream.current_is(TK.IDENTIFIER)
@@ -1455,19 +1607,36 @@ class Parser:
         )
 
     @located
-    def parseCollectionConversion(self) -> CollectionConversion:
-        kindToken = self.expect(TK.LIST, TK.ARR, TK.SET)
+    def parseCollectionConversion(self) -> CollectionConversion | DictConversion:
+        kindToken = self.expect(TK.LIST, TK.ARR, TK.SET, TK.DICT)
         collectionKind = {
             TK.LIST: "list",
             TK.ARR: "arr",
             TK.SET: "set",
+            TK.DICT: "dict",
         }[kindToken.kind]
 
         self.expect(
             TK.OPEN_PAREN,
             message=f"Opening parenthesis not found after '{collectionKind}'."
         )
-        elementType = self.parseType()
+        firstType = self.parseType()
+        if kindToken.kind == TK.DICT:
+            self.expect(
+                TK.COMMA,
+                message="Comma not found after dictionary key type."
+            )
+            valueType = self.parseType()
+            arguments = []
+            if self.match(TK.COMMA):
+                arguments = self.parseCallArgumentList(TK.CLOSE_PAREN)
+            self.expect(
+                TK.CLOSE_PAREN,
+                message="Closing parenthesis not found after 'dict' conversion."
+            )
+            return DictConversion(firstType, valueType, arguments)
+
+        elementType = firstType
         arguments = []
         if self.match(TK.COMMA):
             arguments = self.parseCallArgumentList(TK.CLOSE_PAREN)
@@ -1481,6 +1650,71 @@ class Parser:
             elementType,
             arguments
         )
+
+    def curlyLiteralKind(self) -> str:
+        """Distinguish anonymous struct fields from dictionary entries."""
+        if (
+            self.tokenStream.peek() is not None
+            and self.tokenStream.peek().kind == TK.CLOSE_CURLY
+        ):
+            # Preserve contextually typed empty struct literals. Empty
+            # dictionaries use the unambiguous dict(K, V) constructor.
+            return "struct"
+
+        depth = 0
+        offset = 1
+        openingKinds = (TK.OPEN_PAREN, TK.OPEN_BRACK, TK.OPEN_CURLY)
+        closingKinds = (TK.CLOSE_PAREN, TK.CLOSE_BRACK, TK.CLOSE_CURLY)
+        while token := self.tokenStream.peek(offset):
+            if token.kind in openingKinds:
+                depth += 1
+            elif token.kind in closingKinds:
+                if token.kind == TK.CLOSE_CURLY and depth == 0:
+                    break
+                depth -= 1
+            elif depth == 0:
+                if token.kind == TK.ARROW:
+                    return "dict"
+                if token.kind == TK.ASSIGN:
+                    return "struct"
+            offset += 1
+        return "struct"
+
+    @located
+    def parseCurlyLiteral(self) -> StructLiteral | DictLiteral:
+        if self.curlyLiteralKind() == "dict":
+            return self.parseDictLiteral()
+        return self.parseStructLiteral()
+
+    @located
+    def parseDictLiteral(self) -> DictLiteral:
+        self.expect(
+            TK.OPEN_CURLY,
+            message="Opening curly brace not found for dictionary literal."
+        )
+        entries: list[DictEntry] = []
+        while not self.tokenStream.current_is(TK.CLOSE_CURLY, TK.EOF_KIND):
+            key = self.parseExpression()
+            self.expect(
+                TK.ARROW,
+                message="'->' not found between dictionary key and value."
+            )
+            value = self.parseExpression()
+            entries.append(DictEntry(key, value).setSpan(
+                key.span.start,
+                value.span.end
+            ))
+
+            if self.match(TK.SEMICOLON):
+                continue
+            if not self.tokenStream.current_is(TK.CLOSE_CURLY):
+                self.expectSemicolon("dictionary entry")
+
+        self.expect(
+            TK.CLOSE_CURLY,
+            message="Closing curly brace not found after dictionary literal."
+        )
+        return DictLiteral(entries)
 
     @located
     def parseStructLiteral(
@@ -1530,9 +1764,7 @@ class Parser:
 
         if not self.match(TK.SEMICOLON):
             if not self.tokenStream.current_is(TK.CLOSE_CURLY):
-                raise TokenError(
-                    "Semicolon not found after struct field initializer."
-                )
+                self.expectSemicolon("struct field initializer")
 
         return StructFieldInitializer(name, value)
 
@@ -1762,13 +1994,34 @@ class Parser:
         )
 
         if self.tokenStream.current_is(TK.SEMICOLON):
-            self.expectSemicolon()
+            self.expectSemicolon("return statement")
             return ReturnStatement()
 
+        if self.tokenStream.current_is(TK.CLOSE_CURLY, TK.EOF_KIND):
+            self.expectSemicolon("return statement")
+
         value = self.parseExpression()
-        self.expectSemicolon()
+        self.expectSemicolon("return statement")
 
         return ReturnStatement(value)
+
+    @located
+    def parseBreakStatement(self) -> BreakStatement:
+        self.expect(
+            TK.BREAK,
+            message="'break' keyword not found."
+        )
+        self.expectSemicolon("break statement")
+        return BreakStatement()
+
+    @located
+    def parseContinueStatement(self) -> ContinueStatement:
+        self.expect(
+            TK.CONTINUE,
+            message="'continue' keyword not found."
+        )
+        self.expectSemicolon("continue statement")
+        return ContinueStatement()
 
     @located
     def parseForStatement(self) -> ForStatement:
@@ -1912,23 +2165,48 @@ class Parser:
                 )
             )
 
-            elementType = self.parseType()
+            specifications: list[tuple[TypeNode, int]] = []
+            usedRepeat = False
+            explicitCapacity = None
 
-            self.expect(
-                TK.COMMA,
-                message=(
-                    "Comma not found after array "
-                    "element type."
-                )
-            )
+            while True:
+                elementType = self.parseType()
+                count = 1
 
-            capacityToken = self.expect(
-                TK.INTEGER,
-                message=(
-                    "Integer capacity not found "
-                    "in array type."
+                if self.match(TK.ASTERISK):
+                    usedRepeat = True
+                    countToken = self.expect(
+                        TK.INTEGER,
+                        message=(
+                            "Positive integer count not found after '*' "
+                            "in heterogeneous array schema."
+                        )
+                    )
+                    count = int(countToken.value)
+                    if count < 1:
+                        raise TokenError(
+                            "Heterogeneous array type counts must be "
+                            "positive integers."
+                        )
+
+                specifications.append((elementType, count))
+
+                if self.tokenStream.current_is(TK.CLOSE_PAREN):
+                    break
+
+                self.expect(
+                    TK.COMMA,
+                    message="Comma not found after array type entry."
                 )
-            )
+
+                if (
+                    self.tokenStream.current_is(TK.INTEGER)
+                    and self.tokenStream.peek() is not None
+                    and self.tokenStream.peek().kind == TK.CLOSE_PAREN
+                ):
+                    capacityToken = self.expect(TK.INTEGER)
+                    explicitCapacity = int(capacityToken.value)
+                    break
 
             self.expect(
                 TK.CLOSE_PAREN,
@@ -1938,9 +2216,43 @@ class Parser:
                 )
             )
 
+            if (
+                len(specifications) == 1
+                and not usedRepeat
+                and explicitCapacity is not None
+            ):
+                return ArrayType(
+                    specifications[0][0],
+                    explicitCapacity
+                )
+
+            if len(specifications) == 1 and not usedRepeat:
+                raise TokenError(
+                    "Homogeneous array types require a capacity, such as "
+                    "'arr(int, 3)'."
+                )
+
+            slotTypes = [
+                entryType
+                for entryType, count in specifications
+                for _ in range(count)
+            ]
+            inferredCapacity = len(slotTypes)
+
+            if (
+                explicitCapacity is not None
+                and explicitCapacity != inferredCapacity
+            ):
+                raise TokenError(
+                    f"Heterogeneous array schema defines "
+                    f"{inferredCapacity} slot(s), but its explicit "
+                    f"capacity is {explicitCapacity}."
+                )
+
             return ArrayType(
-                elementType,
-                int(capacityToken.value)
+                slotTypes[0],
+                inferredCapacity,
+                slotTypes=slotTypes
             )
 
         if self.match(TK.SET):
@@ -1963,6 +2275,23 @@ class Parser:
             )
 
             return SetType(elementType)
+
+        if self.match(TK.DICT):
+            self.expect(
+                TK.OPEN_PAREN,
+                message="Opening parenthesis not found after 'dict'."
+            )
+            keyType = self.parseType()
+            self.expect(
+                TK.COMMA,
+                message="Comma not found after dictionary key type."
+            )
+            valueType = self.parseType()
+            self.expect(
+                TK.CLOSE_PAREN,
+                message="Closing parenthesis not found after dictionary type."
+            )
+            return DictType(keyType, valueType)
 
         if nameToken := self.match(TK.IDENTIFIER):
             name = Identifier(

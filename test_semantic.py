@@ -27,7 +27,7 @@ def analyze(source: str):
         if token.kind != TK.COMMENT
     ]
 
-    program = Parser(TokenStream(tokens)).parse()
+    program = Parser(TokenStream(tokens, source=source)).parse()
     return SemanticAnalyzer().analyze(program)
 
 
@@ -41,7 +41,80 @@ def parseProgram(source: str):
         if token.kind != TK.COMMENT
     ]
 
-    return Parser(TokenStream(tokens)).parse()
+    return Parser(TokenStream(tokens, source=source)).parse()
+
+
+class MissingSemicolonDiagnosticTests(unittest.TestCase):
+    def assertMissingSemicolon(
+        self,
+        source: str,
+        context: str,
+        line: int
+    ):
+        with self.assertRaises(TokenError) as caught:
+            parseProgram(source)
+
+        message = str(caught.exception)
+        self.assertIn(
+            f"Missing semicolon after {context} at line {line},",
+            message
+        )
+        self.assertIn("^ add ';' here", message)
+
+    def test_variable_declaration_points_to_previous_line(self):
+        self.assertMissingSemicolon(
+            'int count = 0\nprint(count);',
+            "variable declaration",
+            1
+        )
+
+    def test_uninitialized_declaration_recovers_as_declaration(self):
+        self.assertMissingSemicolon(
+            'int count\nprint(count);',
+            "variable declaration",
+            1
+        )
+
+    def test_statement_kinds_name_the_missing_terminator_context(self):
+        cases = (
+            ('int count = 0;\ncount = 1\nprint(count);', "assignment", 2),
+            ('print("one")\nprint("two");', "expression statement", 1),
+            ('int value() {\nreturn 1\n}', "return statement", 2),
+            ('nil done() {\nreturn\n}', "return statement", 2),
+            ('while (true) {\nbreak\n}', "break statement", 2),
+            ('while (true) {\ncontinue\n}', "continue statement", 2),
+            (
+                'import python "sys" as sys\nprint(sys);',
+                "Python import",
+                1
+            ),
+            (
+                'struct Point {\nint x\n}',
+                "struct field declaration",
+                2
+            ),
+            (
+                'dict(str, int) values = {"one" -> 1\n"two" -> 2};',
+                "dictionary entry",
+                1
+            ),
+        )
+
+        for source, context, line in cases:
+            with self.subTest(context=context):
+                self.assertMissingSemicolon(source, context, line)
+
+    def test_diagnostic_includes_source_line_and_column(self):
+        with self.assertRaises(TokenError) as caught:
+            parseProgram("int count = 0\nprint(count);")
+
+        self.assertEqual(
+            "Missing semicolon after variable declaration at line 1, "
+            "column 14.\n"
+            "1 | int count = 0\n"
+            "  |              ^ add ';' here",
+            str(caught.exception)
+        )
 
 
 class CompoundAssignmentTests(unittest.TestCase):
@@ -200,8 +273,101 @@ class ContextualExpressionTests(unittest.TestCase):
         self.assertTrue(issues[0].message.startswith("Unknown identifier"))
         self.assertTrue(issues[1].message.startswith("Operator '+' cannot"))
 
+    def test_break_and_continue_require_a_loop_in_the_same_callable(self):
+        issues = analyze(
+            '''
+            break;
+            continue;
+
+            while (true) {
+                break;
+                continue;
+
+                nil nested() {
+                    break;
+                    continue;
+                }
+            }
+            '''
+        )
+
+        self.assertEqual(4, len(issues))
+        self.assertEqual(
+            [
+                "Break statement cannot appear outside a loop.",
+                "Continue statement cannot appear outside a loop.",
+                "Break statement cannot appear outside a loop.",
+                "Continue statement cannot appear outside a loop.",
+            ],
+            [issue.message for issue in issues],
+        )
+
 
 class CollectionSemanticTests(unittest.TestCase):
+    def test_heterogeneous_array_schema_inference_and_positional_types(self):
+        issues = analyze(
+            '''
+            struct Person { str name; }
+            struct Person3 { str name; }
+            Person ada = Person.new("Ada");
+            Person3 numberedName = Person3.new("Grace");
+
+            arr(int, str * 3) data = <10, "hello">;
+            int number = data[0];
+            str greeting = data[1];
+            data[2] = "hi";
+
+            int position = 1;
+            int | str dynamic = data[position];
+
+            arr(Person * 2, int) party = <ada>;
+            Person first = party[0];
+
+            arr(Person3, list(int) * 2) unambiguous = <numberedName>;
+            Person3 retainedName = unambiguous[0];
+
+            arr(int, str * 2, 3) explicit = <1, "two">;
+
+            arr(int, str) make_pair(int value, str label) {
+                return <value, label>;
+            }
+            arr(int, str) pair = make_pair(7, "seven");
+            '''
+        )
+
+        self.assertEqual([], issues)
+
+    def test_heterogeneous_array_rejects_wrong_positions_and_schema_mutation(self):
+        issues = analyze(
+            '''
+            arr(int, str, bool) data = <10, "hello">;
+            data[2] = "true";
+            str wrong = data[0];
+            data[3];
+            data.prepend(5);
+            arr(str, int, bool) reordered = data;
+            '''
+        )
+
+        messages = [issue.message for issue in issues]
+        self.assertTrue(any("indexed element" in message for message in messages))
+        self.assertTrue(any("variable 'wrong'" in message for message in messages))
+        self.assertTrue(any("outside its 3-slot schema" in message for message in messages))
+        self.assertTrue(any("no method named 'prepend'" in message for message in messages))
+        self.assertTrue(any("variable 'reordered'" in message for message in messages))
+
+    def test_heterogeneous_array_schema_counts_are_validated_by_parser(self):
+        invalid = (
+            "arr(int, str, 3) data;",
+            "arr(int * 0, str) data;",
+            "arr(int) data;",
+        )
+
+        for source in invalid:
+            with self.subTest(source=source):
+                with self.assertRaises(TokenError):
+                    parseProgram(source)
+
     def test_collection_inference_indexing_and_slicing(self):
         issues = analyze(
             """
@@ -953,6 +1119,103 @@ class BuiltinSemanticTests(unittest.TestCase):
         messages = [issue.message for issue in issues]
         self.assertTrue(any("must have type 'int'" in message for message in messages))
         self.assertTrue(any("expects" in message and "got 2" in message for message in messages))
+
+    def test_string_length_and_collection_conversion_type_diagnostic(self):
+        issues = analyze(
+            '''
+            str text = "abc";
+            int asciiLength = text.length();
+            int runicLength = text.ᛚᛖᛝᚦ();
+            list(char) letters = list(char, text);
+            list(char) mistaken = list(text);
+            '''
+        )
+
+        self.assertEqual(1, len(issues))
+        self.assertIn(
+            "requires an element type as its first argument",
+            issues[0].message,
+        )
+        self.assertIn("list(T, text)", issues[0].message)
+
+    def test_string_manipulation_method_types_and_named_arguments(self):
+        issues = analyze(
+            '''
+            str text = "  Hello world  ";
+            str lower = text.lower();
+            str upper = text.upper();
+            str stripped = text.strip(characters = " ");
+            list(str) pieces = text.split(separator = " ");
+            str changed = text.replace(
+                old = "Hello",
+                replacement = "Hi",
+                count = 1
+            );
+            bool present = text.contains(substring = "world");
+            '''
+        )
+        self.assertEqual([], issues)
+
+    def test_string_methods_reject_coercion_and_bad_argument_counts(self):
+        issues = analyze(
+            '''
+            str text = "Futhorc";
+            text.lower(1);
+            text.strip(1);
+            text.split(1);
+            text.replace("F", 1);
+            text.replace("F", "Th", "once");
+            text.contains(1);
+            text.contains();
+            '''
+        )
+        messages = [issue.message for issue in issues]
+        self.assertEqual(7, len(issues))
+        self.assertTrue(any("lower" in message and "expects 0 argument" in message for message in messages))
+        self.assertEqual(4, sum("must have type 'str'" in message for message in messages))
+        self.assertTrue(any("must have type 'int'" in message for message in messages))
+        self.assertTrue(any("contains" in message and "missing required" in message for message in messages))
+
+    def test_remaining_string_methods_and_text_join_types(self):
+        issues = analyze(
+            '''
+            str text = "Futhorc";
+            bool starts = text.starts_with(prefix = "Fu");
+            bool ends = text.ends_with(suffix = "orc");
+            int | nil position = text.find(substring = "th");
+            int occurrences = text.count(substring = "o");
+
+            str words = ["The", "Thorn"].join(separator = " ");
+            str letters = ['r', 'u', 'n', 'e'].join();
+            list(str | char) mixed = ["Futh", 'o', "rc"];
+            str language = mixed.join();
+            str names = arr(str, ["Iljeri", "Ciwa"]).join(" / ");
+            str marks = set(char, ['!', '?']).join();
+            '''
+        )
+        self.assertEqual([], issues)
+
+    def test_string_search_and_join_reject_non_text_types(self):
+        issues = analyze(
+            '''
+            str text = "Futhorc";
+            text.starts_with(1);
+            text.ends_with(false);
+            text.find('F');
+            text.count(1);
+
+            list(int) numbers = [1, 2, 3];
+            list(any) dynamic = ["one", "two"];
+            numbers.join(",");
+            dynamic.join();
+            ["one", "two"].join(1);
+            '''
+        )
+        messages = [issue.message for issue in issues]
+        self.assertEqual(7, len(issues))
+        self.assertEqual(5, sum("must have type 'str'" in message for message in messages))
+        self.assertEqual(2, sum("has no method named 'join'" in message for message in messages))
+        self.assertTrue(any("join" in message and "must have type 'str'" in message for message in messages))
 
 
 class CompositeStringSemanticTests(unittest.TestCase):
@@ -2118,6 +2381,65 @@ class EnumSemanticTests(unittest.TestCase):
             "backing type" in issue.message
             for issue in invalidIssues
         ))
+
+
+class DictionarySemanticTests(unittest.TestCase):
+    def test_dictionary_types_literals_indices_and_methods(self):
+        issues = analyze(
+            '''
+            enum(int) Kind = (HEALTH; STRENGTH)
+            dict(str | int, int) scores = {
+                "Ada" -> 10;
+                2 -> 20
+            };
+            dict(Kind, str) labels = { HEALTH -> "healing"; };
+            dict(str, int) empty = {};
+            scores["Ada"] += 1;
+            scores["Grace"] = 30;
+            int value = scores[2];
+            int | nil fallback = scores.get("missing");
+            bool present = scores.has("Ada");
+            list(str | int) keys = scores.keys();
+            list(int) values = scores.values();
+            list(arr(str | int, 2)) items = scores.items();
+            int removed = scores.remove("Ada");
+            int size = scores.length();
+            dict(str | int, int) copied = scores.copy();
+            scores.clear();
+            '''
+        )
+        self.assertEqual([], issues)
+
+    def test_dictionary_key_and_value_errors_are_specific(self):
+        issues = analyze(
+            '''
+            dict(list(int), int) impossible;
+            dict(any, int) badLiteral = { [1, 2] -> 3; };
+            dict(str, int) scores = { "Ada" -> 10; };
+            int wrongKey = scores[1];
+            scores["Ada"] = "high";
+            scores[0:1];
+            scores.has(1);
+            '''
+        )
+        messages = [issue.message for issue in issues]
+        self.assertTrue(any("key type 'list(int)' is not hashable" in message for message in messages))
+        self.assertTrue(any("key value has unhashable type 'list(int)'" in message for message in messages))
+        self.assertTrue(any("Dictionary key must have type 'str'" in message for message in messages))
+        self.assertTrue(any("indexed element" in message and "int" in message for message in messages))
+        self.assertTrue(any("Dictionary values cannot be sliced" in message for message in messages))
+        self.assertTrue(any("Argument 1" in message and "str" in message for message in messages))
+
+    def test_dictionary_constructor_is_typed(self):
+        issues = analyze(
+            '''
+            pyobject builtins = pyimport("builtins");
+            dict(str, int) copied = dict(str, int, builtins.dict(a = 1));
+            dict(str, int) empty = dict(str, int);
+            bool verified = is_dict(copied);
+            '''
+        )
+        self.assertEqual([], issues)
 
 
 class NamedTypeDeclarationRegressionTests(unittest.TestCase):

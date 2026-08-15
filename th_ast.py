@@ -171,8 +171,69 @@ class Identifier(Node):
     def __repr__(self):
         return f"Identifier({self.name})"
 
+
+class ImportStatement(Node):
+    def __init__(
+        self,
+        module: Identifier,
+        alias: Identifier | None = None
+    ):
+        self.module = module
+        self.alias = alias
+
+    @property
+    def moduleName(self) -> str:
+        return self.module.name
+
+    @property
+    def bindingName(self) -> str:
+        return self.alias.name if self.alias is not None else self.module.name
+
+    def pretty(self, indent: int = 0) -> str:
+        suffix = f" as {self.alias.name}" if self.alias is not None else ""
+        return " " * indent + f"Import: {self.moduleName}{suffix}"
+
+
+class FromImportStatement(Node):
+    def __init__(
+        self,
+        module: Identifier,
+        importedName: Identifier,
+        alias: Identifier | None = None
+    ):
+        self.module = module
+        self.importedName = importedName
+        self.alias = alias
+
+    @property
+    def moduleName(self) -> str:
+        return self.module.name
+
+    @property
+    def bindingName(self) -> str:
+        return self.alias.name if self.alias is not None else self.importedName.name
+
+    def pretty(self, indent: int = 0) -> str:
+        suffix = f" as {self.alias.name}" if self.alias is not None else ""
+        return (
+            " " * indent
+            + f"FromImport: {self.moduleName}.{self.importedName.name}{suffix}"
+        )
+
 class TypeNode(Node):
     pass
+
+
+class ModuleType(TypeNode):
+    def __init__(self, moduleName: str, record):
+        self.moduleName = moduleName
+        self.record = record
+
+    def pretty(self, indent: int = 0) -> str:
+        return " " * indent + f"ModuleType: {self.moduleName}"
+
+    def __repr__(self):
+        return f"ModuleType({self.moduleName})"
 
 
 class NamedTypeDeclaration(Node):
@@ -411,8 +472,13 @@ class PrimitiveType(TypeNode):
         return f"PrimitiveType({self.value})"
 
 class NamedType(TypeNode):
-    def __init__(self, name: Identifier):
+    def __init__(
+        self,
+        name: Identifier,
+        resolvedDeclaration: NamedTypeDeclaration | None = None
+    ):
         self.name: Identifier = name
+        self.resolvedDeclaration = resolvedDeclaration
 
     def pretty(self, indent: int = 0) -> str:
         prefix = " " * indent
@@ -448,31 +514,44 @@ class ArrayType(TypeNode):
     def __init__(
         self,
         elementType: TypeNode,
-        capacity: int
+        capacity: int,
+        slotTypes: list[TypeNode] | None = None
     ):
         self.elementType: TypeNode = elementType
         self.capacity: int = capacity
+        self.slotTypes: list[TypeNode] | None = slotTypes
+
+    @property
+    def isHeterogeneous(self) -> bool:
+        return self.slotTypes is not None
 
     def pretty(self, indent: int = 0) -> str:
         prefix = " " * indent
 
-        return "\n".join([
+        children = [
             f"{prefix}ArrayType",
             self.child(
                 "elementType",
                 self.elementType,
                 indent + 2
             ),
+        ]
+        if self.slotTypes is not None:
+            children.append(
+                self.child("slotTypes", self.slotTypes, indent + 2)
+            )
+        children.append(
             f"{' ' * (indent + 2)}capacity: {self.capacity}"
-        ])
+        )
+        return "\n".join(children)
 
     def __repr__(self):
-        return (
-            f"ArrayType("
-            f"{self.elementType}, "
-            f"capacity={self.capacity}"
-            f")"
-        )
+        if self.slotTypes is not None:
+            return (
+                f"ArrayType(slotTypes={self.slotTypes!r}, "
+                f"capacity={self.capacity})"
+            )
+        return f"ArrayType({self.elementType}, capacity={self.capacity})"
 
 class SetType(TypeNode):
     def __init__(self, elementType: TypeNode):
@@ -492,6 +571,23 @@ class SetType(TypeNode):
 
     def __repr__(self):
         return f"SetType({self.elementType})"
+
+
+class DictType(TypeNode):
+    def __init__(self, keyType: TypeNode, valueType: TypeNode):
+        self.keyType: TypeNode = keyType
+        self.valueType: TypeNode = valueType
+
+    def pretty(self, indent: int = 0) -> str:
+        prefix = " " * indent
+        return "\n".join([
+            f"{prefix}DictType",
+            self.child("keyType", self.keyType, indent + 2),
+            self.child("valueType", self.valueType, indent + 2),
+        ])
+
+    def __repr__(self):
+        return f"DictType({self.keyType}, {self.valueType})"
 
 
 class CollectionConversion(Node):
@@ -519,6 +615,35 @@ class CollectionConversion(Node):
         return (
             f"CollectionConversion({self.collectionKind!r}, "
             f"{self.elementType!r}, {self.arguments!r})"
+        )
+
+
+class DictConversion(Node):
+    """A type-directed, non-mutating dictionary conversion expression."""
+
+    def __init__(
+        self,
+        keyType: TypeNode,
+        valueType: TypeNode,
+        arguments: list[Node]
+    ):
+        self.keyType = keyType
+        self.valueType = valueType
+        self.arguments = arguments
+
+    def pretty(self, indent: int = 0) -> str:
+        prefix = " " * indent
+        return "\n".join([
+            f"{prefix}DictConversion",
+            self.child("keyType", self.keyType, indent + 2),
+            self.child("valueType", self.valueType, indent + 2),
+            self.child("arguments", self.arguments, indent + 2),
+        ])
+
+    def __repr__(self):
+        return (
+            f"DictConversion({self.keyType!r}, "
+            f"{self.valueType!r}, {self.arguments!r})"
         )
 
 class UnionType(TypeNode):
@@ -1119,6 +1244,20 @@ class ReturnStatement(Node):
     def __repr__(self):
         return f"ReturnStatement({self.value})"
 
+class BreakStatement(Node):
+    def pretty(self, indent: int = 0) -> str:
+        return " " * indent + "BreakStatement"
+
+    def __repr__(self):
+        return "BreakStatement()"
+
+class ContinueStatement(Node):
+    def pretty(self, indent: int = 0) -> str:
+        return " " * indent + "ContinueStatement"
+
+    def __repr__(self):
+        return "ContinueStatement()"
+
 class ForStatement(Node):
     def __init__(
         self,
@@ -1242,6 +1381,39 @@ class SetLiteral(Node):
         )
 
         return f"SetLiteral(({elements}))"
+
+
+class DictEntry(Node):
+    def __init__(self, key: Node, value: Node):
+        self.key = key
+        self.value = value
+
+    def pretty(self, indent: int = 0) -> str:
+        prefix = " " * indent
+        return "\n".join([
+            f"{prefix}DictEntry",
+            self.child("key", self.key, indent + 2),
+            self.child("value", self.value, indent + 2),
+        ])
+
+    def __repr__(self):
+        return f"DictEntry({self.key!r}, {self.value!r})"
+
+
+class DictLiteral(Node):
+    def __init__(self, entries: list[DictEntry]):
+        self.entries = entries
+
+    def pretty(self, indent: int = 0) -> str:
+        prefix = " " * indent
+        return "\n".join([
+            f"{prefix}DictLiteral",
+            self.child("entries", self.entries, indent + 2),
+        ])
+
+    def __repr__(self):
+        entries = ", ".join(repr(entry) for entry in self.entries)
+        return f"DictLiteral({{{entries}}})"
 
 class SliceAccess(Node):
     def __init__(

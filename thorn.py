@@ -5,10 +5,9 @@ from pathlib import Path
 
 from lexer import Lexer
 from parser import Parser, TokenStream
-from semantic import SemanticAnalyzer
 from Token import TokenKind as TK
-from interpreter import Interpreter
 from runtime import ThornRuntimeError
+from module_system import ModuleLoader, ModuleLoadError
 
 
 SOURCE_SUFFIXES = (".þ", ".futhorc")
@@ -18,7 +17,7 @@ def thorn_source_path(value: str) -> Path:
     path = Path(value)
     if path.suffix not in SOURCE_SUFFIXES:
         raise argparse.ArgumentTypeError(
-            "Futhorc source files must use the '.þ' or '.thorn' extension"
+            "Futhorc source files must use the '.þ' or '.futhorc' extension"
         )
     return path
 
@@ -27,18 +26,28 @@ def parse_source(source: str):
     lexer = Lexer(source)
     lexer.Tokenize()
     tokens = [token for token in lexer.tokenStream if token.kind != TK.COMMENT]
-    return Parser(TokenStream(tokens)).parse()
+    return Parser(TokenStream(tokens, source=source)).parse()
 
 
-def run_source(source: str, *, output=None, input_function=None):
+def run_source(
+    source: str,
+    *,
+    output=None,
+    input_function=None,
+    source_path: str | Path | None = None,
+):
     program = parse_source(source)
-    issues = SemanticAnalyzer().analyze(program)
-    if issues:
-        raise SyntaxError("\n".join(str(issue) for issue in issues))
-    return Interpreter(
+    loader = ModuleLoader(
+        source_path,
         output=output,
         input_function=input_function,
-    ).run(program)
+    )
+    record = loader.registerEntry(source, program)
+    try:
+        loader.analyzeEntry(record)
+    except ModuleLoadError as error:
+        raise SyntaxError(str(error)) from error
+    return loader.runEntry(record)
 
 
 def format_runtime_error(error: ThornRuntimeError, source: str, path: str) -> str:
@@ -84,7 +93,7 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
     source = args.file.read_text(encoding="utf-8")
     try:
-        run_source(source)
+        run_source(source, source_path=args.file)
     except ThornRuntimeError as error:
         print(format_runtime_error(error, source, str(args.file)))
         return 1

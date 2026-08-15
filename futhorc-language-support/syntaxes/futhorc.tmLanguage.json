@@ -6,6 +6,7 @@
     { "include": "#comments" },
     { "include": "#strings" },
     { "include": "#numbers" },
+    { "include": "#operators" },
     { "include": "#keywords" },
     { "include": "#types" },
     { "include": "#constants" },
@@ -63,15 +64,27 @@
         }
       ]
     },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.futhorc",
+          "match": "(?:->|==|!=|>=|<=|\\+=|-=|\\*=|/=|%=|//=|\\*\\*|//|[+\\-*/%^<>])"
+        }
+      ]
+    },
     "keywords": {
       "patterns": [
         {
           "name": "keyword.control.futhorc",
-          "match": "\\b(?:if|elsif|else|while|until|for|foreach|in|break|continue|return|new|global|const|import|python|as)\\b"
+          "match": "\\b(?:if|elsif|else|while|until|for|foreach|in|break|continue|return|new|global|const|import|from|python|as)\\b"
         },
         {
           "name": "keyword.control.runic.futhorc",
-          "match": "(?:ᛁᛗᛈᛟᚱᛏ|ᛈᛠᚦᚣᚾ|ᚫᛋ)"
+          "match": "(?:ᛁᛗᛈᛟᚱᛏ|ᛈᛠᚦᚣᚾ|ᚫᛋ|ᛒᚱᛠᚳ|ᚳᚢᚾᛏᛁᚾᛄᚣ)"
+        },
+        {
+          "name": "keyword.control.runic.from.futhorc",
+          "match": "ᚠᚱᛟᛗ"
         },
         {
           "name": "keyword.operator.futhorc",
@@ -83,11 +96,11 @@
       "patterns": [
         {
           "name": "storage.type.futhorc",
-          "match": "\\b(?:int|float|str|char|bool|nil|any|pyobject|list|arr|set|struct|enum)\\b"
+          "match": "\\b(?:int|float|str|char|bool|nil|any|pyobject|list|arr|set|dict|struct|enum)\\b"
         },
         {
           "name": "storage.type.runic.futhorc",
-          "match": "(?:ᛈᛠᚪᛒᚷᚻᛖᚳᛏ)"
+          "match": "(?:ᛈᛠᚪᛒᚷᚻᛖᚳᛏ|ᛞᛁᚳᛏ)"
         }
       ]
     },
@@ -103,11 +116,11 @@
       "patterns": [
         {
           "name": "support.function.builtin.futhorc",
-          "match": "\\b(?:print|input|len|index|range|int|float|str|char|bool|list|arr|set|to_list|to_arr|to_set|pyimport|open|read|readline|readlines|write|writelines|flush|seek|tell|close|closed|readable|writable|seekable)\\b"
+          "match": "\\b(?:print|input|len|index|range|int|float|str|char|bool|list|arr|set|dict|is_dict|to_list|to_arr|to_set|pyimport|length|lower|upper|strip|split|replace|contains|starts_with|ends_with|find|count|join|get|has|remove|keys|values|items|clear|copy|open|read|readline|readlines|write|writelines|flush|seek|tell|close|closed|readable|writable|seekable)\\b"
         },
         {
           "name": "support.function.builtin.runic.futhorc",
-          "match": "(?:ᛈᛠᛁᛗᛈᛟᚱᛏ|ᚩᛈᛖᚾ|ᚱᛁᛁᛞ|ᚱᛁᛁᛞᛚᛠᚾ|ᚱᛁᛁᛞᛚᛠᚾᛋ|ᚹᚱᛠᛏ|ᚹᚱᛠᛏᛚᛠᚾ|ᚠᛚᚢᛋᚻ|ᛋᛁᛁᚳ|ᛏᛖᛚ|ᚳᛚᚩᛋ|ᚳᛚᚩᛋᛞ|ᚱᛁᛁᛞᚢᛒᚢᛚ|ᚹᚱᛠᛏᚢᛒᚢᛚ|ᛋᛁᛁᚳᚢᛒᚢᛚ)"
+          "match": "(?:ᛈᛠᛁᛗᛈᛟᚱᛏ|ᚩᛈᛖᚾ|ᚱᛁᛁᛞ|ᚱᛁᛁᛞᛚᛠᚾ|ᚱᛁᛁᛞᛚᛠᚾᛋ|ᚹᚱᛠᛏ|ᚹᚱᛠᛏᛚᛠᚾ|ᚠᛚᚢᛋᚻ|ᛋᛁᛁᚳ|ᛏᛖᛚ|ᚳᛚᚩᛋ|ᚳᛚᚩᛋᛞ|ᚱᛁᛁᛞᚢᛒᚢᛚ|ᚹᚱᛠᛏᚢᛒᚢᛚ|ᛋᛁᛁᚳᚢᛒᚢᛚ|ᛚᛖᛝᚦ|ᚷᛖᛏ|ᚻᚫᛋ|ᚱᛁᛗᚣᚠ|ᚳᛁᛁᛋ|ᚠᚫᛚᛄᚣᛋ|ᛠᛏᛖᛗᛋ|ᚳᛚᛁᚢᚱ|ᚳᚪᛈᛁ)"
         }
       ]
     }

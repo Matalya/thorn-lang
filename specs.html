@@ -222,7 +222,7 @@
     <nav>
       <a href="#documentation">Documentation</a>
       <a href="#examples">Examples</a>
-      <a href="https://github.com/">Source</a>
+      <a href="https://github.com/Matalya/futhorc">Source</a>
       <button id="theme-toggle" type="button">Light mode</button>
     </nav>
   </header>
@@ -248,7 +248,8 @@
     <a href="#types">Types</a>
     <a class="sub-link" href="#truthiness">Boolean operations and truthiness</a>
     <a class="sub-link" href="#collections">Collections</a>
-    <a class="sub-link" href="#typed-arrays">Typed arrays</a>
+    <a class="sub-link" href="#dictionaries">Dictionaries</a>
+    <a class="sub-link" href="#heterogeneous-arrays">Heterogeneous arrays</a>
     <a class="sub-link" href="#structs">Structs</a>
     <a class="sub-link" href="#enumerations">Enumerations</a>
 
@@ -260,15 +261,18 @@
     <a class="sub-link" href="#any">any</a>
 
     <a href="#file-handling">File handling</a>
+    <a href="#native-modules">Native modules</a>
     <a href="#python-interoperability">Python interoperability</a>
 
     <a href="#built-ins">Built-ins</a>
     <a class="sub-link" href="#conversions">Conversions</a>
     <a class="sub-link" href="#verification">Verification functions</a>
     <a class="sub-link" href="#integer-methods">Integer methods</a>
+    <a class="sub-link" href="#string-methods">String methods</a>
     <a class="sub-link" href="#list-methods">List methods</a>
     <a class="sub-link" href="#array-methods">Array methods</a>
     <a class="sub-link" href="#set-methods">Set methods</a>
+    <a class="sub-link" href="#dictionary-methods">Dictionary methods</a>
     <a class="sub-link" href="#functional">Functional</a>
     <a class="sub-link" href="#builtin-file-handling">File handling</a>
     <a class="sub-link" href="#builtin-python">Python interoperability</a>
@@ -306,7 +310,9 @@ print(c"The answer is {answer}");</code></pre>
 <ul>
 <li><code>list(t) [1, 2, 3]</code></li>
 <li><code>arr(t, n) &lt;1, 2, 3&gt;</code></li>
+<li><code>arr(t1, t2 * count, ...) &lt;value1, value2, ...&gt;</code></li>
 <li><code>set(t) (1, 2, 3)</code></li>
+<li><code>dict(k, v) {key -&gt; value;}</code></li>
 <li><code>enum(t) my_var = (NAME = ?value;)</code></li>
 <li><code>struct MyType = {?const type field = ?value;}</code></li>
 </ul>
@@ -323,6 +329,7 @@ print(c"The answer is {answer}");</code></pre>
 <li><code>foreach (item in collection) {}</code></li>
 <li><code>while () {}</code></li>
 <li><code>until () {}</code></li>
+<li><code>break;</code>, <code>continue;</code></li>
 </ul>
 <h3>Assignment</h3>
 <ul>
@@ -341,7 +348,8 @@ print(c"The answer is {answer}");</code></pre>
     <code>str ah = "Hello"
     print("{ah}, world", end = " ")
     print(c"{ah}, world")
-    &gt;&gt; {ah}, world Hello, world</code></li>
+    &gt;&gt; {ah}, world Hello, world</code><br>
+    Literal portions use the same escapes as ordinary strings, including <code>\n</code>, <code>\r</code>, <code>\t</code>, <code>\xNN</code>, and <code>\uNNNN</code>. Use <code>\{</code> and <code>\}</code> for braces that should be printed rather than interpreted as interpolation delimiters.</li>
 <li><strong>floating point number</strong>: <code>float</code> 1.0 2.5 0.30000002</li>
 <li><strong>boolean number</strong>: <code>bool</code> <code>true</code> <code>false</code></li>
 <li><strong>type-flexible</strong>: <code>any</code></li>
@@ -362,6 +370,7 @@ print(c"The answer is {answer}");</code></pre>
 <li>list: <code>list(type)</code> [1, 2, 3] (mutable, dynamically resizable)</li>
 <li>array: <code>arr(t, n)</code> &lt;1, 2, 3&gt; (mutable, non-dynamically resizable)</li>
 <li>set: <code>set(t)</code> (1, 2, 3) (inmutable)</li>
+<li>dictionary: <code>dict(k, v)</code> <code>{key -&gt; value;}</code> (mutable, dynamically resizable)</li>
 <li>item: <code>collection[n]</code></li>
 <li>
 <p>slicing: <code>collection[a:b]</code> (zero-index, b-exclusive)</p>
@@ -384,25 +393,48 @@ print(c"The answer is {answer}");</code></pre>
     <tr><td><code>list</code></td><td>✅</td><td>✅</td><td>✅</td></tr>
     <tr><td><code>arr</code></td><td>✅</td><td>❌</td><td>✅</td></tr>
     <tr><td><code>set</code></td><td>❌</td><td>❌</td><td>✅</td></tr>
+    <tr><td><code>dict</code></td><td>✅</td><td>✅</td><td>✅</td></tr>
     <tr><td><code>const list</code></td><td>✅</td><td>✅</td><td>❌</td></tr>
     <tr><td><code>const arr</code></td><td>✅</td><td>❌</td><td>❌</td></tr>
     <tr><td><code>const set</code></td><td>❌</td><td>❌</td><td>❌</td></tr>
+    <tr><td><code>const dict</code></td><td>✅</td><td>✅</td><td>❌</td></tr>
   </tbody>
 </table>
 * arrays are not dynamically resizable, but they can be resized with the methods listed further down. The capacity is runtime allocation.
 * Futhorc sets are immutable, ordered collections that permit duplicate elements; they behave like immutable lists rather than mathematical sets.</li>
 </ul>
-<h3 id="typed-arrays">Typed arrays</h3>
-<p>Typed arrays are arrays that can store multiple types of data in an ordered manner. Their minimum length is determined by the amount of types specified. A typed array is, syntactically, an array whose type passed is a list of types.</p>
-<h3>Unnumbered types</h3>
-<p><code>arr([int, str, float], 3)</code>: this type can hold 3 items, and the order in which they're held must match that of their definition. As such, <code>[1, "a", 1.5]</code> is a valid form, but <code>["a", 1, 1.0]</code> isn't.</p>
-<p>However, if we change it to <code>arr([] int, str, float, 4)</code>, now you'll see that there are more items than there are types. This allows you to put more than one, as long as the order is preserved and all types are covered. As such, all of the following are valid
-<code>[1, "a", 1.0]
-[1, 2, "a", 1.0]
-[1, "a", "b", 1.0]
-[1, "a", 1.0, 2.0]</code></p>
-<h3>Numbered types</h3>
-<p>No number next to the type means "any amount". However, a number means "this exact amount, no more, no less". For example: <code>arr([str, int3], 10)</code> represents an array that contains between 1 and 7 strings, and exactly 3 integers, and <code>arr([str1, int3], 4)</code> <em>has</em> to contain one string and 3 integers. This is similar to Rust's tuple structs. It goes without saying that, if the length of the array doesn't match the amount expressed in the types, the program will error. However, it can be left empty and the interpreter will automatically pre-compute the correct minimal amount, which for numbered type arrays, is in fact the recommended approach to keep typoes and confusions from causing errors.</p>
+<h3 id="dictionaries">Dictionaries</h3>
+<p>Dictionaries are mutable, insertion-ordered collections of key-value pairs. Their type is <code>dict(K, V)</code>, where <code>K</code> is the key type and <code>V</code> is the value type. Dictionary literals use <code>-&gt;</code> between each key and value and semicolons between entries; the final semicolon is optional.</p>
+<p>The runic type alias is <code>ᛞᛁᚳᛏ</code>. Dictionary method aliases are <code>ᛚᛖᛝᚦ</code>, <code>ᚷᛖᛏ</code>, <code>ᚻᚫᛋ</code>, <code>ᚱᛁᛗᚣᚠ</code>, <code>ᚳᛁᛁᛋ</code>, <code>ᚠᚫᛚᛄᚣᛋ</code>, <code>ᛠᛏᛖᛗᛋ</code>, <code>ᚳᛚᛁᚢᚱ</code>, and <code>ᚳᚪᛈᛁ</code> for <code>length</code>, <code>get</code>, <code>has</code>, <code>remove</code>, <code>keys</code>, <code>values</code>, <code>items</code>, <code>clear</code>, and <code>copy</code>, respectively.</p>
+<pre><code>dict(str | int, int) scores = {
+    "Ada" -&gt; 10;
+    "Grace" -&gt; 20;
+    3 -&gt; 30
+};
+
+print(scores["Ada"]); # 10
+scores["Linus"] = 40; # creates a new entry
+scores["Ada"] += 5;   # updates an existing entry</code></pre>
+<p>Direct indexing with a missing key is a runtime error. <code>get()</code> provides nullable or default-backed access. Dictionaries cannot be sliced. <code>foreach (key in dictionary)</code> iterates keys in insertion order, and <code>index(key)</code> reports the key's insertion index within that iteration.</p>
+<p>Keys must be hashable. Supported statically known key types are <code>int</code>, <code>float</code>, <code>str</code>, <code>char</code>, <code>bool</code>, <code>nil</code>, enum types, and <code>pyobject</code>; unions of hashable types are also supported. <code>any</code> in key position means any value that is hashable at runtime, not literally every Futhorc value. Lists, arrays, sets, dictionaries, files, and structs are not valid keys. A <code>pyobject</code> key is accepted only when its wrapped Python value is hashable.</p>
+<p>Futhorc keeps key types distinct: <code>true</code>, <code>1</code>, and <code>1.0</code> may coexist as three different keys. Dictionary equality compares key-value contents and does not depend on insertion order. Reassigning an existing key does not move it to the end.</p>
+<p>An empty dictionary may be written as <code>{}</code> when its declared variable type is a concrete <code>dict(K, V)</code>. The constructor <code>dict(K, V)</code> is unambiguous in every expression context and also creates an empty dictionary.</p>
+<h3 id="heterogeneous-arrays">Heterogeneous arrays</h3>
+<p>Heterogeneous arrays are fixed positional schemas: compact, unnamed structs whose fields are addressed by index. Every slot has its own declared type.</p>
+<pre><code>arr(int, str, bool) data = &lt;10, "hello"&gt;;
+
+int number = data[0];
+str greeting = data[1];
+data[2] = true;</code></pre>
+<p>The schema above has capacity <code>3</code>, inferred from its three type entries. Initializers may occupy any prefix of the schema, including the empty prefix. Unoccupied slots retain their declared types but cannot be read until initialized. Assigning at <code>length()</code> initializes the next slot; assigning beyond it is an error because heterogeneous arrays cannot contain gaps.</p>
+<p>A type followed by <code>*</code> and a positive integer declares several consecutive slots of that type. Primitive, collection, enum, and struct types are all accepted:</p>
+<pre><code>arr(Person * 2, int, str * 3) record;</code></pre>
+<p>This expands to two <code>Person</code> slots, one <code>int</code> slot, and three <code>str</code> slots. Its capacity is inferred as <code>6</code>. An explicit final capacity is optional, but when supplied it must equal the expanded schema exactly:</p>
+<pre><code>arr(Person * 2, int, str * 3, 6) valid;
+arr(Person * 2, int, str * 3, 5) invalid; # schema/capacity error</code></pre>
+<p>An uncounted type contributes exactly one slot. Counts must be positive. The <code>type * count</code> syntax is contextual to an array type, so names such as <code>Person3</code> remain ordinary, unambiguous type names.</p>
+<p>A constant non-negative index has its precise positional type. A runtime-computed or negative index has the union of all types in the schema and is checked against the selected slot at runtime. Heterogeneous array schemas are part of static type identity: <code>arr(int, str)</code> and <code>arr(str, int)</code> are different types.</p>
+<p>Operations that shift slots or alter capacity would invalidate the schema. Consequently, heterogeneous arrays support <code>length</code>, <code>capacity</code>, <code>append</code>, <code>replace_at</code>, <code>shorten</code>, search methods, <code>locate</code>, <code>copy</code>, and <code>join</code> when every slot is textual. They do not support <code>resize</code>, <code>insert</code>, <code>prepend</code>, <code>remove_at</code>, <code>shave</code>, <code>compress</code>, <code>fill</code>, <code>skintight</code>, or <code>shrink_to_fit</code>. Slicing is supported when its bounds are constant non-negative integers and produces the corresponding sliced schema.</p>
 <h3 id="structs">Structs</h3>
 <p>Structs are named custom types that bundle an assortment of declared variable fields with their own types. A <code>struct</code> can hold data of any type. The basic structure is:
 ```
@@ -580,7 +612,11 @@ In a similar vein, enums create a custom type whose valid values can be checked 
 <li><code>for (i from a to b){}</code> (b-exclusive)</li>
 <li><code>foreach(item in collection){}</code></li>
 <li>⚠️ each item is an object with its index attached. It's not identical to <code>for (i from 0 to length(collection)){collection[i]}</code> as that simply returns the item. The object behaves otherwise like its value, except that certain functions like <code>index()</code> can extract and return the index</li>
+<li><code>break;</code> immediately exits the nearest enclosing loop.</li>
+<li><code>continue;</code> skips the rest of the current iteration of the nearest enclosing loop. In an <code>until</code> loop, its stop condition is still evaluated before the next iteration.</li>
 </ul>
+<p><code>break</code> and <code>continue</code> may only appear lexically inside a loop in the same function or method. A function declared inside a loop cannot use them to control that outer loop.</p>
+<p>Their runic aliases are <code>ᛒᚱᛠᚳ</code> and <code>ᚳᚢᚾᛏᛁᚾᛄᚣ</code>, respectively.</p>
 <h2 id="functions">Functions:</h2>
 <ul>
 <li><code>f(x)</code>: function <code>f(x)</code> call</li>
@@ -633,6 +669,8 @@ new str x = "hi" # all good
 <h2 id="file-handling">File handling</h2>
 <p>Futhorc provides Python-backed text file handling through the built-in <code>File</code> type. Python's mature text I/O implementation supplies buffering, newline conversion, character encoding, seeking, and operating-system integration, while Futhorc supplies static types and source-positioned runtime diagnostics.</p>
 <p>Files are opened with <code>open()</code>. Relative paths are resolved from the process working directory; absolute paths are used directly. The default encoding is UTF-8.</p>
+<p>Printing a <code>File</code>, interpolating it into a composite string, or converting it with <code>str()</code> displays its supplied path, mode, and closed state:</p>
+<pre><code>File { path = examples/notes.txt, mode = r, closed = false }</code></pre>
 <p>Supported text modes are:
 - <code>"r"</code>: read an existing file.
 - <code>"w"</code>: write a file, truncating existing contents.
@@ -643,6 +681,17 @@ new str x = "hi" # all good
 <p>Files should be closed explicitly with <code>close()</code> when no longer needed. The interpreter also closes every remaining open file when program execution ends, including when execution ends because of a runtime error.</p>
 <p><code>tell()</code> returns an opaque text-stream position. In particular, it is not guaranteed to equal a character count or UTF-8 byte count. A position returned by <code>tell()</code> can safely be passed back to <code>seek()</code>.</p>
 <p>Opening failures, permission errors, invalid operations, encoding failures, and operations on closed files produce Futhorc runtime errors. File contents are not automatically serialized into Futhorc values; programs read and write strings and lists of strings explicitly.</p>
+<h2 id="native-modules">Native modules</h2>
+<p>Each <code>.futhorc</code> or <code>.þ</code> source file is a module. Native imports preserve Futhorc's static types across file boundaries:</p>
+<pre><code>import tools;
+import tools as t;
+from tools import helper;
+from tools import helper as h;</code></pre>
+<p><code>import tools;</code> binds the module object as the constant <code>tools</code>. <code>import tools as t;</code> chooses another binding name. A <code>from</code> import binds one exported value or type directly; <code>as</code> can rename it. Imported variables, functions, structs, and enums retain their declared types, so calls, assignments, member access, and nominal struct identity are still checked statically.</p>
+<p>Module names are single identifiers and resolve to files directly inside the entry source file's directory. For example, <code>import people;</code> searches for <code>people.þ</code> and <code>people.futhorc</code>. It is an error when neither candidate exists or when both exist. Dots retain their ordinary member-access meaning and are not translated into filesystem separators; use <code>from world import people;</code> to import the exported member <code>people</code> from module <code>world</code>. Native imports require execution from a source file because an in-memory source string without a path has no module root.</p>
+<p>Every top-level variable, function, struct, enum, enum member, or imported binding is exported. Module objects expose exported values and functions through member access, such as <code>tools.answer</code> or <code>tools.calculate()</code>. Import types directly with <code>from tools import Result;</code> before using them in declarations or constructors.</p>
+<p>A module has its own global environment and is initialized on its first executed import. The initialized module is cached, so importing it again does not rerun its top-level statements. <code>from</code> imports capture the exported value when the import statement executes, while member access reads through the module environment. Circular imports are rejected with the import chain in the diagnostic.</p>
+<p>The runic aliases are <code>ᛁᛗᛈᛟᚱᛏ</code>, <code>ᚠᚱᛟᛗ</code>, and <code>ᚫᛋ</code> for <code>import</code>, <code>from</code>, and <code>as</code> respectively.</p>
 <h2 id="python-interoperability">Python interoperability</h2>
 <p>Futhorc can access modules from the Python environment running the interpreter. Python interoperability is an explicitly dynamic boundary: ordinary Futhorc remains statically typed, while foreign modules, callables, attributes, and results use the <code>pyobject</code> type.</p>
 <p>Runic aliases are <code>ßøêßøáßÜ¬ßøÆßÜÀßÜ╗ßøûßÜ│ßøÅ</code> for <code>pyobject</code>, <code>ßøêßøáßøüßøùßøêßøƒßÜ▒ßøÅ</code> for <code>pyimport</code>, and <code>ßøùßÜ½ßÜÀßÜ╗ßÜúßøÜ</code> for its <code>module</code> parameter. The native import-statement aliases are <code>ßøüßøùßøêßøƒßÜ▒ßøÅ</code>, <code>ßøêßøáßÜªßÜúßÜ¥</code>, and <code>ßÜ½ßøï</code> for <code>import</code>, <code>python</code>, and <code>as</code> respectively.</p>
@@ -652,7 +701,7 @@ This is syntactic sugar for a statically typed <code>pyobject</code> declaration
 <code>pyobject math = pyimport("math");</code>
 The module name must be a string literal and <code>as</code> must provide a normal Futhorc identifier. The binding follows ordinary Futhorc declaration and function-level scope rules. Importing a missing module produces the same source-positioned runtime error as <code>pyimport()</code>.</p>
 <p><code>pyimport()</code> uses Python's normal module discovery rules and therefore sees the standard library and packages installed in the active Python environment. A <code>pyobject</code> supports dynamic member access, calls with positional or named arguments, indexing, slicing, and iteration through <code>foreach</code>. Each such operation has static result type <code>pyobject</code>; programs use explicit Futhorc conversions such as <code>int()</code>, <code>float()</code>, <code>str()</code>, <code>bool()</code>, or <code>to_list()</code> when they need an ordinary Futhorc value.</p>
-<p>Futhorc primitives cross into Python as their corresponding Python primitives. Lists and arrays cross as copied Python lists, sets cross as copied Python tuples, and enums cross as their backing values. Mutating a copied collection in Python does not mutate the original Futhorc collection. Struct conversion and callbacks from Python into Futhorc functions are not yet defined.</p>
+<p>Futhorc primitives cross into Python as their corresponding Python primitives. Lists and arrays cross as copied Python lists, sets cross as copied Python tuples, dictionaries cross as copied Python dictionaries, and enums cross as their backing values. Mutating a copied collection in Python does not mutate the original Futhorc collection. If distinct Futhorc keys would collide under Python equality, such as <code>true</code> and <code>1</code>, conversion raises a runtime error rather than silently losing an entry. Struct conversion and callbacks from Python into Futhorc functions are not yet defined.</p>
 <p>Python exceptions are converted into source-positioned Futhorc runtime errors containing the Python exception class and message. Python interoperability is not sandboxed: imported modules have the same filesystem, network, process, and native-extension privileges as the interpreter.</p>
 <h2 id="built-ins">Built-ins:</h2>
 <p>* This documentation uses <code>?value</code> to mean "optional parameter". However, this is merely notational and is not valid Futhorc source. Parameters become optional by providing a default evaluation with <code>=</code>.</p>
@@ -695,6 +744,12 @@ The module name must be a string literal and <code>as</code> must provide a norm
 <li>Returns <code>()</code> if <code>value</code> is omitted.</li>
 <li>Futhorc sets are ordered, immutable collections and may contain duplicate values.</li>
 <li>Invocation syntax is <code>set(T, value)</code> or <code>set(T)</code>.</li>
+<li><code>dict(K, V) dict(type K, type V, any ?value)</code></li>
+<li>Creates a dictionary whose keys have type <code>K</code> and values have type <code>V</code>.</li>
+<li>Returns an empty dictionary if <code>value</code> is omitted.</li>
+<li>Copies entries from another Futhorc dictionary or from a Python mapping held by <code>pyobject</code>.</li>
+<li>The returned dictionary is a fresh outer collection; later mutation does not affect the source.</li>
+<li>Every key and value must already match its declared type. Keys must additionally be hashable.</li>
 </ul>
 <p>These conversions always create a fresh outer collection and never mutate the source. A Futhorc collection, string, or foreign Python iterable is copied in iteration order; a non-iterable Futhorc value becomes one element. Elements are not individually coerced through primitive conversion functions: every produced element must already be compatible with <code>T</code>, otherwise conversion raises a source-positioned runtime error. Nested collection elements are checked recursively. Contained object identities are retained, so this is an outer-container copy rather than <code>copy()</code>'s recursive deep copy.</p>
 <h3>Mutating conversion functions</h3>
@@ -721,6 +776,7 @@ The module name must be a string literal and <code>as</code> must provide a norm
 <li><code>bool is_list(any value)</code></li>
 <li><code>bool is_arr(any value)</code></li>
 <li><code>bool is_set(any value)</code></li>
+<li><code>bool is_dict(any value)</code></li>
 <li><code>bool is_empty(any collec)</code></li>
 <li>Returns whether the collection contains no occupied elements.</li>
 <li>Raises an error if <code>collec</code> is not a collection.</li>
@@ -740,8 +796,38 @@ The module name must be a string literal and <code>as</code> must provide a norm
     5.between(1, "6") = [1, 6) = 1 Ôëñ 5 &lt; 6
     5.between("1", "6") = (1, 6) = 1 &lt; 5 &lt; 6</code></li>
 </ul>
+<h3 id="string-methods">String methods</h3>
+<ul>
+<li><code>int length()</code></li>
+<li>Returns the number of Unicode code points in the string.</li>
+<li><code>str lower()</code></li>
+<li>Returns a lowercase copy of the string.</li>
+<li><code>str upper()</code></li>
+<li>Returns an uppercase copy of the string.</li>
+<li><code>str strip(str characters = whitespace)</code></li>
+<li>Returns a copy with leading and trailing whitespace removed when <code>characters</code> is omitted.</li>
+<li>When <code>characters</code> is provided, removes any of those characters from both ends.</li>
+<li><code>list(str) split(str separator = whitespace)</code></li>
+<li>Splits on runs of whitespace when <code>separator</code> is omitted.</li>
+<li>When <code>separator</code> is provided, splits on that exact substring.</li>
+<li><code>str replace(str old, str replacement, int count = -1)</code></li>
+<li>Replaces non-overlapping occurrences of <code>old</code> from left to right.</li>
+<li>A negative <code>count</code> replaces every occurrence.</li>
+<li><code>bool contains(str substring)</code></li>
+<li>Returns whether <code>substring</code> occurs in the string.</li>
+<li><code>bool starts_with(str prefix)</code></li>
+<li>Returns whether the string begins with <code>prefix</code>.</li>
+<li><code>bool ends_with(str suffix)</code></li>
+<li>Returns whether the string ends with <code>suffix</code>.</li>
+<li><code>int | nil find(str substring)</code></li>
+<li>Returns the zero-based index of the first occurrence of <code>substring</code>, or <code>nil</code> when it is absent.</li>
+<li><code>int count(str substring)</code></li>
+<li>Returns the number of non-overlapping occurrences of <code>substring</code>.</li>
+</ul>
 <h3 id="list-methods">List methods</h3>
 <ul>
+<li><code>str join(str separator = "")</code></li>
+<li>Available only on textual lists and performs no implicit stringification.</li>
 <li><code>nil append(T item)</code></li>
 <li>Adds <code>item</code> to the end of the list.</li>
 <li><code>nil insert(T item, int index)</code></li>
@@ -793,12 +879,13 @@ The module name must be a string literal and <code>as</code> must provide a norm
 - <code>amount &gt; length()</code> is an error.</p>
 <h3 id="array-methods">Array methods</h3>
 <p>Arrays have both a <strong>length</strong> and a <strong>capacity</strong>.</p>
+<p><code>str join(str separator = "")</code> is available only on textual arrays and performs no implicit stringification.</p>
 <ul>
 <li><strong>length</strong> is the number of occupied elements.</li>
 <li><strong>capacity</strong> is the number of elements the array can contain before explicit resizing is required.</li>
-<li>Capacity is runtime allocation and is not part of static type identity.</li>
+<li>For homogeneous <code>arr(T, N)</code>, capacity is runtime allocation and is not part of static type identity. For heterogeneous arrays, capacity is fixed by the positional schema and the complete schema is part of static type identity.</li>
 <li>Unoccupied capacity consists of internal empty slots. Empty slots are not Futhorc <code>nil</code> values and cannot be accessed as elements.</li>
-<li>Arrays never resize automatically. Operations that would exceed capacity produce a runtime error unless capacity is explicitly increased first.</li>
+<li>Arrays never resize automatically. Operations that would exceed capacity produce a runtime error. Homogeneous capacity may be increased explicitly; heterogeneous capacity cannot be changed because every position has a declared type.</li>
 <li>Capacity changes are visible through every alias referring to the same array.</li>
 <li>Assigning an existing array to a declaration written with a different <code>N</code> does not resize it.</li>
 </ul>
@@ -818,6 +905,7 @@ The module name must be a string literal and <code>as</code> must provide a norm
 <li><code>nil append(T item)</code></li>
 <li>Adds <code>item</code> to the end of the occupied portion of the array.</li>
 <li>Raises an error if the array is full.</li>
+<li>On a heterogeneous array, <code>item</code> must match the next slot's declared type.</li>
 <li><code>nil insert(T item, int index)</code></li>
 <li>Adds <code>item</code> at <code>index</code> and shifts the item previously at that index and all following occupied items one position forward.</li>
 <li><code>index == length()</code> inserts at the end.</li>
@@ -830,6 +918,7 @@ The module name must be a string literal and <code>as</code> must provide a norm
 <li>Replaces the occupied item at <code>index</code> with <code>item</code>.</li>
 <li>Returns the previous item.</li>
 <li>Does not change length or capacity.</li>
+<li>On a heterogeneous array, <code>item</code> must match the selected slot's declared type.</li>
 <li><code>list(T) shorten(int amount = 1)</code></li>
 <li>Removes <code>amount</code> occupied items from the end of the array.</li>
 <li>Returns the removed items as a list in their original order.</li>
@@ -892,9 +981,10 @@ The module name must be a string literal and <code>as</code> must provide a norm
 - <code>amount == 0</code> returns an empty list and does not modify the array.
 - <code>amount &lt; 0</code> is an error.
 - <code>amount &gt; length()</code> is an error.</p>
-<p>Slicing an array produces a new array containing the selected occupied elements. The resulting array's capacity is exactly equal to its resulting length.</p>
+<p>Slicing a homogeneous array produces a new array containing the selected occupied elements with capacity equal to its resulting length. Heterogeneous array slices require constant non-negative bounds and retain the corresponding portion of the positional schema, including unoccupied typed slots.</p>
 <h3 id="set-methods">Set methods</h3>
 <p>Futhorc sets are ordered, immutable collections. Unlike mathematical sets and sets in many other languages, Futhorc sets permit duplicate values and retain their order. Their contents cannot be added to, removed from, replaced, or reordered after construction.</p>
+<p><code>str join(str separator = "")</code> is available only on textual sets and performs no implicit stringification.</p>
 <p>A non-<code>const</code> variable containing a set may still be rebound to another set. <code>const set(T)</code> prevents that rebinding as well.</p>
 <ul>
 <li><code>int length()</code></li>
@@ -915,6 +1005,29 @@ The module name must be a string literal and <code>as</code> must provide a norm
 <li>Negative indexes count backwards from the end.</li>
 <li><code>set(T) copy()</code></li>
 <li>Returns a deep copy of the set.</li>
+</ul>
+<h3 id="dictionary-methods">Dictionary methods</h3>
+<ul>
+<li><code>int length()</code></li>
+<li>Returns the number of key-value pairs.</li>
+<li><code>V | nil get(K key, V | nil default = nil)</code></li>
+<li>Returns the value associated with <code>key</code>.</li>
+<li>Returns <code>default</code> when the key is absent.</li>
+<li><code>bool has(K key)</code></li>
+<li>Returns whether <code>key</code> exists.</li>
+<li><code>V remove(K key)</code></li>
+<li>Removes <code>key</code> and returns its associated value.</li>
+<li>A missing key is a runtime error.</li>
+<li><code>list(K) keys()</code></li>
+<li>Returns the keys in insertion order.</li>
+<li><code>list(V) values()</code></li>
+<li>Returns the values in key insertion order.</li>
+<li><code>list(arr(K | V, 2)) items()</code></li>
+<li>Returns the entries in insertion order as two-element arrays containing each key and value.</li>
+<li><code>nil clear()</code></li>
+<li>Removes every entry.</li>
+<li><code>dict(K, V) copy()</code></li>
+<li>Returns a deep copy of the dictionary.</li>
 </ul>
 <h3 id="functional">Functional</h3>
 <ul>

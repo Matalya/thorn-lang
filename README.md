@@ -15,10 +15,11 @@ Futhorc blends the elegance of symbolic languages with the familiarity of C-styl
 - ✅ Dual-script syntax: ASCII and Futhorc (ᚠᚢᚦᚩᚱᚳ)
 - ✅ Full suite of primitive types: `int`, `float`, `char`, `str`, `bool`, `any`, `nil`
 - ✅ Composite/interpolated strings (`c"{hello}, world"`)
-- ✅ Collections: `list`, `arr`, `set` with rich mutability/resizability controls
-- ✅ Typed arrays with Rust-like structuring
+- ✅ Collections: `list`, `arr`, `set`, and typed insertion-ordered `dict`
+- ✅ Homogeneous arrays and fixed-schema heterogeneous arrays
 - ✅ User-defined `struct`s and `enum`s
-- ✅ C-style control flow: `if`, `elsif`, `else`, `while`, `until`, `foreach`, `for`
+- ✅ Statically typed native modules with `import`, `from`, and `as`
+- ✅ C-style control flow: `if`, `elsif`, `else`, `while`, `until`, `foreach`, `for`, `break`, `continue`
 - ✅ Expression-based boolean and arithmetic operators, including symbolic runic equivalents
 - ✅ Type conversion, introspection, and basic error signaling
 

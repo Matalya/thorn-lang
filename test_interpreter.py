@@ -39,6 +39,69 @@ class InterpreterTests(unittest.TestCase):
         )
         self.assertEqual("yes", output)
 
+    def test_break_and_continue_across_all_loop_forms(self):
+        output = self.run_program(
+            '''
+            int count = 0;
+            while (count < 6) {
+                count += 1;
+                if (count == 2) { continue; }
+                if (count == 5) { break; }
+                print(count, end = "");
+            }
+            print("|", end = "");
+
+            int untilCount = 0;
+            until (untilCount >= 5) {
+                untilCount += 1;
+                if (untilCount == 2) { continue; }
+                if (untilCount == 4) { break; }
+                print(untilCount, end = "");
+            }
+            print("|", end = "");
+
+            for (number from 0 to 6) {
+                if (number == 1) { continue; }
+                if (number == 4) { break; }
+                print(number, end = "");
+            }
+            print("|", end = "");
+
+            foreach (number in [1, 2, 3, 4, 5]) {
+                if (number == 2) { continue; }
+                if (number == 4) { break; }
+                print(number, end = "");
+            }
+            '''
+        )
+        self.assertEqual("134|13|023|13", output)
+
+    def test_break_targets_the_nearest_nested_loop(self):
+        output = self.run_program(
+            '''
+            for (outer from 0 to 3) {
+                for (inner from 0 to 4) {
+                    if (inner == 1) { continue; }
+                    if (inner == 3) { break; }
+                    print(c"{outer}{inner},", end = "");
+                }
+            }
+            '''
+        )
+        self.assertEqual("00,02,10,12,20,22,", output)
+
+    def test_runic_break_and_continue(self):
+        output = self.run_program(
+            '''
+            ᚠᛟ (number ᚠᚱᛟᛗ 0 ᛏᚣ 6) {
+                ᛁᚠ (number == 1) { ᚳᚢᚾᛏᛁᚾᛄᚣ; }
+                ᛁᚠ (number == 4) { ᛒᚱᛠᚳ; }
+                print(number, end = "");
+            }
+            '''
+        )
+        self.assertEqual("023", output)
+
     def test_functions_defaults_named_arguments_and_recursion(self):
         output = self.run_program(
             '''
@@ -117,6 +180,82 @@ class InterpreterTests(unittest.TestCase):
             "<2, 3>\n3\n",
             output,
         )
+
+    def test_heterogeneous_array_runtime_schema_and_prefix_growth(self):
+        output = self.run_program(
+            '''
+            arr(int, str * 2, bool) data = <10, "hello">;
+            print(data.length());
+            print(data.capacity());
+            data[2] = "hi";
+            data.append(true);
+            data[0] = 20;
+            print(data);
+
+            arr(str * 2, bool) tail = data[1:];
+            print(tail);
+
+            arr(int, str) empty;
+            print(empty.length());
+            print(empty.capacity());
+
+            arr(int, str) make_pair(int value, str label) {
+                return <value, label>;
+            }
+            arr(int, str) pair = make_pair(7, "seven");
+            print(pair);
+
+            struct Person { str name; }
+            Person ada = Person.new("Ada");
+            arr(Person * 2, int) party = <ada>;
+            print(party[0].name);
+            '''
+        )
+
+        self.assertEqual(
+            "2\n4\n<20, hello, hi, true>\n<hello, hi, true>\n"
+            "0\n2\n<7, seven>\nAda\n",
+            output,
+        )
+
+    def test_heterogeneous_array_runtime_rejects_uninitialized_gaps_and_dynamic_mismatch(self):
+        with self.assertRaises(ThornRuntimeError) as uninitialized:
+            self.run_program(
+                '''
+                arr(int, str, bool) data = <10, "hello">;
+                print(data[2]);
+                '''
+            )
+        self.assertIn("slot 2 is uninitialized", str(uninitialized.exception))
+
+        with self.assertRaises(ThornRuntimeError) as gap:
+            self.run_program(
+                '''
+                arr(int, str, bool) data = <10>;
+                data[2] = true;
+                '''
+            )
+        self.assertIn("cannot contain gaps", str(gap.exception))
+
+        with self.assertRaises(ThornRuntimeError) as dynamicMismatch:
+            self.run_program(
+                '''
+                arr(int, str, bool) data = <10, "hello">;
+                int position = 2;
+                data[position] = "true";
+                '''
+            )
+        self.assertIn("does not match type 'bool'", str(dynamicMismatch.exception))
+
+        with self.assertRaises(ThornRuntimeError) as appendMismatch:
+            self.run_program(
+                '''
+                arr(int, str) data;
+                data.append(10);
+                data.append(20);
+                '''
+            )
+        self.assertIn("does not match type 'str'", str(appendMismatch.exception))
 
     def test_ordered_set_retains_duplicates_and_runic_method_aliases(self):
         output = self.run_program(
@@ -244,6 +383,110 @@ class InterpreterTests(unittest.TestCase):
         )
         self.assertEqual("true\nfalse\ntrue\nfalse\ntrue\n", output)
 
+    def test_string_length_ascii_and_runic(self):
+        output = self.run_program(
+            '''
+            str text = "Futhorc";
+            print(text.length());
+            print("ᚠᚢᚦᚩᚱᚳ".ᛚᛖᛝᚦ());
+            '''
+        )
+        self.assertEqual("7\n6\n", output)
+
+    def test_string_manipulation_methods(self):
+        output = self.run_program(
+            '''
+            str original = "  Hello, MANXA world!  ";
+            print(original.lower());
+            print(original.upper());
+            print(original.strip());
+            print("...thorn...".strip("."));
+            print("one  two\\nthree".split());
+            print("a--b--c".split("--"));
+            print("hello".replace("hell", "potat"));
+            print("one one one".replace("one", "two", count = 2));
+            print(original.contains("MANXA"));
+            print(original.contains("mana"));
+            print(original);
+            '''
+        )
+        self.assertEqual(
+            (
+                "  hello, manxa world!  \n"
+                "  HELLO, MANXA WORLD!  \n"
+                "Hello, MANXA world!\n"
+                "thorn\n"
+                "[one, two, three]\n"
+                "[a, b, c]\n"
+                "potato\n"
+                "two two one\n"
+                "true\n"
+                "false\n"
+                "  Hello, MANXA world!  \n"
+            ),
+            output
+        )
+
+    def test_string_case_methods_are_unicode_aware(self):
+        output = self.run_program(
+            '''
+            print("ÁRVORE ÑANDÚ".lower());
+            print("árvore ñandú".upper());
+            '''
+        )
+        self.assertEqual("árvore ñandú\nÁRVORE ÑANDÚ\n", output)
+
+    def test_string_search_and_text_collection_join_methods(self):
+        output = self.run_program(
+            '''
+            str text = "Futhorc language";
+            print(text.starts_with("Futh"));
+            print(text.ends_with("age"));
+            print(text.find("orc"));
+            print(text.find("Python"));
+            print("aaaaa".count("aa"));
+
+            list(str) words = ["The", "Thorn", "Language"];
+            list(char) letters = ['r', 'u', 'n', 'e'];
+            list(str | char) mixed = ["Futh", 'o', "rc"];
+            arr(str, 3) names = <"Iljeri", "Ciwa", "Emijl">;
+            set(char) marks = ('!', '?', '!');
+            list(str) empty = [];
+            print(words.join(" "));
+            print(letters.join());
+            print(mixed.join());
+            print(names.join(" / "));
+            print(marks.join());
+            print(c"<{empty.join()}>");
+            '''
+        )
+        self.assertEqual(
+            (
+                "true\n"
+                "true\n"
+                "4\n"
+                "nil\n"
+                "2\n"
+                "The Thorn Language\n"
+                "rune\n"
+                "Futhorc\n"
+                "Iljeri / Ciwa / Emijl\n"
+                "!?!\n"
+                "<>\n"
+            ),
+            output
+        )
+
+    def test_composite_strings_decode_escapes_in_literal_components(self):
+        output = self.run_program(
+            r'''
+            str letter = "a";
+            print(c"\r\x1b[2K{letter}", end = "");
+            print(c"\nLiteral: \{letter\}");
+            '''
+        )
+        self.assertEqual("\r\x1b[2Ka\nLiteral: {letter}\n", output)
+
     def test_mutating_conversions_change_and_narrow_variables(self):
         output = self.run_program(
             '''
@@ -353,17 +596,17 @@ class InterpreterTests(unittest.TestCase):
 
 
 class CommandLineTests(unittest.TestCase):
-    def test_lowercase_thorn_is_a_source_extension(self):
+    def test_thorn_character_is_a_source_extension(self):
         self.assertIn(thorn_source_path("hello.þ").suffix, SOURCE_SUFFIXES)
 
-    def test_typable_thorn_is_a_source_extension(self):
-        self.assertIn(thorn_source_path("hello.thorn").suffix, SOURCE_SUFFIXES)
+    def test_typable_futhorc_is_a_source_extension(self):
+        self.assertIn(thorn_source_path("hello.futhorc").suffix, SOURCE_SUFFIXES)
 
     def test_other_source_extensions_are_rejected(self):
         with self.assertRaises(Exception) as context:
             thorn_source_path("hello.txt")
         self.assertIn(".þ", str(context.exception))
-        self.assertIn(".thorn", str(context.exception))
+        self.assertIn(".futhorc", str(context.exception))
 
 
 class ExampleProgramTests(unittest.TestCase):
@@ -433,6 +676,7 @@ class FileIOTests(unittest.TestCase):
             run_source(
                 f'''
                 File file = open("{path}", "w+", encoding = "utf-8");
+                print(file);
                 print(file.writable());
                 file.write("thorn\\n");
                 file.flush();
@@ -446,7 +690,11 @@ class FileIOTests(unittest.TestCase):
                 ''',
                 output=output.append,
             )
-            self.assertEqual("true\ntrue\nthorn\nfalse\ntrue\n", "".join(output))
+            self.assertEqual(
+                f"File {{ path = {path}, mode = w+, closed = false }}\n"
+                "true\ntrue\nthorn\nfalse\ntrue\n",
+                "".join(output),
+            )
             self.assertEqual("thorn\n", Path(path).read_text(encoding="utf-8"))
 
     def test_runic_file_api_and_named_arguments(self):
@@ -486,6 +734,151 @@ class FileIOTests(unittest.TestCase):
             with self.assertRaises(ThornRuntimeError) as binary:
                 run_source(f'File file = open("{path}", "rb");')
             self.assertIn("bytes type", binary.exception.message)
+
+
+class DictionaryTests(unittest.TestCase):
+    def run_program(self, source):
+        output = []
+        run_source(source, output=output.append)
+        return "".join(output)
+
+    def test_typed_literals_indexing_assignment_and_methods(self):
+        output = self.run_program(
+            '''
+            dict(str | int, int) scores = {
+                "Ada" -> 10;
+                "Grace" -> 20;
+                3 -> 30
+            };
+            scores["Ada"] += 5;
+            scores["Linus"] = 40;
+            print(scores["Ada"]);
+            print(scores.get("missing", 99));
+            print(scores.has(3));
+            print(scores.keys());
+            print(scores.values());
+            print(scores.items());
+            print(scores.remove("Grace"));
+            print(scores.length());
+            foreach (key in scores) { print(key); }
+            '''
+        )
+        self.assertEqual(
+            (
+                "15\n99\ntrue\n[Ada, Grace, 3, Linus]\n"
+                "[15, 20, 30, 40]\n"
+                "[<Ada, 15>, <Grace, 20>, <3, 30>, <Linus, 40>]\n"
+                "20\n3\nAda\n3\nLinus\n"
+            ),
+            output,
+        )
+
+    def test_runic_dictionary_type_and_method_aliases(self):
+        output = self.run_program(
+            '''
+            ᛞᛁᚳᛏ(ᛋᛏᚱ, ᛁᚾᛏ) scores = {
+                "Ada" -> 10;
+                "Grace" -> 20
+            };
+            print(scores.ᛚᛖᛝᚦ());
+            print(scores.ᚷᛖᛏ("Ada"));
+            print(scores.ᚻᚫᛋ("Grace"));
+            print(scores.ᚳᛁᛁᛋ());
+            print(scores.ᚠᚫᛚᛄᚣᛋ());
+            print(scores.ᛠᛏᛖᛗᛋ());
+            ᛞᛁᚳᛏ(ᛋᛏᚱ, ᛁᚾᛏ) copied = scores.ᚳᚪᛈᛁ();
+            print(scores.ᚱᛁᛗᚣᚠ("Ada"));
+            scores.ᚳᛚᛁᚢᚱ();
+            print(scores.ᛚᛖᛝᚦ());
+            print(copied.ᛚᛖᛝᚦ());
+            '''
+        )
+        self.assertEqual(
+            "2\n10\ntrue\n[Ada, Grace]\n[10, 20]\n"
+            "[<Ada, 10>, <Grace, 20>]\n10\n0\n2\n",
+            output,
+        )
+
+    def test_empty_const_copy_clear_and_distinct_python_numeric_keys(self):
+        output = self.run_program(
+            '''
+            const dict(any, str) values = {};
+            values[true] = "bool";
+            values[1] = "int";
+            values[1.0] = "float";
+            dict(any, str) copied = values.copy();
+            values.clear();
+            print(values.length());
+            print(copied.length());
+            print(copied[true]);
+            print(copied[1]);
+            print(copied[1.0]);
+            print(is_dict(copied));
+            dict(str, int) first = {"a" -> 1; "b" -> 2;};
+            dict(str, int) second = {"b" -> 2; "a" -> 1;};
+            print(first == second);
+            '''
+        )
+        self.assertEqual("0\n3\nbool\nint\nfloat\ntrue\ntrue\n", output)
+
+    def test_python_conversion_rejects_colliding_futhorc_keys(self):
+        with self.assertRaises(ThornRuntimeError) as context:
+            run_source(
+                '''
+                dict(any, str) values = {
+                    true -> "bool";
+                    1 -> "int";
+                };
+                pyobject builtins = pyimport("builtins");
+                builtins.dict(values);
+                '''
+            )
+        self.assertIn("collide under Python equality", context.exception.message)
+
+    def test_python_dictionary_conversion_in_both_directions(self):
+        output = self.run_program(
+            '''
+            pyobject builtins = pyimport("builtins");
+            dict(str, int) native = dict(
+                str,
+                int,
+                builtins.dict(apples = 2, pears = 3)
+            );
+            print(native);
+            pyobject foreign = builtins.dict(native);
+            print(str(foreign));
+            native["apples"] = 9;
+            print(str(foreign));
+            '''
+        )
+        self.assertEqual(
+            "{apples -> 2; pears -> 3}\n"
+            "{'apples': 2, 'pears': 3}\n"
+            "{'apples': 2, 'pears': 3}\n",
+            output,
+        )
+
+    def test_dynamic_unhashable_key_is_a_runtime_error(self):
+        with self.assertRaises(ThornRuntimeError) as context:
+            run_source(
+                '''
+                dict(any, int) values = {};
+                pyobject builtins = pyimport("builtins");
+                pyobject key = builtins.list([1, 2]);
+                values[key] = 1;
+                '''
+            )
+        self.assertIn("not hashable", context.exception.message)
+
+        with self.assertRaises(ThornRuntimeError) as native:
+            run_source(
+                '''
+                dict(any, int) values = {};
+                any key = [1, 2];
+                values[key] = 1;
+                '''
+            )
+        self.assertIn("not hashable", native.exception.message)
 
 
 class PythonInteropTests(unittest.TestCase):
@@ -605,6 +998,136 @@ class PythonInteropTests(unittest.TestCase):
         with self.assertRaises(ThornRuntimeError) as missing:
             run_source('pyobject module = pyimport("thorn_module_that_does_not_exist");')
         self.assertIn("Python ModuleNotFoundError", missing.exception.message)
+
+
+class NativeModuleTests(unittest.TestCase):
+    def run_module_program(self, directory, source, name="main.futhorc"):
+        path = Path(directory) / name
+        path.write_text(source, encoding="utf-8")
+        output = []
+        run_source(
+            source,
+            source_path=path,
+            output=output.append,
+        )
+        return "".join(output)
+
+    def test_module_import_alias_from_import_and_single_initialization(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "numbers.futhorc").write_text(
+                '''
+                print("numbers initialized");
+                int answer = 42;
+                int add(int left, int right) { return left + right; }
+                ''',
+                encoding="utf-8",
+            )
+            output = self.run_module_program(
+                root,
+                '''
+                import numbers;
+                import numbers as nums;
+                from numbers import add as sum;
+                from numbers import answer;
+                ᚠᚱᛟᛗ numbers ᛁᛗᛈᛟᚱᛏ answer ᚫᛋ runicAnswer;
+                print(numbers.answer);
+                print(nums.add(2, 3));
+                print(sum(answer, 1));
+                print(runicAnswer);
+                ''',
+            )
+            self.assertEqual("numbers initialized\n42\n5\n43\n42\n", output)
+
+    def test_imported_nominal_struct_and_enum_type_aliases(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "people.futhorc").write_text(
+                '''
+                struct Person {
+                    str name;
+                    str greet(Person self) { return c"Hello, {self.name}"; }
+                }
+                enum(str) Role = (
+                    WRITER = "writer";
+                    EDITOR = "editor"
+                )
+                Person make_person(str name) { return Person.new(name); }
+                ''',
+                encoding="utf-8",
+            )
+            output = self.run_module_program(
+                root,
+                '''
+                import people;
+                from people import Person as Human;
+                from people import Role as Job;
+                from people import make_person as make;
+                Human ada = make("Ada");
+                Human grace = Human.new("Grace");
+                Job role = people.WRITER;
+                print(ada.greet());
+                print(grace.name);
+                print(people.make_person("Lin").name);
+                print(role);
+                ''',
+            )
+            self.assertEqual("Hello, Ada\nGrace\nLin\nRole.WRITER\n", output)
+
+    def test_dotted_module_names_are_rejected_as_member_syntax(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaises(SyntaxError) as dotted:
+                self.run_module_program(directory, "import world.people;")
+            self.assertIn(
+                "use 'from module import member;'",
+                str(dotted.exception),
+            )
+
+            with self.assertRaises(SyntaxError) as dottedFrom:
+                self.run_module_program(
+                    directory,
+                    "from world.people import Person;",
+                )
+            self.assertIn(
+                "module names must be single identifiers",
+                str(dottedFrom.exception),
+            )
+
+    def test_imported_function_arguments_remain_statically_typed(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "maths.futhorc").write_text(
+                "int twice(int value) { return value * 2; }",
+                encoding="utf-8",
+            )
+            source = 'import maths;\nmaths.twice("bad");'
+            with self.assertRaises(SyntaxError) as caught:
+                self.run_module_program(root, source)
+            self.assertIn("must have type 'int', got 'str'", str(caught.exception))
+
+    def test_missing_module_export_and_circular_import_are_specific(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "empty.futhorc").write_text("int present = 1;", encoding="utf-8")
+            with self.assertRaises(SyntaxError) as missingExport:
+                self.run_module_program(root, "from empty import absent;")
+            self.assertIn("has no exported name 'absent'", str(missingExport.exception))
+
+            (root / "a.futhorc").write_text("import b;", encoding="utf-8")
+            (root / "b.futhorc").write_text("import a;", encoding="utf-8")
+            with self.assertRaises(SyntaxError) as circular:
+                self.run_module_program(root, "import a;")
+            self.assertIn("Circular module import detected", str(circular.exception))
+
+    def test_missing_module_and_pathless_source_are_specific(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaises(SyntaxError) as missing:
+                self.run_module_program(directory, "import nowhere;")
+            self.assertIn("Module 'nowhere' was not found", str(missing.exception))
+
+        with self.assertRaises(SyntaxError) as pathless:
+            run_source("import nowhere;")
+        self.assertIn("without a file path", str(pathless.exception))
 
 
 if __name__ == "__main__":

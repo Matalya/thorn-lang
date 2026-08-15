@@ -89,6 +89,20 @@ class Environment:
         raise ThornRuntimeError(f"Unknown type '{name}'")
 
 
+@dataclass
+class ThornModule:
+    name: str
+    environment: Environment
+    exports: set[str]
+
+    def read(self, name: str):
+        if name not in self.exports:
+            raise ThornRuntimeError(
+                f"Module '{self.name}' has no exported name '{name}'"
+            )
+        return self.environment.read(name)
+
+
 @dataclass(frozen=True)
 class ThornFunction:
     declaration: Any
@@ -223,6 +237,13 @@ class ThornFile:
         self.handle = handle
         self.path = str(path)
 
+    def __str__(self):
+        closed = "true" if self.handle.closed else "false"
+        return (
+            f"File {{ path = {self.path}, mode = {self.handle.mode}, "
+            f"closed = {closed} }}"
+        )
+
     def method(self, name):
         canonical = FILE_METHOD_CANONICAL.get(name)
         if canonical is None:
@@ -324,6 +345,16 @@ class ThornPyObject:
 def thorn_to_python(value):
     if isinstance(value, ThornPyObject):
         return value.value
+    if isinstance(value, ThornDict):
+        converted = {}
+        for key, item in value.items_raw():
+            python_key = thorn_to_python(key)
+            if python_key in converted:
+                raise ThornRuntimeError(
+                    "Distinct Futhorc dictionary keys collide under Python equality"
+                )
+            converted[python_key] = thorn_to_python(item)
+        return converted
     if isinstance(value, ThornArray):
         return [thorn_to_python(item) for item in value.values]
     if isinstance(value, ThornList):
@@ -354,6 +385,14 @@ class ReturnSignal(Exception):
         self.value = value
 
 
+class BreakSignal(Exception):
+    pass
+
+
+class ContinueSignal(Exception):
+    pass
+
+
 COLLECTION_METHOD_ALIASES = {
     "append": ("append", "ᚢᛈᛖᚾᛞ"),
     "insert": ("insert", "ᛁᚾᛋᚢᚱᛏ"),
@@ -368,12 +407,13 @@ COLLECTION_METHOD_ALIASES = {
     "find_last": ("find_last", "ᚠᛠᚾᛞ_ᛚᚫᛋᛏ"),
     "locate": ("locate", "ᛚᚪᚳᛠᛏ"),
     "compress": ("compress", "ᚳᚢᛗᛈᚱᛖᛋ"),
-    "copy": ("copy", "ᚳᚪᛈᛁᛁ"),
+    "copy": ("copy", "ᚳᚪᛈᛁ", "ᚳᚪᛈᛁᛁ"),
     "resize": ("resize", "ᚱᛁᛋᛠᛋ"),
     "capacity": ("capacity", "ᚳᚢᛈᛋᛁᛏᛁᛁ"),
     "fill": ("fill", "ᚠᛁᛚ"),
     "skintight": ("skintight", "ᛋᚳᛁᚾᛏᛠᛏ"),
     "shrink_to_fit": ("shrink_to_fit", "ᛋᚻᚱᛁᛝᚳ_ᛏᚣ_ᚠᛁᛏ"),
+    "join": ("join",),
 }
 COLLECTION_METHOD_CANONICAL = {
     alias: canonical
@@ -421,6 +461,15 @@ class ThornCollection:
 
     def length(self):
         return len(self.values)
+
+    def join(self, separator=""):
+        if type(separator) is not str:
+            raise ThornRuntimeError("join() separator must be a string")
+        if not all(type(value) is str for value in self.values):
+            raise ThornRuntimeError(
+                f"{self.kind}.join() requires every item to be str or char"
+            )
+        return separator.join(self.values)
 
     def find_first(self, item):
         try:
@@ -509,15 +558,114 @@ class ThornList(ThornCollection):
 class ThornArray(ThornList):
     kind = "array"
 
-    def __init__(self, values=(), capacity=None, warning=None, element_type=None):
+    _heterogeneous_forbidden_methods = {
+        "resize",
+        "insert",
+        "prepend",
+        "remove_at",
+        "shave",
+        "compress",
+        "fill",
+        "skintight",
+        "shrink_to_fit",
+    }
+
+    def __init__(
+        self,
+        values=(),
+        capacity=None,
+        warning=None,
+        element_type=None,
+        slot_types=None,
+        validator=None,
+    ):
         super().__init__(values, element_type)
         self._capacity = len(self.values) if capacity is None else capacity
         self.warning = warning
+        self.slot_types = None if slot_types is None else list(slot_types)
+        self.validator = validator
         if self._capacity < 0:
             raise ThornRuntimeError("Array capacity cannot be negative")
+        if self.slot_types is not None and len(self.slot_types) != self._capacity:
+            raise ThornRuntimeError(
+                "Heterogeneous array schema length must equal its capacity"
+            )
         if len(self.values) > self._capacity:
+            if self.slot_types is not None:
+                raise ThornRuntimeError(
+                    "Heterogeneous array initializer exceeds its schema capacity"
+                )
             self.values = self.values[:self._capacity]
             self._warn("array initializer was truncated to fit its capacity")
+        if self.slot_types is not None and self.validator is not None:
+            self.values = [
+                self._validate_slot(index, value)
+                for index, value in enumerate(self.values)
+            ]
+
+    @property
+    def is_heterogeneous(self):
+        return self.slot_types is not None
+
+    def method(self, name: str):
+        canonical = COLLECTION_METHOD_CANONICAL.get(name)
+        if (
+            self.is_heterogeneous
+            and canonical in self._heterogeneous_forbidden_methods
+        ):
+            raise ThornRuntimeError(
+                f"heterogeneous array has no method '{name}' because it "
+                f"would alter the positional type schema"
+            )
+        return super().method(name)
+
+    def _normalized_occupied_index(self, index):
+        return index if index >= 0 else len(self.values) + index
+
+    def slot_type(self, index):
+        if self.slot_types is None or type(index) is not int:
+            return self.element_type
+        normalized = self._normalized_occupied_index(index)
+        if normalized < 0 or normalized >= self._capacity:
+            return None
+        return self.slot_types[normalized]
+
+    def _validate_slot(self, index, value):
+        if self.slot_types is None or self.validator is None:
+            return value
+        expected = self.slot_types[index]
+        return self.validator(value, expected)
+
+    def __getitem__(self, index):
+        if self.slot_types is not None and type(index) is int and index >= 0:
+            if index >= self._capacity:
+                raise ThornRuntimeError(
+                    f"array index {index} is outside its {self._capacity}-slot schema"
+                )
+            if index >= len(self.values):
+                raise ThornRuntimeError(
+                    f"array slot {index} is uninitialized"
+                )
+        return super().__getitem__(index)
+
+    def __setitem__(self, index, value):
+        if self.slot_types is None:
+            return super().__setitem__(index, value)
+        if type(index) is not int:
+            raise ThornRuntimeError("array index must be an integer")
+
+        normalized = self._normalized_occupied_index(index)
+        if index >= 0 and index == len(self.values):
+            self.append(value)
+            return
+        if index >= 0 and index > len(self.values):
+            raise ThornRuntimeError(
+                f"Cannot initialize array slot {index} before slot "
+                f"{len(self.values)}; heterogeneous arrays cannot contain gaps"
+            )
+        if normalized < 0 or normalized >= len(self.values):
+            raise ThornRuntimeError(f"array index {index} is out of range")
+        self.values[normalized] = self._validate_slot(normalized, value)
 
     def _warn(self, message):
         if self.warning is not None:
@@ -528,7 +676,12 @@ class ThornArray(ThornList):
         if existing is not None:
             return existing
         result = ThornArray(
-            (), self._capacity, self.warning, self.element_type
+            (),
+            self._capacity,
+            self.warning,
+            self.element_type,
+            self.slot_types,
+            self.validator,
         )
         memo[id(self)] = result
         result.values = copy.deepcopy(self.values, memo)
@@ -540,7 +693,8 @@ class ThornArray(ThornList):
 
     def append(self, item):
         self._ensure_space()
-        self.values.append(item)
+        index = len(self.values)
+        self.values.append(self._validate_slot(index, item))
 
     def insert(self, item, index):
         self._ensure_space()
@@ -578,7 +732,22 @@ class ThornArray(ThornList):
 
     def sliced(self, start, end):
         values = self.values[slice(start, end)]
-        return ThornArray(values, len(values), self.warning, self.element_type)
+        if self.slot_types is None:
+            return ThornArray(
+                values,
+                len(values),
+                self.warning,
+                self.element_type,
+            )
+        slot_types = self.slot_types[slice(start, end)]
+        return ThornArray(
+            values,
+            len(slot_types),
+            self.warning,
+            self.element_type,
+            slot_types,
+            self.validator,
+        )
 
 
 class ThornSet(ThornCollection):
@@ -588,6 +757,163 @@ class ThornSet(ThornCollection):
 
     def sliced(self, start, end):
         return ThornSet(self.values[slice(start, end)], self.element_type)
+
+
+DICT_METHOD_ALIASES = {
+    "length": ("length", "ᛚᛖᛝᚦ"),
+    "get": ("get", "ᚷᛖᛏ"),
+    "has": ("has", "ᚻᚫᛋ"),
+    "remove": ("remove", "ᚱᛁᛗᚣᚠ"),
+    "keys": ("keys", "ᚳᛁᛁᛋ"),
+    "values": ("values", "ᚠᚫᛚᛄᚣᛋ"),
+    "items": ("items", "ᛠᛏᛖᛗᛋ"),
+    "clear": ("clear", "ᚳᛚᛁᚢᚱ"),
+    "copy": ("copy", "ᚳᚪᛈᛁ", "ᚳᚪᛈᛁᛁ"),
+}
+DICT_METHOD_CANONICAL = {
+    alias: canonical
+    for canonical, aliases in DICT_METHOD_ALIASES.items()
+    for alias in aliases
+}
+
+
+@dataclass(frozen=True)
+class _ThornDictKey:
+    """Type-tagged key that avoids Python's true/1/1.0 key collision."""
+
+    tag: object
+    value: Any
+
+
+class ThornDict:
+    kind = "dict"
+
+    def __init__(self, entries=(), key_type=None, value_type=None):
+        self.key_type = key_type
+        self.value_type = value_type
+        self._entries: dict[_ThornDictKey, tuple[Any, Any]] = {}
+        for key, value in entries:
+            self[key] = value
+
+    @staticmethod
+    def _normalized_key(key):
+        if isinstance(
+            key,
+            (ThornCollection, ThornDict, ThornFile, ThornStruct)
+        ) or key is UNINITIALIZED:
+            raise ThornRuntimeError(
+                f"Dictionary key {format_value(key)} is not hashable"
+            )
+
+        if isinstance(key, ThornPyObject):
+            raw = key.value
+            tag = ("pyobject", type(raw))
+        elif isinstance(key, ThornEnumValue):
+            raw = key.name
+            tag = ("enum", id(key.enum_type))
+        else:
+            raw = key
+            tag = type(key)
+
+        try:
+            hash(raw)
+        except TypeError as error:
+            raise ThornRuntimeError(
+                f"Dictionary key {format_value(key)} is not hashable"
+            ) from error
+
+        return _ThornDictKey(tag, raw)
+
+    def __len__(self):
+        return len(self._entries)
+
+    def __iter__(self):
+        return iter(self.keys_raw())
+
+    def __getitem__(self, key):
+        normalized = self._normalized_key(key)
+        try:
+            return self._entries[normalized][1]
+        except KeyError as error:
+            raise ThornRuntimeError(
+                f"Dictionary key {format_value(key)} was not found"
+            ) from error
+
+    def __setitem__(self, key, value):
+        normalized = self._normalized_key(key)
+        if normalized in self._entries:
+            original, _ = self._entries[normalized]
+            self._entries[normalized] = (original, value)
+        else:
+            self._entries[normalized] = (key, value)
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, ThornDict)
+            and self._entries == other._entries
+        )
+
+    def __deepcopy__(self, memo):
+        existing = memo.get(id(self))
+        if existing is not None:
+            return existing
+        result = ThornDict((), self.key_type, self.value_type)
+        memo[id(self)] = result
+        for key, value in self.items_raw():
+            result[copy.deepcopy(key, memo)] = copy.deepcopy(value, memo)
+        return result
+
+    def method(self, name: str):
+        canonical = DICT_METHOD_CANONICAL.get(name)
+        if canonical is None:
+            raise ThornRuntimeError(f"dict has no method '{name}'")
+        return getattr(self, canonical)
+
+    def keys_raw(self):
+        return [key for key, _ in self._entries.values()]
+
+    def values_raw(self):
+        return [value for _, value in self._entries.values()]
+
+    def items_raw(self):
+        return list(self._entries.values())
+
+    def length(self):
+        return len(self)
+
+    def get(self, key, default=None):
+        entry = self._entries.get(self._normalized_key(key))
+        return default if entry is None else entry[1]
+
+    def has(self, key):
+        return self._normalized_key(key) in self._entries
+
+    def remove(self, key):
+        normalized = self._normalized_key(key)
+        try:
+            return self._entries.pop(normalized)[1]
+        except KeyError as error:
+            raise ThornRuntimeError(
+                f"Dictionary key {format_value(key)} was not found"
+            ) from error
+
+    def keys(self):
+        return ThornList(self.keys_raw(), self.key_type)
+
+    def values(self):
+        return ThornList(self.values_raw(), self.value_type)
+
+    def items(self):
+        return ThornList(
+            ThornArray((key, value), 2)
+            for key, value in self.items_raw()
+        )
+
+    def clear(self):
+        self._entries.clear()
+
+    def copy(self):
+        return copy.deepcopy(self)
 
 
 def format_value(value) -> str:
@@ -603,6 +929,12 @@ def format_value(value) -> str:
         return "[" + ", ".join(format_value(item) for item in value) + "]"
     if isinstance(value, ThornSet):
         return "(" + ", ".join(format_value(item) for item in value) + ")"
+    if isinstance(value, ThornDict):
+        entries = "; ".join(
+            f"{format_value(key)} -> {format_value(item)}"
+            for key, item in value.items_raw()
+        )
+        return "{" + entries + "}"
     if isinstance(value, ThornEnumValue):
         return str(value)
     if isinstance(value, ThornStruct):

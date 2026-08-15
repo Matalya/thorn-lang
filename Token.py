@@ -30,6 +30,7 @@ class TokenKind(Enum):
     LIST          = auto()
     ARR           = auto()
     SET           = auto()
+    DICT          = auto()
 
     # Custom type declarations
     STRUCT        = auto()
@@ -59,6 +60,8 @@ class TokenKind(Enum):
     FROM          = auto()
     TO            = auto()
     IN            = auto()
+    BREAK         = auto()
+    CONTINUE      = auto()
     RETURN        = auto()
 
     # Symbols
@@ -68,6 +71,7 @@ class TokenKind(Enum):
     COMMA         = auto()
     COLON         = auto()
     PIPE          = auto()
+    ARROW         = auto()
 
     # Arithmetic operators
     PLUS          = auto()
@@ -163,6 +167,9 @@ KEYWORDS: dict[str, TokenKind] = {
     "set": TokenKind.SET,
     "ᛋᛖᛏ": TokenKind.SET,
 
+    "dict": TokenKind.DICT,
+    "ᛞᛁᚳᛏ": TokenKind.DICT,
+
     # Custom types
     "struct": TokenKind.STRUCT,
     "ᛋᛏᚱᚢᚳᛏ": TokenKind.STRUCT,
@@ -245,6 +252,12 @@ KEYWORDS: dict[str, TokenKind] = {
     "in": TokenKind.IN,
     "ᛁᚾ": TokenKind.IN,
 
+    "break": TokenKind.BREAK,
+    "ᛒᚱᛠᚳ": TokenKind.BREAK,
+
+    "continue": TokenKind.CONTINUE,
+    "ᚳᚢᚾᛏᛁᚾᛄᚣ": TokenKind.CONTINUE,
+
     "return": TokenKind.RETURN,
     "ᚱᛁᛏᚢᚱᚾ": TokenKind.RETURN,
 }
@@ -323,6 +336,8 @@ def symbolize(tokenKind: TokenKind):
             return "//="
         case TokenKind.PIPE:
             return "|"
+        case TokenKind.ARROW:
+            return "->"
         case _:
             return f"unmatched symbol: {tokenKind.name}"
 
@@ -373,7 +388,8 @@ DATA_TYPES: list[TokenKind] = [
 COLLECTION_TYPES: list[TokenKind] = [
     TokenKind.LIST,
     TokenKind.ARR,
-    TokenKind.SET
+    TokenKind.SET,
+    TokenKind.DICT
 ]
 
 
@@ -392,6 +408,8 @@ CONTROL_FLOW = [
     TokenKind.UNTIL,
     TokenKind.FOR,
     TokenKind.FOREACH,
+    TokenKind.BREAK,
+    TokenKind.CONTINUE,
     TokenKind.RETURN
 ]
 

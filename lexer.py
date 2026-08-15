@@ -244,6 +244,10 @@ class Lexer:
                         if self.peek() == "=":
                             self.add(TK.MINUS_ASSIGN)
                             self.advance()
+                        elif self.peek() == ">":
+                            start = self.pos
+                            self.advance()
+                            self.add_symbol(TK.ARROW, start)
                         else:
                             self.add(TK.MINUS)
                     case "*":

@@ -2,6 +2,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from ast import literal_eval
 from th_ast import *
+from module_system import ModuleLoadError
 
 @dataclass
 class SemanticIssue:
@@ -75,6 +76,7 @@ class TypeSymbol:
     declaration: NamedTypeDeclaration
     kind: str
 
+
 @dataclass
 class AssignmentTargetInfo:
     valueType: TypeNode | None
@@ -107,6 +109,7 @@ BUILTIN_ALIASES = {
     "is_list": ("is_list", "ᛁᛋ_ᛚᛁᛋᛏ"),
     "is_arr": ("is_arr", "ᛁᛋ_ᚪᚱ"),
     "is_set": ("is_set", "ᛁᛋ_ᛋᛖᛏ"),
+    "is_dict": ("is_dict",),
     "is_empty": ("is_empty", "ᛁᛋ_ᛖᛗᛈᛏᛁ"),
     "is_full": ("is_full", "ᛁᛋ_ᚠᚣᛚ"),
     "to_int": ("to_int", "ᛏᚣ_ᛁᚾᛏ"),
@@ -124,6 +127,7 @@ STRUCT_BUILTIN_METHOD_CANONICAL = {
     "new": "new",
     "ᚾᛁᚢ": "new",
     "copy": "copy",
+    "ᚳᚪᛈᛁ": "copy",
     "ᚳᚪᛈᛁᛁ": "copy",
     "resembles": "resembles",
     "ᚱᛁᛋᛖᛗᛒᚢᛚ": "resembles",
@@ -152,7 +156,7 @@ COLLECTION_METHOD_ALIASES = {
     ),
     "locate": ("locate", "ᛚᚪᚳᛠᛏ"),
     "compress": ("compress", "ᚳᚢᛗᛈᚱᛖᛋ"),
-    "copy": ("copy", "ᚳᚪᛈᛁᛁ"),
+    "copy": ("copy", "ᚳᚪᛈᛁ", "ᚳᚪᛈᛁᛁ"),
     "resize": ("resize", "ᚱᛁᛋᛠᛋ"),
     "capacity": ("capacity", "ᚳᚢᛈᛋᛁᛏᛁᛁ"),
     "fill": ("fill", "ᚠᛁᛚ"),
@@ -160,7 +164,15 @@ COLLECTION_METHOD_ALIASES = {
     "shrink_to_fit": (
         "shrink_to_fit",
         "ᛋᚻᚱᛁᛝᚳ_ᛏᚣ_ᚠᛁᛏ"
-    )
+    ),
+    "get": ("get", "ᚷᛖᛏ"),
+    "has": ("has", "ᚻᚫᛋ"),
+    "remove": ("remove", "ᚱᛁᛗᚣᚠ"),
+    "keys": ("keys", "ᚳᛁᛁᛋ"),
+    "values": ("values", "ᚠᚫᛚᛄᚣᛋ"),
+    "items": ("items", "ᛠᛏᛖᛗᛋ"),
+    "clear": ("clear", "ᚳᛚᛁᚢᚱ"),
+    "join": ("join",),
 }
 
 COLLECTION_METHOD_CANONICAL = {
@@ -177,6 +189,25 @@ INTEGER_METHOD_ALIASES = {
 INTEGER_METHOD_CANONICAL = {
     alias: canonical
     for canonical, aliases in INTEGER_METHOD_ALIASES.items()
+    for alias in aliases
+}
+
+STRING_METHOD_ALIASES = {
+    "length": ("length", "ᛚᛖᛝᚦ"),
+    "lower": ("lower",),
+    "upper": ("upper",),
+    "strip": ("strip",),
+    "split": ("split",),
+    "replace": ("replace",),
+    "contains": ("contains",),
+    "starts_with": ("starts_with",),
+    "ends_with": ("ends_with",),
+    "find": ("find",),
+    "count": ("count",),
+}
+STRING_METHOD_CANONICAL = {
+    alias: canonical
+    for canonical, aliases in STRING_METHOD_ALIASES.items()
     for alias in aliases
 }
 
@@ -340,15 +371,23 @@ class Scope:
         self.types[symbol.name] = symbol
 
 class SemanticAnalyzer:
-    def __init__(self):
+    def __init__(
+        self,
+        *,
+        module_loader=None,
+        module_path=None
+    ):
         self.globalScope = Scope(
             parent=None,
             name="global"
         )
 
         self.currentScope = self.globalScope
+        self.moduleLoader = module_loader
+        self.modulePath = module_path
         self.currentFunction: FunctionDeclaration | None = None
         self.currentMethodOwner: StructDeclaration | None = None
+        self.loopDepth = 0
         self.currentExpectedType: TypeNode | None = None
         self.structLiteralResults: dict[
             tuple[int, str],
@@ -409,14 +448,26 @@ class SemanticAnalyzer:
     ):
         previousFunction = self.currentFunction
         previousMethodOwner = self.currentMethodOwner
+        previousLoopDepth = self.loopDepth
         self.currentFunction = function
         self.currentMethodOwner = methodOwner
+        # A callable declared inside a loop cannot target that outer loop.
+        self.loopDepth = 0
 
         try:
             yield
         finally:
             self.currentFunction = previousFunction
             self.currentMethodOwner = previousMethodOwner
+            self.loopDepth = previousLoopDepth
+
+    @contextmanager
+    def loopContext(self):
+        self.loopDepth += 1
+        try:
+            yield
+        finally:
+            self.loopDepth -= 1
 
     @contextmanager
     def temporarySymbol(self, symbol: Symbol):
@@ -525,6 +576,97 @@ class SemanticAnalyzer:
         for statement in node.statements:
             self.visit(statement)
 
+    def loadImportedModule(self, node, moduleName: str):
+        if self.moduleLoader is None:
+            self.report(
+                node,
+                f"Cannot import module '{moduleName}' without a module loader."
+            )
+            return None
+        try:
+            return self.moduleLoader.loadSemantic(moduleName)
+        except ModuleLoadError as error:
+            self.report(node, str(error))
+            return None
+
+    def defineImportedValue(self, node, name: str, symbol) -> bool:
+        if self.currentScope.local(name) is not None:
+            self.report(node, f"Name '{name}' is already declared in this scope.")
+            return False
+
+        if isinstance(symbol, FunctionSymbol):
+            self.currentScope.define(FunctionSymbol(name, symbol.declaration))
+        elif isinstance(symbol, VariableSymbol):
+            self.currentScope.define(VariableSymbol(
+                name=name,
+                declaredType=symbol.declaredType,
+                isConst=True,
+                initialized=True,
+                declaration=node,
+            ))
+        elif isinstance(symbol, EnumMemberSymbol):
+            self.currentScope.define(EnumMemberSymbol(
+                name=name,
+                declaredType=symbol.declaredType,
+                declaration=symbol.declaration,
+                enumDeclaration=symbol.enumDeclaration,
+            ))
+        else:
+            self.report(node, f"Imported name '{name}' is not a value.")
+            return False
+        return True
+
+    def visitImportStatement(self, node: ImportStatement):
+        record = self.loadImportedModule(node, node.moduleName)
+        if record is None:
+            return
+        name = node.bindingName
+        if self.currentScope.local(name) is not None:
+            self.report(node, f"Name '{name}' is already declared in this scope.")
+            return
+        moduleType = ModuleType(node.moduleName, record)
+        self.currentScope.define(VariableSymbol(
+            name=name,
+            declaredType=moduleType,
+            isConst=True,
+            initialized=True,
+            declaration=node,
+        ))
+
+    def visitFromImportStatement(self, node: FromImportStatement):
+        record = self.loadImportedModule(node, node.moduleName)
+        if record is None:
+            return
+
+        sourceName = node.importedName.name
+        bindingName = node.bindingName
+        valueSymbol = record.valueSymbol(sourceName)
+        typeSymbol = record.typeSymbol(sourceName)
+
+        if valueSymbol is None and typeSymbol is None:
+            self.report(
+                node.importedName,
+                f"Module '{node.moduleName}' has no exported name '{sourceName}'."
+            )
+            return
+
+        if valueSymbol is not None:
+            self.defineImportedValue(node, bindingName, valueSymbol)
+
+        if typeSymbol is not None:
+            existing = self.currentScope.resolveType(bindingName)
+            if existing is not None:
+                self.report(
+                    node,
+                    f"Type '{bindingName}' is already declared in this scope."
+                )
+            else:
+                self.currentScope.defineType(TypeSymbol(
+                    name=bindingName,
+                    declaration=typeSymbol.declaration,
+                    kind=typeSymbol.kind,
+                ))
+
 
     def visitBlock(self, node: Block):
         # Thorn uses function-level lexical scope. Braces group
@@ -545,6 +687,9 @@ class SemanticAnalyzer:
         if isinstance(typeNode, NamedType):
             return typeNode.name.name
 
+        if isinstance(typeNode, ModuleType):
+            return f"module({typeNode.moduleName})"
+
         if isinstance(typeNode, ListType):
             return (
                 f"list("
@@ -553,6 +698,31 @@ class SemanticAnalyzer:
             )
 
         if isinstance(typeNode, ArrayType):
+            if typeNode.isHeterogeneous:
+                entries: list[str] = []
+                slotTypes = typeNode.slotTypes or []
+                index = 0
+                while index < len(slotTypes):
+                    slotType = slotTypes[index]
+                    count = 1
+                    while (
+                        index + count < len(slotTypes)
+                        and self.sameType(
+                            slotType,
+                            slotTypes[index + count]
+                        )
+                    ):
+                        count += 1
+                    rendered = self.typeText(slotType)
+                    if len(slotTypes) == 1:
+                        entries.append(f"{rendered} * 1")
+                        index += count
+                        continue
+                    entries.append(
+                        rendered if count == 1 else f"{rendered} * {count}"
+                    )
+                    index += count
+                return f"arr({', '.join(entries)})"
             return (
                 f"arr("
                 f"{self.typeText(typeNode.elementType)}, "
@@ -565,6 +735,12 @@ class SemanticAnalyzer:
                 f"set("
                 f"{self.typeText(typeNode.elementType)}"
                 f")"
+            )
+
+        if isinstance(typeNode, DictType):
+            return (
+                f"dict({self.typeText(typeNode.keyType)}, "
+                f"{self.typeText(typeNode.valueType)})"
             )
 
         if isinstance(typeNode, UnionType):
@@ -587,10 +763,25 @@ class SemanticAnalyzer:
             return left.value == right.value
 
         if isinstance(left, NamedType):
-            return (
-                left.name.name
-                == right.name.name
+            if (
+                left.resolvedDeclaration is not None
+                and right.resolvedDeclaration is not None
+            ):
+                return left.resolvedDeclaration is right.resolvedDeclaration
+            leftName = (
+                left.resolvedDeclaration.name.name
+                if left.resolvedDeclaration is not None
+                else left.name.name
             )
+            rightName = (
+                right.resolvedDeclaration.name.name
+                if right.resolvedDeclaration is not None
+                else right.name.name
+            )
+            return leftName == rightName
+
+        if isinstance(left, ModuleType):
+            return left.record is right.record
 
         if isinstance(left, ListType):
             return self.sameType(
@@ -599,6 +790,24 @@ class SemanticAnalyzer:
             )
 
         if isinstance(left, ArrayType):
+            if left.isHeterogeneous or right.isHeterogeneous:
+                if not (
+                    left.isHeterogeneous
+                    and right.isHeterogeneous
+                ):
+                    return False
+                leftSlots = left.slotTypes or []
+                rightSlots = right.slotTypes or []
+                return (
+                    len(leftSlots) == len(rightSlots)
+                    and all(
+                        self.sameType(leftSlot, rightSlot)
+                        for leftSlot, rightSlot in zip(
+                            leftSlots,
+                            rightSlots
+                        )
+                    )
+                )
             return self.sameType(
                 left.elementType,
                 right.elementType
@@ -608,6 +817,12 @@ class SemanticAnalyzer:
             return self.sameType(
                 left.elementType,
                 right.elementType
+            )
+
+        if isinstance(left, DictType):
+            return (
+                self.sameType(left.keyType, right.keyType)
+                and self.sameType(left.valueType, right.valueType)
             )
 
         if isinstance(left, UnionType):
@@ -864,13 +1079,18 @@ class SemanticAnalyzer:
                 destinationType.elementType
             )
 
-        # Capacity is runtime metadata rather than part of
-        # an array's static identity. Array element types
-        # remain invariant because arrays are mutable.
+        # Homogeneous capacity is runtime metadata rather than part of
+        # static identity. A heterogeneous positional schema is part of
+        # identity. Array types remain invariant because arrays are mutable.
         if (
             isinstance(sourceType, ArrayType)
             and isinstance(destinationType, ArrayType)
         ):
+            if (
+                sourceType.isHeterogeneous
+                or destinationType.isHeterogeneous
+            ):
+                return self.sameType(sourceType, destinationType)
             return self.sameType(
                 sourceType.elementType,
                 destinationType.elementType
@@ -885,6 +1105,17 @@ class SemanticAnalyzer:
             return self.isAssignable(
                 sourceType.elementType,
                 destinationType.elementType
+            )
+
+        # Dictionaries are mutable through indexed assignment, so both
+        # key and value types are invariant.
+        if (
+            isinstance(sourceType, DictType)
+            and isinstance(destinationType, DictType)
+        ):
+            return (
+                self.sameType(sourceType.keyType, destinationType.keyType)
+                and self.sameType(sourceType.valueType, destinationType.valueType)
             )
 
         return self.sameType(
@@ -1365,7 +1596,7 @@ class SemanticAnalyzer:
         if (
             isinstance(
                 expression,
-                (ListLiteral, ArrayLiteral, SetLiteral)
+                (ListLiteral, ArrayLiteral, SetLiteral, DictLiteral)
             )
             and isinstance(destinationType, UnionType)
         ):
@@ -1404,6 +1635,23 @@ class SemanticAnalyzer:
             ):
                 return False
 
+            if destinationType.isHeterogeneous:
+                slotTypes = destinationType.slotTypes or []
+                unknown = False
+                for element, slotType in zip(
+                    expression.elements,
+                    slotTypes
+                ):
+                    compatible = self.isExpressionAssignable(
+                        element,
+                        slotType
+                    )
+                    if compatible is False:
+                        return False
+                    if compatible is None:
+                        unknown = True
+                return None if unknown else True
+
             return self.expressionListAssignable(
                 expression.elements,
                 destinationType.elementType
@@ -1417,6 +1665,24 @@ class SemanticAnalyzer:
                 expression.elements,
                 destinationType.elementType
             )
+
+        if (
+            isinstance(expression, DictLiteral)
+            and isinstance(destinationType, DictType)
+        ):
+            keysCompatible = self.expressionListAssignable(
+                [entry.key for entry in expression.entries],
+                destinationType.keyType
+            )
+            valuesCompatible = self.expressionListAssignable(
+                [entry.value for entry in expression.entries],
+                destinationType.valueType
+            )
+            if keysCompatible is False or valuesCompatible is False:
+                return False
+            if keysCompatible is None or valuesCompatible is None:
+                return None
+            return True
 
         sourceType = self.inferExpressionType(
             expression
@@ -1457,11 +1723,20 @@ class SemanticAnalyzer:
         self,
         collectionType: TypeNode
     ) -> TypeNode | None:
-        if isinstance(
-            collectionType,
-            (ListType, ArrayType, SetType)
-        ):
+        if isinstance(collectionType, ArrayType):
+            if collectionType.isHeterogeneous:
+                slotTypes = collectionType.slotTypes or []
+                if not slotTypes:
+                    return PrimitiveType(Type.ANY)
+                return self.uniqueUnion(slotTypes)
             return collectionType.elementType
+
+        if isinstance(collectionType, (ListType, SetType)):
+            return collectionType.elementType
+
+        if isinstance(collectionType, DictType):
+            # Foreach over a dictionary follows Python and iterates keys.
+            return collectionType.keyType
 
         if isinstance(collectionType, UnionType):
             elementTypes: list[TypeNode] = []
@@ -1479,6 +1754,106 @@ class SemanticAnalyzer:
             return self.uniqueUnion(elementTypes)
 
         return None
+
+    def constantInteger(self, expression: Node | None) -> int | None:
+        if expression is None:
+            return None
+        constant = self.constantExpressionValue(expression)
+        if (
+            constant is None
+            or not self.isPrimitive(constant[0], Type.INT)
+        ):
+            return None
+        return constant[1]
+
+    def arrayIndexedType(
+        self,
+        arrayType: ArrayType,
+        indexExpression: Node
+    ) -> TypeNode | None:
+        if not arrayType.isHeterogeneous:
+            return arrayType.elementType
+
+        slotTypes = arrayType.slotTypes or []
+        index = self.constantInteger(indexExpression)
+        if index is None or index < 0:
+            return self.collectionElementType(arrayType)
+        if index >= len(slotTypes):
+            return None
+        return slotTypes[index]
+
+    def indexedCollectionType(
+        self,
+        collectionType: TypeNode,
+        indexExpression: Node
+    ) -> TypeNode | None:
+        if isinstance(collectionType, ArrayType):
+            return self.arrayIndexedType(collectionType, indexExpression)
+        if isinstance(collectionType, (ListType, SetType)):
+            return collectionType.elementType
+        if isinstance(collectionType, UnionType):
+            indexedTypes: list[TypeNode] = []
+            for member in collectionType.members:
+                indexedType = self.indexedCollectionType(
+                    member,
+                    indexExpression
+                )
+                if indexedType is None:
+                    return None
+                indexedTypes.append(indexedType)
+            return self.uniqueUnion(indexedTypes)
+        return None
+
+    def heterogeneousSliceType(
+        self,
+        arrayType: ArrayType,
+        start: Node | None,
+        end: Node | None
+    ) -> ArrayType | None:
+        if not arrayType.isHeterogeneous:
+            return arrayType
+        startValue = self.constantInteger(start)
+        endValue = self.constantInteger(end)
+        if start is not None and (startValue is None or startValue < 0):
+            return None
+        if end is not None and (endValue is None or endValue < 0):
+            return None
+        slots = (arrayType.slotTypes or [])[slice(startValue, endValue)]
+        elementType = (
+            self.uniqueUnion(slots)
+            if slots
+            else PrimitiveType(Type.ANY)
+        )
+        return ArrayType(
+            elementType,
+            len(slots),
+            slotTypes=slots
+        )
+
+    def dictTypes(
+        self,
+        typeNode: TypeNode
+    ) -> list[DictType] | None:
+        members = (
+            typeNode.members
+            if isinstance(typeNode, UnionType)
+            else [typeNode]
+        )
+        if not members or not all(isinstance(member, DictType) for member in members):
+            return None
+        return members
+
+    def dictIndexedValueType(
+        self,
+        typeNode: TypeNode
+    ) -> TypeNode | None:
+        dictionaries = self.dictTypes(typeNode)
+        if dictionaries is None:
+            return None
+        return self.uniqueUnion([
+            dictionary.valueType
+            for dictionary in dictionaries
+        ])
 
     def isCollectionType(
         self,
@@ -1525,6 +1900,44 @@ class SemanticAnalyzer:
         parameters, returnType = methods[canonical]
         return CollectionMethodSignature(canonical, parameters, returnType)
 
+    def stringMethodSignature(
+        self,
+        methodName: str
+    ) -> CollectionMethodSignature | None:
+        canonical = STRING_METHOD_CANONICAL.get(methodName)
+        if canonical is None:
+            return None
+
+        strType = PrimitiveType(Type.STR)
+        intType = PrimitiveType(Type.INT)
+        boolType = PrimitiveType(Type.BOOL)
+
+        def parameter(name, paramType, hasDefault=False):
+            return ParameterSignature(name, paramType, hasDefault)
+
+        methods = {
+            "length": ((), intType),
+            "lower": ((), strType),
+            "upper": ((), strType),
+            "strip": ((parameter("characters", strType, True),), strType),
+            "split": ((parameter("separator", strType, True),), ListType(strType)),
+            "replace": ((
+                parameter("old", strType),
+                parameter("replacement", strType),
+                parameter("count", intType, True),
+            ), strType),
+            "contains": ((parameter("substring", strType),), boolType),
+            "starts_with": ((parameter("prefix", strType),), boolType),
+            "ends_with": ((parameter("suffix", strType),), boolType),
+            "find": ((parameter("substring", strType),), self.uniqueUnion([
+                intType,
+                PrimitiveType(Type.NIL)
+            ])),
+            "count": ((parameter("substring", strType),), intType),
+        }
+        parameters, returnType = methods[canonical]
+        return CollectionMethodSignature(canonical, parameters, returnType)
+
     def collectionMethodSignature(
         self,
         receiverType: TypeNode,
@@ -1538,6 +1951,7 @@ class SemanticAnalyzer:
         intType = PrimitiveType(Type.INT)
         nilType = PrimitiveType(Type.NIL)
         anyType = PrimitiveType(Type.ANY)
+        strType = PrimitiveType(Type.STR)
         optionalIndexType = self.uniqueUnion([
             intType,
             nilType
@@ -1552,6 +1966,33 @@ class SemanticAnalyzer:
                 name=name,
                 paramType=paramType,
                 hasDefault=hasDefault
+            )
+
+        if canonicalName == "join":
+            if not isinstance(receiverType, (ListType, ArrayType, SetType)):
+                return None
+
+            elementType = (
+                self.collectionElementType(receiverType)
+                if isinstance(receiverType, ArrayType)
+                else receiverType.elementType
+            )
+            elementMembers = (
+                elementType.members
+                if isinstance(elementType, UnionType)
+                else [elementType]
+            )
+            if not elementMembers or not all(
+                isinstance(member, PrimitiveType)
+                and member.value in (Type.STR, Type.CHAR)
+                for member in elementMembers
+            ):
+                return None
+
+            return CollectionMethodSignature(
+                name=canonicalName,
+                parameters=(parameter("separator", strType, True),),
+                returnType=strType
             )
 
         if isinstance(receiverType, ListType):
@@ -1590,26 +2031,16 @@ class SemanticAnalyzer:
                 "copy": ((), receiverType)
             }
         elif isinstance(receiverType, ArrayType):
-            elementType = receiverType.elementType
+            elementType = self.collectionElementType(receiverType)
             methods = {
-                "resize": ((parameter("new_size", intType),), nilType),
                 "length": ((), intType),
                 "capacity": ((), intType),
                 "append": ((parameter("item", elementType),), nilType),
-                "insert": ((
-                    parameter("item", elementType),
-                    parameter("index", intType)
-                ), nilType),
-                "prepend": ((parameter("item", elementType),), nilType),
                 "replace_at": ((
                     parameter("item", elementType),
                     parameter("index", intType)
                 ), elementType),
                 "shorten": ((
-                    parameter("amount", intType, True),
-                ), ListType(elementType)),
-                "remove_at": ((parameter("index", intType),), elementType),
-                "shave": ((
                     parameter("amount", intType, True),
                 ), ListType(elementType)),
                 "find_first": ((
@@ -1623,12 +2054,25 @@ class SemanticAnalyzer:
                     parameter("item", anyType),
                 ), optionalIndexType),
                 "locate": ((parameter("index", intType),), elementType),
-                "compress": ((), nilType),
                 "copy": ((), receiverType),
-                "fill": ((parameter("value", elementType),), nilType),
-                "skintight": ((), nilType),
-                "shrink_to_fit": ((), nilType)
             }
+            if not receiverType.isHeterogeneous:
+                methods.update({
+                    "resize": ((parameter("new_size", intType),), nilType),
+                    "insert": ((
+                        parameter("item", elementType),
+                        parameter("index", intType)
+                    ), nilType),
+                    "prepend": ((parameter("item", elementType),), nilType),
+                    "remove_at": ((parameter("index", intType),), elementType),
+                    "shave": ((
+                        parameter("amount", intType, True),
+                    ), ListType(elementType)),
+                    "compress": ((), nilType),
+                    "fill": ((parameter("value", elementType),), nilType),
+                    "skintight": ((), nilType),
+                    "shrink_to_fit": ((), nilType)
+                })
         elif isinstance(receiverType, SetType):
             elementType = receiverType.elementType
             methods = {
@@ -1645,6 +2089,28 @@ class SemanticAnalyzer:
                 ), optionalIndexType),
                 "locate": ((parameter("index", intType),), elementType),
                 "copy": ((), receiverType)
+            }
+        elif isinstance(receiverType, DictType):
+            keyType = receiverType.keyType
+            valueType = receiverType.valueType
+            optionalValueType = self.uniqueUnion([valueType, nilType])
+            itemType = ArrayType(
+                self.uniqueUnion([keyType, valueType]),
+                2
+            )
+            methods = {
+                "length": ((), intType),
+                "get": ((
+                    parameter("key", keyType),
+                    parameter("default", optionalValueType, True),
+                ), optionalValueType),
+                "has": ((parameter("key", keyType),), PrimitiveType(Type.BOOL)),
+                "remove": ((parameter("key", keyType),), valueType),
+                "keys": ((), ListType(keyType)),
+                "values": ((), ListType(valueType)),
+                "items": ((), ListType(itemType)),
+                "clear": ((), nilType),
+                "copy": ((), receiverType),
             }
         else:
             return None
@@ -1687,6 +2153,18 @@ class SemanticAnalyzer:
             methodName
         )
         return [signature] if signature is not None else None
+
+    @staticmethod
+    def moduleValueSymbol(moduleType: ModuleType, name: str):
+        return moduleType.record.valueSymbol(name)
+
+    def moduleValueType(self, moduleType: ModuleType, name: str):
+        symbol = self.moduleValueSymbol(moduleType, name)
+        if isinstance(symbol, VariableSymbol):
+            return symbol.declaredType
+        if isinstance(symbol, EnumMemberSymbol):
+            return symbol.declaredType
+        return None
 
     def inferExpressionType(
         self,
@@ -1778,12 +2256,31 @@ class SemanticAnalyzer:
 
             return SetType(elementType)
 
+        if isinstance(node, DictLiteral):
+            keyType = self.inferElementType(
+                [entry.key for entry in node.entries]
+            )
+            valueType = self.inferElementType(
+                [entry.value for entry in node.entries]
+            )
+            if keyType is None or valueType is None:
+                return None
+            return DictType(keyType, valueType)
+
         if isinstance(node, CollectionConversion):
+            if (
+                isinstance(node.elementType, NamedType)
+                and self.currentScope.resolveType(node.elementType.name.name) is None
+            ):
+                return None
             if node.collectionKind == "list":
                 return ListType(node.elementType)
             if node.collectionKind == "arr":
                 return ArrayType(node.elementType, 0)
             return SetType(node.elementType)
+
+        if isinstance(node, DictConversion):
+            return DictType(node.keyType, node.valueType)
 
         if isinstance(node, IndexAccess):
             targetType = self.inferExpressionType(
@@ -1797,8 +2294,12 @@ class SemanticAnalyzer:
                 return PrimitiveType(Type.PYOBJECT)
 
             if targetType is not None:
-                return self.collectionElementType(
-                    targetType
+                dictValueType = self.dictIndexedValueType(targetType)
+                if dictValueType is not None:
+                    return dictValueType
+                return self.indexedCollectionType(
+                    targetType,
+                    node.index
                 )
 
             return None
@@ -1818,6 +2319,12 @@ class SemanticAnalyzer:
                 targetType is not None
                 and self.isCollectionType(targetType)
             ):
+                if isinstance(targetType, ArrayType):
+                    return self.heterogeneousSliceType(
+                        targetType,
+                        node.start,
+                        node.end
+                    )
                 return targetType
 
             return None
@@ -1850,6 +2357,12 @@ class SemanticAnalyzer:
 
             if targetType is None:
                 return None
+
+            if isinstance(targetType, ModuleType):
+                return self.moduleValueType(
+                    targetType,
+                    node.member.name
+                )
 
             return self.memberType(
                 targetType,
@@ -1897,6 +2410,17 @@ class SemanticAnalyzer:
                 if targetType is None:
                     return None
 
+                if isinstance(targetType, ModuleType):
+                    symbol = self.moduleValueSymbol(
+                        targetType,
+                        node.callee.member.name
+                    )
+                    return (
+                        symbol.declaration.returnType
+                        if isinstance(symbol, FunctionSymbol)
+                        else None
+                    )
+
                 if (
                     isinstance(targetType, PrimitiveType)
                     and targetType.value == Type.PYOBJECT
@@ -1910,6 +2434,16 @@ class SemanticAnalyzer:
                 ):
                     return PrimitiveType(Type.BOOL)
 
+                if (
+                    isinstance(targetType, PrimitiveType)
+                    and targetType.value == Type.STR
+                    and node.callee.member.name in STRING_METHOD_CANONICAL
+                ):
+                    signature = self.stringMethodSignature(
+                        node.callee.member.name
+                    )
+                    return signature.returnType if signature is not None else None
+
                 if isinstance(targetType, PrimitiveType) and targetType.value == Type.FILE:
                     signature = self.fileMethodSignature(node.callee.member.name)
                     return signature.returnType if signature is not None else None
@@ -1918,11 +2452,11 @@ class SemanticAnalyzer:
                     node.callee.member.name
                 )
                 if structBuiltin == "copy" and isinstance(targetType, NamedType):
-                    if self.structDeclaration(targetType.name.name) is not None:
+                    if self.structDeclaration(targetType) is not None:
                         return targetType
 
                 if structBuiltin == "resembles" and isinstance(targetType, NamedType):
-                    if self.structDeclaration(targetType.name.name) is not None:
+                    if self.structDeclaration(targetType) is not None:
                         return PrimitiveType(Type.BOOL)
 
                 collectionMethods = self.collectionMethodSignatures(
@@ -2093,9 +2627,12 @@ class SemanticAnalyzer:
             name=name,
             declaredType=node.varType,
             isConst=node.modifiers.isConst,
-            initialized=not isinstance(
-                node.varValue,
-                Uninitialized
+            initialized=(
+                not isinstance(node.varValue, Uninitialized)
+                or (
+                    isinstance(node.varType, ArrayType)
+                    and node.varType.isHeterogeneous
+                )
             ),
             declaration=node
         )
@@ -2367,7 +2904,7 @@ class SemanticAnalyzer:
     ) -> bool:
         if isinstance(
             typeNode,
-            (ListType, ArrayType)
+            (ListType, ArrayType, DictType)
         ):
             return True
 
@@ -2482,8 +3019,12 @@ class SemanticAnalyzer:
                 return None
 
             return AssignmentTargetInfo(
-                valueType=self.collectionElementType(
-                    collectionType
+                valueType=(
+                    self.dictIndexedValueType(collectionType)
+                    or self.indexedCollectionType(
+                        collectionType,
+                        target.index
+                    )
                 ),
                 description="indexed element"
             )
@@ -3520,6 +4061,37 @@ class SemanticAnalyzer:
 
             return
 
+        if isinstance(targetType, ModuleType):
+            symbol = self.moduleValueSymbol(targetType, methodName)
+            if isinstance(symbol, FunctionSymbol):
+                self.checkCallableArguments(
+                    node,
+                    [self.parameterSignatures(symbol.declaration.parameters)],
+                    callableKind="Function",
+                    callableName=f"{targetType.moduleName}.{methodName}"
+                )
+                return
+
+            for argument in node.arguments:
+                self.visit(self.callArgumentValue(argument))
+
+            if symbol is not None:
+                self.report(
+                    callee.member,
+                    f"Module member '{targetType.moduleName}.{methodName}' is not callable."
+                )
+            elif targetType.record.typeSymbol(methodName) is not None:
+                self.report(
+                    callee.member,
+                    f"Import type '{methodName}' with 'from {targetType.moduleName} import {methodName}' before using it."
+                )
+            else:
+                self.report(
+                    callee.member,
+                    f"Module '{targetType.moduleName}' has no exported name '{methodName}'."
+                )
+            return
+
         if (
             isinstance(targetType, PrimitiveType)
             and targetType.value == Type.PYOBJECT
@@ -3548,6 +4120,22 @@ class SemanticAnalyzer:
             )
             return
 
+        stringMethod = STRING_METHOD_CANONICAL.get(methodName)
+        if (
+            isinstance(targetType, PrimitiveType)
+            and targetType.value == Type.STR
+            and stringMethod
+        ):
+            signature = self.stringMethodSignature(methodName)
+            self.checkCallableArguments(
+                node,
+                [list(signature.parameters)],
+                callableKind="Method",
+                callableName=methodName,
+                receiverType=targetType,
+            )
+            return
+
         if isinstance(targetType, PrimitiveType) and targetType.value == Type.FILE:
             signature = self.fileMethodSignature(methodName)
             if signature is None:
@@ -3565,7 +4153,7 @@ class SemanticAnalyzer:
             return
 
         if isinstance(targetType, NamedType):
-            declaration = self.structDeclaration(targetType.name.name)
+            declaration = self.structDeclaration(targetType)
             if declaration is not None and structBuiltinName in ("copy", "resembles"):
                 parameters = (
                     []
@@ -3649,7 +4237,7 @@ class SemanticAnalyzer:
 
             if isinstance(targetType, NamedType):
                 declaration = self.structDeclaration(
-                    targetType.name.name
+                    targetType
                 )
                 staticMethod = (
                     self.structMethod(
@@ -3868,6 +4456,29 @@ class SemanticAnalyzer:
         if targetType is None:
             return
 
+        if isinstance(targetType, ModuleType):
+            symbol = self.moduleValueSymbol(
+                targetType,
+                node.member.name
+            )
+            if isinstance(symbol, FunctionSymbol):
+                self.report(
+                    node.member,
+                    f"Function '{targetType.moduleName}.{node.member.name}' must be called."
+                )
+            elif symbol is None:
+                if targetType.record.typeSymbol(node.member.name) is not None:
+                    self.report(
+                        node.member,
+                        f"Import type '{node.member.name}' with 'from {targetType.moduleName} import {node.member.name}' before using it."
+                    )
+                else:
+                    self.report(
+                        node.member,
+                        f"Module '{targetType.moduleName}' has no exported name '{node.member.name}'."
+                    )
+            return
+
         if (
             isinstance(targetType, PrimitiveType)
             and targetType.value == Type.PYOBJECT
@@ -3936,6 +4547,49 @@ class SemanticAnalyzer:
         self.visit(node.target)
         self.visit(node.index)
 
+        targetType = self.inferExpressionType(
+            node.target
+        )
+
+        if (
+            isinstance(targetType, PrimitiveType)
+            and targetType.value == Type.PYOBJECT
+        ):
+            return
+
+        dictionaries = (
+            self.dictTypes(targetType)
+            if targetType is not None
+            else None
+        )
+        if dictionaries is not None:
+            keyTypes = [dictionary.keyType for dictionary in dictionaries]
+            compatible, indexType = self.expressionAssignableToAll(
+                node.index,
+                keyTypes
+            )
+            if compatible is False:
+                actual = (
+                    self.typeText(indexType)
+                    if indexType is not None
+                    else "<unknown>"
+                )
+                expected = self.typeText(self.uniqueUnion(keyTypes))
+                self.report(
+                    node.index,
+                    f"Dictionary key must have type '{expected}', got '{actual}'."
+                )
+            if (
+                indexType is not None
+                and not self.isHashableDictKeyType(indexType)
+            ):
+                self.report(
+                    node.index,
+                    f"Dictionary key value has unhashable type "
+                    f"'{self.typeText(indexType)}'."
+                )
+            return
+
         indexType = self.inferExpressionType(
             node.index
         )
@@ -3955,16 +4609,6 @@ class SemanticAnalyzer:
                 )
             )
 
-        targetType = self.inferExpressionType(
-            node.target
-        )
-
-        if (
-            isinstance(targetType, PrimitiveType)
-            and targetType.value == Type.PYOBJECT
-        ):
-            return
-
         if (
             targetType is not None
             and not self.isCollectionType(targetType)
@@ -3974,6 +4618,20 @@ class SemanticAnalyzer:
                 (
                     f"Cannot index a value of type "
                     f"'{self.typeText(targetType)}'."
+                )
+            )
+
+        if (
+            isinstance(targetType, ArrayType)
+            and targetType.isHeterogeneous
+            and self.constantInteger(node.index) is not None
+            and self.arrayIndexedType(targetType, node.index) is None
+        ):
+            self.report(
+                node.index,
+                (
+                    f"Heterogeneous array index is outside its "
+                    f"{targetType.capacity}-slot schema."
                 )
             )
 
@@ -4007,6 +4665,13 @@ class SemanticAnalyzer:
         ):
             return
 
+        if targetType is not None and self.dictTypes(targetType) is not None:
+            self.report(
+                node.target,
+                "Dictionary values cannot be sliced."
+            )
+            return
+
         if (
             targetType is not None
             and not self.isCollectionType(targetType)
@@ -4017,6 +4682,21 @@ class SemanticAnalyzer:
                     f"Cannot slice a value of type "
                     f"'{self.typeText(targetType)}'."
                 )
+            )
+
+        if (
+            isinstance(targetType, ArrayType)
+            and targetType.isHeterogeneous
+            and self.heterogeneousSliceType(
+                targetType,
+                node.start,
+                node.end
+            ) is None
+        ):
+            self.report(
+                node,
+                "Heterogeneous array slice bounds must be constant "
+                "non-negative integers."
             )
 
     def visitLiteral(self, node: Literal):
@@ -4076,8 +4756,12 @@ class SemanticAnalyzer:
 
     def structDeclaration(
         self,
-        name: str
+        name: str | NamedType
     ) -> StructDeclaration | None:
+        if isinstance(name, NamedType):
+            if isinstance(name.resolvedDeclaration, StructDeclaration):
+                return name.resolvedDeclaration
+            name = name.name.name
         symbol = self.currentScope.resolveType(name)
 
         if (
@@ -4289,7 +4973,7 @@ class SemanticAnalyzer:
     ) -> list[tuple[StructDeclaration, FunctionDeclaration]] | None:
         if isinstance(targetType, NamedType):
             declaration = self.structDeclaration(
-                targetType.name.name
+                targetType
             )
 
             if declaration is None:
@@ -4333,7 +5017,7 @@ class SemanticAnalyzer:
     ) -> list[StructFieldDeclaration] | None:
         if isinstance(targetType, NamedType):
             declaration = self.structDeclaration(
-                targetType.name.name
+                targetType
             )
 
             if declaration is None:
@@ -4393,7 +5077,7 @@ class SemanticAnalyzer:
 
         if isinstance(targetType, NamedType):
             typeName = targetType.name.name
-            declaration = self.structDeclaration(typeName)
+            declaration = self.structDeclaration(targetType)
 
             if declaration is None:
                 self.report(
@@ -4581,7 +5265,7 @@ class SemanticAnalyzer:
                 continue
 
             declaration = self.structDeclaration(
-                member.name.name
+                member
             )
 
             if (
@@ -4672,7 +5356,7 @@ class SemanticAnalyzer:
 
         if isinstance(destinationType, NamedType):
             declaration = self.structDeclaration(
-                destinationType.name.name
+                destinationType
             )
 
             if declaration is None:
@@ -4796,7 +5480,11 @@ class SemanticAnalyzer:
             )
 
             if matches:
-                elementTypes.append(member.elementType)
+                elementTypes.append(
+                    self.collectionElementType(member)
+                    if isinstance(member, ArrayType)
+                    else member.elementType
+                )
 
         if not elementTypes:
             return None
@@ -4815,13 +5503,32 @@ class SemanticAnalyzer:
 
 
     def visitArrayLiteral(self, node: ArrayLiteral):
-        elementType = self.collectionLiteralElementType(
-            node,
-            self.currentExpectedType
+        expectedMembers = (
+            self.currentExpectedType.members
+            if isinstance(self.currentExpectedType, UnionType)
+            else [self.currentExpectedType]
         )
+        expectedArrays = [
+            member
+            for member in expectedMembers
+            if isinstance(member, ArrayType)
+        ]
 
-        for element in node.elements:
-            self.visit(element, expectedType=elementType)
+        for index, element in enumerate(node.elements):
+            positionalTypes: list[TypeNode] = []
+            for arrayType in expectedArrays:
+                if arrayType.isHeterogeneous:
+                    slots = arrayType.slotTypes or []
+                    if index < len(slots):
+                        positionalTypes.append(slots[index])
+                else:
+                    positionalTypes.append(arrayType.elementType)
+            expectedType = (
+                self.uniqueUnion(positionalTypes)
+                if positionalTypes
+                else None
+            )
+            self.visit(element, expectedType=expectedType)
 
 
     def visitSetLiteral(self, node: SetLiteral):
@@ -4833,8 +5540,68 @@ class SemanticAnalyzer:
         for element in node.elements:
             self.visit(element, expectedType=elementType)
 
+    def expectedDictTypes(
+        self,
+        expectedType: TypeNode | None
+    ) -> list[DictType]:
+        if expectedType is None:
+            return []
+        members = (
+            expectedType.members
+            if isinstance(expectedType, UnionType)
+            else [expectedType]
+        )
+        return [member for member in members if isinstance(member, DictType)]
+
+    def visitDictLiteral(self, node: DictLiteral):
+        dictionaries = self.expectedDictTypes(self.currentExpectedType)
+        keyType = (
+            self.uniqueUnion([dictionary.keyType for dictionary in dictionaries])
+            if dictionaries
+            else None
+        )
+        valueType = (
+            self.uniqueUnion([dictionary.valueType for dictionary in dictionaries])
+            if dictionaries
+            else None
+        )
+        for entry in node.entries:
+            self.visit(entry.key, expectedType=keyType)
+            self.visit(entry.value, expectedType=valueType)
+            actualKeyType = self.inferExpressionType(entry.key)
+            if (
+                actualKeyType is not None
+                and not self.isHashableDictKeyType(actualKeyType)
+            ):
+                self.report(
+                    entry.key,
+                    f"Dictionary key value has unhashable type "
+                    f"'{self.typeText(actualKeyType)}'."
+                )
+
+    def visitDictEntry(self, node: DictEntry):
+        self.visit(node.key)
+        self.visit(node.value)
+
     def visitCollectionConversion(self, node: CollectionConversion):
-        self.visit(node.elementType)
+        if isinstance(node.elementType, NamedType):
+            name = node.elementType.name.name
+            typeSymbol = self.currentScope.resolveType(name)
+            valueSymbol = self.currentScope.resolve(name)
+            if typeSymbol is None and isinstance(valueSymbol, VariableSymbol):
+                self.report(
+                    node.elementType.name,
+                    (
+                        f"Conversion '{node.collectionKind}' requires an "
+                        f"element type as its first argument; '{name}' names "
+                        f"a value. Write {node.collectionKind}(T, {name}), "
+                        f"where T is the desired element type."
+                    ),
+                )
+            else:
+                self.visit(node.elementType)
+        else:
+            self.visit(node.elementType)
         anyType = PrimitiveType(Type.ANY)
         parameters = [ParameterSignature("value", anyType, True)]
         if node.collectionKind == "arr":
@@ -4848,6 +5615,17 @@ class SemanticAnalyzer:
             [parameters],
             callableKind="Conversion",
             callableName=node.collectionKind,
+        )
+
+    def visitDictConversion(self, node: DictConversion):
+        self.visit(node.keyType)
+        self.visit(node.valueType)
+        self.validateDictKeyType(node.keyType)
+        self.checkCallableArguments(
+            node,
+            [[ParameterSignature("value", PrimitiveType(Type.ANY), True)]],
+            callableKind="Conversion",
+            callableName="dict",
         )
 
     def visitIfStatement(
@@ -4931,7 +5709,8 @@ class SemanticAnalyzer:
         )
 
         baseline = self.activeVariableStates()
-        self.visit(node.body)
+        with self.loopContext():
+            self.visit(node.body)
         # A while body may execute zero times. Its declarations stay
         # visible in the function, but its writes are not definite.
         self.restoreVariableStates(baseline)
@@ -4942,7 +5721,8 @@ class SemanticAnalyzer:
         node: UntilStatement
     ):
         # Thorn checks an until condition after executing its body.
-        self.visit(node.body)
+        with self.loopContext():
+            self.visit(node.body)
         self.visit(node.condition)
         self.requireExpressionType(
             node.condition,
@@ -4978,7 +5758,8 @@ class SemanticAnalyzer:
         )
 
         with self.temporarySymbol(iterator):
-            self.visit(node.body)
+            with self.loopContext():
+                self.visit(node.body)
 
         # A for body may execute zero times.
         self.restoreVariableStates(baseline)
@@ -5028,10 +5809,27 @@ class SemanticAnalyzer:
         )
 
         with self.temporarySymbol(iterator):
-            self.visit(node.body)
+            with self.loopContext():
+                self.visit(node.body)
 
         # A foreach body may execute zero times.
         self.restoreVariableStates(baseline)
+
+
+    def visitBreakStatement(self, node: BreakStatement):
+        if self.loopDepth == 0:
+            self.report(
+                node,
+                "Break statement cannot appear outside a loop."
+            )
+
+
+    def visitContinueStatement(self, node: ContinueStatement):
+        if self.loopDepth == 0:
+            self.report(
+                node,
+                "Continue statement cannot appear outside a loop."
+            )
 
 
     def blockDefinitelyReturns(
@@ -5163,6 +5961,9 @@ class SemanticAnalyzer:
     ):
         pass
 
+    def visitModuleType(self, node: ModuleType):
+        pass
+
 
     def visitNamedType(self, node: NamedType):
         name = node.name.name
@@ -5173,6 +5974,9 @@ class SemanticAnalyzer:
                 node.name,
                 f"Unknown type '{name}'."
             )
+            return
+
+        node.resolvedDeclaration = symbol.declaration
 
 
     def visitNamedTypeDeclaration(
@@ -5563,11 +6367,50 @@ class SemanticAnalyzer:
 
 
     def visitArrayType(self, node: ArrayType):
+        if node.isHeterogeneous:
+            for slotType in node.slotTypes or []:
+                self.visit(slotType)
+            return
         self.visit(node.elementType)
 
 
     def visitSetType(self, node: SetType):
         self.visit(node.elementType)
+
+    def isHashableDictKeyType(self, typeNode: TypeNode) -> bool:
+        if isinstance(typeNode, UnionType):
+            return all(
+                self.isHashableDictKeyType(member)
+                for member in typeNode.members
+            )
+        if isinstance(typeNode, PrimitiveType):
+            return typeNode.value in (
+                Type.INT,
+                Type.FLOAT,
+                Type.STR,
+                Type.CHAR,
+                Type.BOOL,
+                Type.NIL,
+                Type.ANY,
+                Type.PYOBJECT,
+            )
+        if isinstance(typeNode, NamedType):
+            symbol = self.currentScope.resolveType(typeNode.name.name)
+            # Unknown names receive their own diagnostic from visitNamedType().
+            return symbol is None or isinstance(symbol.declaration, EnumDeclaration)
+        return False
+
+    def validateDictKeyType(self, keyType: TypeNode):
+        if not self.isHashableDictKeyType(keyType):
+            self.report(
+                keyType,
+                f"Dictionary key type '{self.typeText(keyType)}' is not hashable."
+            )
+
+    def visitDictType(self, node: DictType):
+        self.visit(node.keyType)
+        self.visit(node.valueType)
+        self.validateDictKeyType(node.keyType)
 
 
     def visitDeclarationModifiers(
@@ -5649,7 +6492,7 @@ class SemanticAnalyzer:
                 )
                 for name in (
                     "is_int", "is_char", "is_str", "is_float", "is_bool",
-                    "is_list", "is_arr", "is_set", "is_empty", "is_full"
+                    "is_list", "is_arr", "is_set", "is_dict", "is_empty", "is_full"
                 )
             },
             **{

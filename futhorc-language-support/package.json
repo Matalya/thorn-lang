@@ -4,7 +4,7 @@
   "displayName": "Futhorc Language Support",
   "description": "Syntax highlighting and language support for the Futhorc programming language.",
   "publisher" : "matalya",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "engines": {
     "vscode": "^1.85.0"
   },
