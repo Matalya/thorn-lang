@@ -15,12 +15,13 @@ futhorc = "thorn:main"
 
 [tool.setuptools]
 py-modules = [
-    "Token",
+    "thorn",
     "lexer",
     "parser",
-    "th_ast",
     "semantic",
-    "runtime",
     "interpreter",
-    "thorn",
+    "runtime",
+    "module_system",
+    "th_ast",
+    "Token"
 ]

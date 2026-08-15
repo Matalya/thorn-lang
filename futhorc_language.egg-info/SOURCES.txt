@@ -3,6 +3,7 @@ README.md
 Token.py
 interpreter.py
 lexer.py
+module_system.py
 parser.py
 pyproject.toml
 runtime.py
