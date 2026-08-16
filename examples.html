@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Examples — Futhorc</title>
+
+  <style>
+    :root {
+      --background: #12110f;
+      --surface: #1c1a17;
+      --main-ink: #ccc5ba;
+      --muted-text: #968b8c;
+      --secondary-ink: #a58c6b;
+      --accent: #968b8c;
+      --border: #3b3731;
+      --code-background: #0d0c0b;
+    }
+
+    :root[data-theme="light"] {
+      --background: #ccc5ba;
+      --surface: #ded8cf;
+      --main-ink: #12110f;
+      --muted-text: #686258;
+      --secondary-ink: #2d2723;
+      --accent: #968b8c;
+      --border: #aaa298;
+      --code-background: #bab2a8;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--background);
+      color: var(--main-ink);
+      font-family: "Source Serif 4", Georgia, serif;
+      line-height: 1.6;
+    }
+
+    code, pre, .runes {
+      font-family: "JetBrains Mono", Consolas, monospace;
+    }
+
+    a { color: var(--secondary-ink); }
+    a:hover { color: var(--main-ink); }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1rem max(5vw, 1.5rem);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .brand {
+      color: var(--main-ink);
+      font-size: 1.4rem;
+      font-weight: bold;
+      letter-spacing: 0.08em;
+      text-decoration: none;
+    }
+
+    .brand .runes {
+      color: var(--secondary-ink);
+      margin-right: 0.5rem;
+    }
+
+    nav { display: flex; gap: 1rem; align-items: center; }
+    nav a { text-decoration: none; }
+
+    button {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--main-ink);
+      border-radius: 4px;
+      cursor: pointer;
+      padding: 0.45rem 0.7rem;
+      font: inherit;
+    }
+
+    button:hover { border-color: var(--secondary-ink); }
+
+    main {
+      width: min(1100px, calc(100% - 3rem));
+      margin: 0 auto;
+      padding: 4rem 0;
+    }
+
+    h1 { margin-bottom: 0.25rem; }
+    .intro { color: var(--muted-text); margin-top: 0; }
+
+    .example-picker {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin: 2rem 0 1rem;
+    }
+
+    .example-picker button[aria-selected="true"] {
+      border-color: var(--secondary-ink);
+      background: var(--secondary-ink);
+      color: var(--background);
+    }
+
+    .viewer {
+      border: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .viewer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      min-height: 3.5rem;
+      padding: 0.7rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .viewer-title { margin: 0; font-size: 1rem; }
+    .viewer-actions { display: flex; gap: 0.75rem; align-items: center; }
+
+    pre {
+      min-height: 28rem;
+      max-height: 70vh;
+      margin: 0;
+      overflow: auto;
+      padding: 1rem;
+      background: var(--code-background);
+      color: var(--main-ink);
+      line-height: 1.5;
+      tab-size: 4;
+    }
+
+    .status { color: var(--muted-text); }
+    footer {
+      padding: 2rem 1.5rem;
+      border-top: 1px solid var(--border);
+      color: var(--muted-text);
+      text-align: center;
+    }
+
+    @media (max-width: 720px) {
+      header { align-items: flex-start; flex-direction: column; }
+      nav { flex-wrap: wrap; }
+      main { width: min(100% - 2rem, 1100px); padding: 2.5rem 0; }
+      .viewer-header { align-items: flex-start; flex-direction: column; }
+      pre { min-height: 22rem; }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <a class="brand" href="specs.html">
+      <span class="runes">ᚠᚢᚦᚩᚱᚳ</span>FUTHORC
+    </a>
+
+    <nav>
+      <a href="specs.html#documentation">Documentation</a>
+      <a href="examples.html" aria-current="page">Examples</a>
+      <a href="https://github.com/Matalya/futhorc">Source</a>
+      <button id="theme-toggle" type="button">Light mode</button>
+    </nav>
+  </header>
+
+  <main>
+    <h1>Example programs</h1>
+    <p class="intro">Seven small programs, one code window. Pick one to explore.</p>
+
+    <div class="example-picker" role="tablist" aria-label="Futhorc example programs">
+      <button role="tab" type="button" data-example="hello" aria-selected="true">Hello</button>
+      <button role="tab" type="button" data-example="fizzbuzz" aria-selected="false" tabindex="-1">FizzBuzz</button>
+      <button role="tab" type="button" data-example="recursion" aria-selected="false" tabindex="-1">Recursion</button>
+      <button role="tab" type="button" data-example="collections" aria-selected="false" tabindex="-1">Collections</button>
+      <button role="tab" type="button" data-example="todo" aria-selected="false" tabindex="-1">To-do</button>
+      <button role="tab" type="button" data-example="market" aria-selected="false" tabindex="-1">Market</button>
+      <button role="tab" type="button" data-example="text-analyzer" aria-selected="false" tabindex="-1">Text analyzer</button>
+    </div>
+
+    <section class="viewer" role="tabpanel" aria-live="polite">
+      <div class="viewer-header">
+        <h2 class="viewer-title" id="example-title">Hello, Futhorc</h2>
+        <div class="viewer-actions">
+          <span class="status" id="example-status">Loading…</span>
+          <a id="raw-link" href="examples/hello%20futhorc.þ">Raw file</a>
+          <button id="runes-toggle" type="button" aria-pressed="false">Runes</button>
+          <button id="copy-example" type="button">Copy</button>
+        </div>
+      </div>
+      <pre><code id="example-source">Loading example…</code></pre>
+    </section>
+
+    <noscript>
+      <p>JavaScript is needed for the shared viewer. The examples remain available in the <a href="examples/">examples directory</a>.</p>
+    </noscript>
+  </main>
+
+  <footer>Futhorc — made with questionable quantities of runes.</footer>
+
+  <script>
+    // Embedded so this page also works when opened directly from the filesystem.
+    const examples = {
+      "hello": {
+        "title": "Hello, Futhorc",
+        "source": "# Hello, Futhorc.\r\nstr name = input(\"Input your name: \");\r\n\r\nprint(c\"Hello, {name}, and welcome to Futhorc!\");",
+        "file": "examples/hello%20futhorc.þ"
+      },
+      "fizzbuzz": {
+        "title": "FizzBuzz",
+        "source": "# FizzBuzz\r\nnil fizzbuzz(int upper) {\r\n    for (i from 1 to upper) {\r\n        str acc = \"\";\r\n        if (not bool(i % 3)) {\r\n            acc = c\"{acc}fizz\";\r\n        }\r\n        if (not bool(i % 5)) {\r\n            acc = c\"{acc}buzz\";\r\n        }\r\n        if (bool(acc)) {\r\n            print(acc, end = \" \");\r\n        } else {\r\n            print(i, end = \" \");\r\n        }\r\n    }\r\n}\r\nfizzbuzz(17);\r\nprint(\"\");",
+        "file": "examples/fizzbuzz.þ"
+      },
+      "recursion": {
+        "title": "Recursion",
+        "source": "# Recursion\r\nint fibonacci(int n) {\r\n    if (n <= 1) {\r\n        return n;\r\n    }\r\n    return fibonacci(n - 1) + fibonacci(n - 2);\r\n}\r\n\r\nint factorial(int n) {\r\n    if (n <= 1) {\r\n        return 1;\r\n    }\r\n    return n * factorial(n - 1);\r\n}\r\n\r\nprint(fibonacci(7));\r\nprint(factorial(5));",
+        "file": "examples/recursion.þ"
+      },
+      "collections": {
+        "title": "Collections",
+        "source": "list(int) scores = [82, 94, 67, 75, 100, 91, 58, 86];\r\n\r\nnil analyze(list(int) List) {\r\n    float avg_acc = 0.0;\r\n    int highest = 1;\r\n    int lowest = 100;\r\n    list(int) passing = [];\r\n    foreach (item in List) {\r\n        avg_acc += item;\r\n        if (item > highest) {\r\n            highest = item;\r\n        }\r\n        if (item < lowest) {\r\n            lowest = item;\r\n        }\r\n        if (item > 60) {\r\n            passing.append(item);\r\n        }\r\n    }\r\n    avg_acc /= List.length();\r\n    print(c\"→ Average: {avg_acc}\");\r\n    print(c\"→ Highest: {highest}\");\r\n    print(c\"→ Lowest: {lowest}\");\r\n    print(c\"→ Passing: {passing}\");\r\n    print(c\"→ Number passing: {passing.length()}\");\r\n}\r\n\r\nanalyze(scores);",
+        "file": "examples/collections.þ"
+      },
+      "todo": {
+        "title": "To-do list",
+        "source": "list(str) tasks = [];\nbool running = true;\n\nprint(\"Futhorc To-Do\");\nprint(\"===========\");\n\nwhile (running) {\n    print(\"\");\n    print(\"1. Add a task\");\n    print(\"2. Show tasks\");\n    print(\"3. Remove a task\");\n    print(\"4. Quit\");\n\n    str choice = input(\"> \");\n\n    if (choice == \"1\") {\n        str description = input(\"Task: \");\n        tasks.append(description);\n        print(c\"Added: {description}\");\n    } elsif (choice == \"2\") {\n        if (is_empty(tasks)) {\n            print(\"Nothing to do!\");\n        } else {\n            print(\"Your tasks:\");\n\n            foreach (task in tasks) {\n                int number = index(task) + 1;\n                print(c\"{number}. {task}\");\n            }\n        }\n    } elsif (choice == \"3\") {\n        if (is_empty(tasks)) {\n            print(\"There are no tasks to remove.\");\n        } else {\n            int selectedNumber = int(input(\"Task number: \"));\n            int taskIndex = selectedNumber - 1;\n\n            if (taskIndex >= 0 and taskIndex < tasks.length()) {\n                str removed = tasks.remove_at(taskIndex);\n                print(c\"Completed: {removed}\");\n            } else {\n                print(\"That task number does not exist.\");\n            }\n        }\n    } elsif (choice == \"4\") {\n        running = false;\n        print(\"May your tasks wither before you do. Farewell!\");\n    } else {\n        print(\"Choose 1, 2, 3, or 4.\");\n    }\n}\n",
+        "file": "examples/todo.futhorc"
+      },
+      "market": {
+        "title": "Market inventory",
+        "source": "struct Product {\r\n    str name;\r\n    float price;\r\n    int stock = 0;\r\n\r\n    str repr(Product self) {\r\n        return c\"${self.price} {self.name}: {self.stock}\";\r\n    }\r\n}\r\n\r\nlist(Product) stock = [];\r\n\r\nint findProductByName(str product) {\r\n    foreach (item in stock) {\r\n        if (item.name == product) {\r\n            return index(item);\r\n        }\r\n    }\r\n    return -1;\r\n}\r\n\r\nnil addStock(Product product, int amount) {\r\n    int location = findProductByName(product.name);\r\n    if (location != -1){\r\n        stock[location].stock += amount;\r\n    } else {\r\n        stock.append(Product.new(product.name, product.price, amount));\r\n    }\r\n}\r\n\r\nnil checkStock(Product product) {\r\n    int location = findProductByName(product.name);\r\n\r\n    if (location == -1) {\r\n        print(c\"No product named {product.name} found\");\r\n    }\r\n\r\n    print(stock[location].repr());\r\n}\r\n\r\nfloat | nil registerPurchase(Product product, int amountBought, float amountPaid) {\r\n    int location = findProductByName(product.name);\r\n\r\n    if (location == -1 or stock[location].stock <= 0) {\r\n        print(c\"Product {product.name} out of stock\");\r\n        return nil;\r\n    }\r\n    Product purchase = stock[location];\r\n    if (amountBought > purchase.stock) {\r\n        print(\"Purchase exceeds stock\");\r\n        return nil;\r\n    } elsif (amountBought < 1) {\r\n        print(\"Purchase is invalid\");\r\n        return nil;\r\n    } elsif (purchase.price * amountBought > amountPaid) {\r\n        print(\"Insufficient payment\");\r\n        return nil;\r\n    }\r\n    stock[location].stock -= amountBought;\r\n    float total = purchase.price * amountBought;\r\n    print(c\"{purchase.name}: {total}\");\r\n    print(c\"Paid: {amountPaid}\");\r\n    float change = amountPaid - total;\r\n    print(c\"Change: {change}\");\r\n    return change;\r\n}\r\n\r\nnil showStock() {\r\n    if (stock.length() < 1) {\r\n        print(\"No stock to show.\");\r\n        return;\r\n    } else {\r\n        foreach (product in stock) {\r\n            print(product.repr());\r\n        }\r\n    }\r\n}\r\n\r\nstock.append(Product.new(\"Coffee\", 7.5, 15));\r\nstock.append(Product.new(\"Apples\", 2.0, 35));\r\n\r\nshowStock();",
+        "file": "examples/market.þ"
+      },
+      "text-analyzer": {
+        "title": "Text analyzer",
+        "source": "import python \"builtins\" as builtins;\r\nimport python \"operator\" as operator;\r\n\r\nFile file = open(\"./examples/echoes_of_daisana.txt\");\r\nstr text = file.read();\r\nfile.seek(0);\r\ndict(str, int) words = {};\r\nstr acc = \"\";\r\nint counter = 0;\r\nforeach (character in list(char, text)) {\r\n    #counter += 1;\r\n    bool separator =\r\n        character == ' ' or\r\n        character == '\\n' or\r\n        character == ',' or\r\n        character == '.' or\r\n        character == '?' or\r\n        character == '!' or\r\n        character == ';' or\r\n        character == ':' or\r\n        character == '“' or\r\n        character == '”' or\r\n        character == '…' or\r\n        character == '\"' or\r\n        character == '—' or\r\n        character == '–' or\r\n        character == '-';\r\n\r\n    #if (character != '\\n') {\r\n    #    if (counter % 1000 == 0)\r\n    #    {print(c\"\\rProcessed: {counter}\", end = \"\");}\r\n    #}\r\n    if (separator) {\r\n        if (acc != \"\") {\r\n            if (words.has(acc)) {\r\n                words[acc] += 1;\r\n            } else {\r\n                words[acc] = 1;\r\n            }\r\n\r\n            acc = \"\";\r\n        }\r\n    } else {\r\n        acc = c\"{acc}{character}\";\r\n    }\r\n}\r\n\r\n# Preserve the final word when the text has no trailing separator.\r\nif (acc != \"\") {\r\n    if (words.has(acc)) {\r\n        words[acc] += 1;\r\n    } else {\r\n        words[acc] = 1;\r\n    }\r\n}\r\n\r\npyobject sortedPairs = builtins.sorted(\r\n    words.items(),\r\n    key = operator.itemgetter(1),\r\n    reverse = true\r\n);\r\n\r\ndict(str, int) sortedWords = dict(\r\n    str,\r\n    int,\r\n    builtins.dict(sortedPairs)\r\n);\r\n\r\nint uniqueWords = 0;\r\nnew int words = 0;\r\nstr longestWord = \"a\";\r\nint wordsUsedOnce = 0;\r\nint averageWordLength = 0;\r\nforeach (key in sortedWords) {\r\n    uniqueWords += 1;\r\n    words += sortedWords[key];\r\n    if (key.length() > longestWord.length()) {\r\n        longestWord = key;\r\n    }\r\n    if (sortedWords[key] == 1) {\r\n        wordsUsedOnce += 1;\r\n    }\r\n    averageWordLength += key.length();\r\n}\r\nnew float averageWordLength = text.length() / averageWordLength;\r\nnil report() {\r\n    print(\"\\r======== REPORT ========\");\r\n    print(c\"Characters: {text.length()}\");\r\n    print(c\"Words: {words}\");\r\n    print(c\"Unique words: {uniqueWords}\");\r\n    print(c\"Longest word: {longestWord}\");\r\n    print(c\"Words used once: {wordsUsedOnce}\");\r\n    print(c\"Average word length: {averageWordLength}\");\r\n}\r\n\r\nreport();",
+        "file": "examples/text%20analyzer.þ"
+      }
+    };
+
+    const root = document.documentElement;
+    const themeButton = document.querySelector("#theme-toggle");
+    const tabs = [...document.querySelectorAll('[role="tab"]')];
+    const title = document.querySelector("#example-title");
+    const source = document.querySelector("#example-source");
+    const status = document.querySelector("#example-status");
+    const rawLink = document.querySelector("#raw-link");
+    const runesButton = document.querySelector("#runes-toggle");
+    const copyButton = document.querySelector("#copy-example");
+    let selectedExample = "hello";
+    let showRunes = false;
+
+    const runicAliases = {
+      int: "ᛁᚾᛏ", str: "ᛋᛏᚱ", float: "ᚠᛚᚩᛏ", bool: "ᛒᚣᛚ",
+      char: "ᚳᚻᚪᚱ", any: "ᛖᚾᛁ", nil: "ᚾᛁᛚ",
+      uninitialized: "ᚢᚾᛁᚾᛁᛋᚻᚢᛚᛡᛋᛏ", File: "ᚠᛠᛚ",
+      pyobject: "ᛈᛠᚪᛒᚷᚻᛖᚳᛏ", list: "ᛚᛁᛋᛏ", arr: "ᚪᚱ",
+      set: "ᛋᛖᛏ", dict: "ᛞᛁᚳᛏ", struct: "ᛋᛏᚱᚢᚳᛏ",
+      enum: "ᛁᚾᚣᛗ", new: "ᚾᛁᚢ", global: "ᚷᛚᚩᛒᚢᛚ",
+      const: "ᚳᛟᚾᛋᛏ", self: "ᛋᛖᛚᚠ", import: "ᛁᛗᛈᛟᚱᛏ",
+      python: "ᛈᛠᚦᚣᚾ", as: "ᚫᛋ", true: "ᛏᚱᚣ", false: "ᚠᛟᛚᛋ",
+      not: "ᚾᛟᛏ", and: "ᚫᚾᛞ", or: "ᛟᚱ", xor: "ᛉᛟᚱ",
+      if: "ᛁᚠ", elsif: "ᛖᛚᛁᚠ", else: "ᛖᛚᛋ", while: "ᚹᛠᛚ",
+      until: "ᚢᚾᛏᛁᛚ", for: "ᚠᛟ", foreach: "ᚠᛟᚱᛁᛁᚳᚻ",
+      from: "ᚠᚱᛟᛗ", to: "ᛏᚣ", in: "ᛁᚾ", break: "ᛒᚱᛠᚳ",
+      continue: "ᚳᚢᚾᛏᛁᚾᛄᚣ", return: "ᚱᛁᛏᚢᚱᚾ", c: "ᚳ",
+      print: "ᛈᚱᛁᚾᛏ", input: "ᛁᚾᛈᚣᛏ", index: "ᛁᚾᛞᛖᛉ",
+      is_int: "ᛁᛋ_ᛁᚾᛏ", is_char: "ᛁᛋ_ᚳᚻᚪᚱ", is_str: "ᛁᛋ_ᛋᛏᚱ",
+      is_float: "ᛁᛋ_ᚠᛚᚩᛏ", is_bool: "ᛁᛋ_ᛒᚣᛚ",
+      is_list: "ᛁᛋ_ᛚᛁᛋᛏ", is_arr: "ᛁᛋ_ᚪᚱ", is_set: "ᛁᛋ_ᛋᛖᛏ",
+      is_empty: "ᛁᛋ_ᛖᛗᛈᛏᛁ", is_full: "ᛁᛋ_ᚠᚣᛚ",
+      to_int: "ᛏᚣ_ᛁᚾᛏ", to_char: "ᛏᚣ_ᚳᚻᚪᚱ", to_str: "ᛏᚣ_ᛋᛏᚱ",
+      to_float: "ᛏᚣ_ᚠᛚᚩᛏ", to_bool: "ᛏᚣ_ᛒᚣᛚ",
+      to_list: "ᛏᚣ_ᛚᛁᛋᛏ", to_arr: "ᛏᚣ_ᚪᚱ", open: "ᚩᛈᛖᚾ",
+      pyimport: "ᛈᛠᛁᛗᛈᛟᚱᛏ", append: "ᚢᛈᛖᚾᛞ",
+      insert: "ᛁᚾᛋᚢᚱᛏ", prepend: "ᛈᚱᛁᛈᛖᚾᛞ",
+      replace_at: "ᚱᛁᛈᛚᛠᛋ_ᚫᛏ", shorten: "ᛋᚻᛟᛏᛖᚾ",
+      remove_at: "ᚱᛁᛗᚣᚠ_ᚫᛏ", shave: "ᛋᚻᛠᚠ", length: "ᛚᛖᛝᚦ",
+      find_first: "ᚠᛠᚾᛞ_ᚠᚢᛋᛏ", find_nth: "ᚠᛠᚾᛞ_ᚾᚦ",
+      find_last: "ᚠᛠᚾᛞ_ᛚᚫᛋᛏ", locate: "ᛚᚪᚳᛠᛏ",
+      compress: "ᚳᚢᛗᛈᚱᛖᛋ", copy: "ᚳᚪᛈᛁ", resize: "ᚱᛁᛋᛠᛋ",
+      capacity: "ᚳᚢᛈᛋᛁᛏᛁᛁ", fill: "ᚠᛁᛚ", skintight: "ᛋᚳᛁᚾᛏᛠᛏ",
+      shrink_to_fit: "ᛋᚻᚱᛁᛝᚳ_ᛏᚣ_ᚠᛁᛏ", get: "ᚷᛖᛏ", has: "ᚻᚫᛋ",
+      remove: "ᚱᛁᛗᚣᚠ", keys: "ᚳᛁᛁᛋ", values: "ᚠᚫᛚᛄᚣᛋ",
+      items: "ᛠᛏᛖᛗᛋ", clear: "ᚳᛚᛁᚢᚱ", resembles: "ᚱᛁᛋᛖᛗᛒᚢᛚ",
+      gt: "ᚷᚦ", lt: "ᛚᚦ", between: "ᛒᛁᛏᚹᛁᛁᚾ",
+      read: "ᚱᛁᛁᛞ", readline: "ᚱᛁᛁᛞᛚᛠᚾ", readlines: "ᚱᛁᛁᛞᛚᛠᚾᛋ",
+      write: "ᚹᚱᛠᛏ", writelines: "ᚹᚱᛠᛏᛚᛠᚾ", flush: "ᚠᛚᚢᛋᚻ",
+      seek: "ᛋᛁᛁᚳ", tell: "ᛏᛖᛚ", close: "ᚳᛚᚩᛋ", closed: "ᚳᛚᚩᛋᛞ",
+      readable: "ᚱᛁᛁᛞᚢᛒᚢᛚ", writable: "ᚹᚱᛠᛏᚢᛒᚢᛚ",
+      seekable: "ᛋᛁᛁᚳᚢᛒᚢᛚ"
+    };
+
+    const savedTheme = localStorage.getItem("futhorc-theme");
+    if (savedTheme) {
+      root.dataset.theme = savedTheme;
+    } else if (window.matchMedia("(prefers-color-scheme: light)").matches) {
+      root.dataset.theme = "light";
+    }
+
+    function updateThemeButton() {
+      themeButton.textContent = root.dataset.theme === "dark" ? "Light mode" : "Dark mode";
+    }
+
+    themeButton.addEventListener("click", () => {
+      root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark";
+      localStorage.setItem("futhorc-theme", root.dataset.theme);
+      updateThemeButton();
+    });
+
+    function toRunes(text) {
+      const pythonBindings = new Set(
+        [...text.matchAll(/\bimport\s+python\s+"[^"]+"\s+as\s+([A-Za-z_]\w*)/g)]
+          .map((match) => match[1])
+      );
+      let translated = "";
+      let index = 0;
+
+      while (index < text.length) {
+        const character = text[index];
+
+        if (character === "#") {
+          const lineEnd = text.indexOf("\n", index);
+          const end = lineEnd === -1 ? text.length : lineEnd;
+          translated += text.slice(index, end);
+          index = end;
+          continue;
+        }
+
+        if (character === '"' || character === "'") {
+          const quote = character;
+          let end = index + 1;
+          while (end < text.length) {
+            if (text[end] === "\\") {
+              end += 2;
+            } else if (text[end] === quote) {
+              end += 1;
+              break;
+            } else {
+              end += 1;
+            }
+          }
+          translated += text.slice(index, end);
+          index = end;
+          continue;
+        }
+
+        if (/[A-Za-z_]/.test(character)) {
+          let end = index + 1;
+          while (end < text.length && /[A-Za-z0-9_]/.test(text[end])) end += 1;
+          const word = text.slice(index, end);
+          const receiver = translated.match(/([A-Za-z_]\w*)\s*\.\s*$/)?.[1];
+          translated += receiver && pythonBindings.has(receiver)
+            ? word
+            : (runicAliases[word] ?? word);
+          index = end;
+          continue;
+        }
+
+        translated += character;
+        index += 1;
+      }
+
+      return translated;
+    }
+
+    function renderExample() {
+      const example = examples[selectedExample] ?? examples.hello;
+      const displayedSource = showRunes ? toRunes(example.source) : example.source;
+      source.textContent = displayedSource;
+      const lines = displayedSource.trimEnd().split("\n").length;
+      status.textContent = `${lines} ${lines === 1 ? "line" : "lines"} · ${showRunes ? "Runes" : "English"}`;
+      runesButton.textContent = showRunes ? "English" : "Runes";
+      runesButton.setAttribute("aria-pressed", String(showRunes));
+      copyButton.disabled = false;
+    }
+
+    function selectExample(name, updateHash = true) {
+      const example = examples[name] ?? examples.hello;
+      selectedExample = examples[name] ? name : "hello";
+
+      tabs.forEach((tab) => {
+        const selected = tab.dataset.example === name;
+        tab.setAttribute("aria-selected", String(selected));
+        tab.tabIndex = selected ? 0 : -1;
+      });
+
+      title.textContent = example.title;
+      rawLink.href = example.file;
+      renderExample();
+
+      if (updateHash) history.replaceState(null, "", `#${name}`);
+    }
+
+    runesButton.addEventListener("click", () => {
+      showRunes = !showRunes;
+      renderExample();
+    });
+
+    tabs.forEach((tab, index) => {
+      tab.addEventListener("click", () => selectExample(tab.dataset.example));
+      tab.addEventListener("keydown", (event) => {
+        let nextIndex;
+        if (event.key === "ArrowRight") nextIndex = (index + 1) % tabs.length;
+        if (event.key === "ArrowLeft") nextIndex = (index - 1 + tabs.length) % tabs.length;
+        if (event.key === "Home") nextIndex = 0;
+        if (event.key === "End") nextIndex = tabs.length - 1;
+        if (nextIndex === undefined) return;
+
+        event.preventDefault();
+        tabs[nextIndex].focus();
+        selectExample(tabs[nextIndex].dataset.example);
+      });
+    });
+
+    copyButton.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(source.textContent);
+      } catch (error) {
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(source);
+        selection.removeAllRanges();
+        selection.addRange(range);
+        document.execCommand("copy");
+        selection.removeAllRanges();
+      }
+
+      copyButton.textContent = "Copied";
+      setTimeout(() => { copyButton.textContent = "Copy"; }, 1200);
+    });
+
+    window.addEventListener("hashchange", () => {
+      selectExample(location.hash.slice(1), false);
+    });
+
+    updateThemeButton();
+    const initialExample = location.hash.slice(1);
+    selectExample(examples[initialExample] ? initialExample : "hello", false);
+  </script>
+</body>
+</html>

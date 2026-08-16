@@ -1,0 +1,19 @@
+# FizzBuzz
+nil fizzbuzz(int upper) {
+    for (i from 1 to upper) {
+        str acc = "";
+        if (not bool(i % 3)) {
+            acc = c"{acc}fizz";
+        }
+        if (not bool(i % 5)) {
+            acc = c"{acc}buzz";
+        }
+        if (bool(acc)) {
+            print(acc, end = " ");
+        } else {
+            print(i, end = " ");
+        }
+    }
+}
+fizzbuzz(17);
+print("");

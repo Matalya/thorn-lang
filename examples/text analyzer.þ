@@ -1,0 +1,96 @@
+import python "builtins" as builtins;
+import python "operator" as operator;
+
+File file = open("./examples/echoes_of_daisana.txt");
+str text = file.read();
+file.seek(0);
+dict(str, int) words = {};
+str acc = "";
+int counter = 0;
+foreach (character in list(char, text)) {
+    #counter += 1;
+    bool separator =
+        character == ' ' or
+        character == '\n' or
+        character == ',' or
+        character == '.' or
+        character == '?' or
+        character == '!' or
+        character == ';' or
+        character == ':' or
+        character == '“' or
+        character == '”' or
+        character == '…' or
+        character == '"' or
+        character == '—' or
+        character == '–' or
+        character == '-';
+
+    #if (character != '\n') {
+    #    if (counter % 1000 == 0)
+    #    {print(c"\rProcessed: {counter}", end = "");}
+    #}
+    if (separator) {
+        if (acc != "") {
+            if (words.has(acc)) {
+                words[acc] += 1;
+            } else {
+                words[acc] = 1;
+            }
+
+            acc = "";
+        }
+    } else {
+        acc = c"{acc}{character}";
+    }
+}
+
+# Preserve the final word when the text has no trailing separator.
+if (acc != "") {
+    if (words.has(acc)) {
+        words[acc] += 1;
+    } else {
+        words[acc] = 1;
+    }
+}
+
+pyobject sortedPairs = builtins.sorted(
+    words.items(),
+    key = operator.itemgetter(1),
+    reverse = true
+);
+
+dict(str, int) sortedWords = dict(
+    str,
+    int,
+    builtins.dict(sortedPairs)
+);
+
+int uniqueWords = 0;
+new int words = 0;
+str longestWord = "a";
+int wordsUsedOnce = 0;
+int averageWordLength = 0;
+foreach (key in sortedWords) {
+    uniqueWords += 1;
+    words += sortedWords[key];
+    if (key.length() > longestWord.length()) {
+        longestWord = key;
+    }
+    if (sortedWords[key] == 1) {
+        wordsUsedOnce += 1;
+    }
+    averageWordLength += key.length();
+}
+new float averageWordLength = text.length() / averageWordLength;
+nil report() {
+    print("\r======== REPORT ========");
+    print(c"Characters: {text.length()}");
+    print(c"Words: {words}");
+    print(c"Unique words: {uniqueWords}");
+    print(c"Longest word: {longestWord}");
+    print(c"Words used once: {wordsUsedOnce}");
+    print(c"Average word length: {averageWordLength}");
+}
+
+report();

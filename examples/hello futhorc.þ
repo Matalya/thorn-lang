@@ -1,0 +1,4 @@
+# Hello, Futhorc.
+str name = input("Input your name: ");
+
+print(c"Hello, {name}, and welcome to Futhorc!");

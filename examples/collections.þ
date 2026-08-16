@@ -1,0 +1,28 @@
+list(int) scores = [82, 94, 67, 75, 100, 91, 58, 86];
+
+nil analyze(list(int) List) {
+    float avg_acc = 0.0;
+    int highest = 1;
+    int lowest = 100;
+    list(int) passing = [];
+    foreach (item in List) {
+        avg_acc += item;
+        if (item > highest) {
+            highest = item;
+        }
+        if (item < lowest) {
+            lowest = item;
+        }
+        if (item > 60) {
+            passing.append(item);
+        }
+    }
+    avg_acc /= List.length();
+    print(c"→ Average: {avg_acc}");
+    print(c"→ Highest: {highest}");
+    print(c"→ Lowest: {lowest}");
+    print(c"→ Passing: {passing}");
+    print(c"→ Number passing: {passing.length()}");
+}
+
+analyze(scores);
