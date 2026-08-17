@@ -3,8 +3,17 @@
   "name": "futhorc-language-support",
   "displayName": "Futhorc Language Support",
   "description": "Syntax highlighting and language support for the Futhorc programming language.",
-  "publisher" : "matalya",
-  "version": "0.0.2",
+  "publisher": "matalya",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Matalya/futhorc.git"
+  },
+  "homepage": "https://github.com/Matalya/futhorc",
+  "bugs": {
+    "url": "https://github.com/Matalya/futhorc/issues"
+  },
+  "version": "0.0.3",
+  "license": "GPL-3.0-only",
   "engines": {
     "vscode": "^1.85.0"
   },
