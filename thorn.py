@@ -8,9 +8,18 @@ from parser import Parser, TokenStream
 from Token import TokenKind as TK
 from runtime import ThornRuntimeError
 from module_system import ModuleLoader, ModuleLoadError
+import sys
+
+def configure_utf8_io() -> None:
+    for stream_name in ("stdin", "stdout", "stderr"):
+        stream = getattr(sys, stream_name)
+
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8")
 
 
 SOURCE_SUFFIXES = (".þ", ".futhorc")
+FUTHORC_VERSION = "1.0.1"
 
 
 def thorn_source_path(value: str) -> Path:
@@ -84,7 +93,17 @@ def format_runtime_error(error: ThornRuntimeError, source: str, path: str) -> st
 
 
 def main(argv=None) -> int:
-    parser = argparse.ArgumentParser(prog="futhorc", description="Run a Futhorc program")
+    configure_utf8_io()
+    parser = argparse.ArgumentParser(
+        prog="futhorc",
+        description="Run a Futhorc program",
+    )
+
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {FUTHORC_VERSION}",
+    )
     parser.add_argument(
         "file",
         type=thorn_source_path,

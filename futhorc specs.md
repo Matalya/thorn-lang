@@ -732,11 +732,12 @@ Methods that access, replace, or remove existing items require an occupied index
   - Existing occupied elements are not replaced.
   - After the operation, `length() == capacity()`.
   - If the array is already full, the operation does nothing.
-    ```
-    arr(int, 5) array = <1, 2, 3>
-    array.fill(1)
 
-    >> <1, 2, 3, 1, 1>
+    ```futhorc
+    arr(int, 5) array = <1, 2, 3>;
+    array.fill(1);
+
+    # => <1, 2, 3, 1, 1>
     ```
   - A value incompatible with `T` is a type error.
 - `nil skintight()`

@@ -612,7 +612,7 @@ class CommandLineTests(unittest.TestCase):
 class ExampleProgramTests(unittest.TestCase):
     def test_todo_app_adds_lists_removes_and_quits(self):
         source = (
-            Path(__file__).parent / "examples" / "todo.thorn"
+            Path(__file__).parent / "examples" / "todo.futhorc"
         ).read_text(encoding="utf-8")
         answers = iter([
             "1", "Buy milk",

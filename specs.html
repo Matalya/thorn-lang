@@ -309,7 +309,7 @@
 <h3>Operators</h3>
 <ul>
 <li><code>+</code>, <code>-</code>, <code>*</code>, <code>/</code>, <code>** ^</code>, <code>%</code>, <code>//</code></li>
-<li><code>==</code>, <code>!= Ôëá</code>, <code>&gt;</code>, <code>&lt;</code>, <code>&gt;= ÔëÑ</code>, <code>&lt;= Ôëñ</code></li>
+<li><code>==</code>, <code>!= ≠</code>, <code>&gt;</code>, <code>&lt;</code>, <code>&gt;= ≥</code>, <code>&lt;= ≤</code></li>
 <li><code>not</code>, <code>and</code>, <code>or</code>, <code>xor</code></li>
 </ul>
 <h3>Control flow</h3>
@@ -950,22 +950,19 @@ The module name must be a string literal and <code>as</code> must provide a norm
 <li>Fills every currently unoccupied slot with <code>value</code>.</li>
 <li>Existing occupied elements are not replaced.</li>
 <li>After the operation, <code>length() == capacity()</code>.</li>
-<li>
-<p>If the array is already full, the operation does nothing.
-    ```
-    arr(int, 5) array = &lt;1, 2, 3&gt;
-    array.fill(1)</p>
-<blockquote>
-<blockquote>
-<p>&lt;1, 2, 3, 1, 1&gt;
-<code>``
-  - A value incompatible with</code>T<code>is a type error.
--</code>nil skintight()<code>- Reduces capacity until it equals length.
-  - Emits the warning:</code>warning: using internal name "skintight". Consider "shrink_to_fit()" instead, weirdo<code>.
--</code>nil shrink_to_fit()<code>- Reduces capacity until it equals length without emitting the</code>skintight()` warning.</p>
-</blockquote>
-</blockquote>
-</li>
+<li>If the array is already full, the operation does nothing.</li>
+</ul>
+<pre><code>arr(int, 5) array = &lt;1, 2, 3&gt;;
+array.fill(1);
+
+# =&gt; &lt;1, 2, 3, 1, 1&gt;</code></pre>
+<ul>
+<li>A value incompatible with <code>T</code> is a type error.</li>
+<li><code>nil skintight()</code></li>
+<li>Reduces capacity until it equals length.</li>
+<li>Emits the warning: <code>warning: using internal name "skintight". Consider "shrink_to_fit()" instead, weirdo</code>.</li>
+<li><code>nil shrink_to_fit()</code></li>
+<li>Reduces capacity until it equals length without emitting the <code>skintight()</code> warning.</li>
 </ul>
 <p>For both <code>shorten(amount)</code> and <code>shave(amount)</code>:
 - <code>amount == 0</code> returns an empty list and does not modify the array.

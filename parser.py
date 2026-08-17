@@ -1,5 +1,4 @@
 from functools import wraps
-import pyperclip
 from Token import *
 from Token import TokenKind as TK
 from lexer import Lexer, LexerError

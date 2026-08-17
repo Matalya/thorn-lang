@@ -1,14 +1,43 @@
 [build-system]
-requires = ["setuptools>=69"]
+requires = ["setuptools>=77.0.3"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "futhorc-language"
-version = "0.1.0"
-description = "The Thorn programming language interpreter"
+version = "1.0.1"
+description = "A statically typed programming language with ASCII and Anglo-Saxon runic vocabularies"
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = ["pyperclip>=1.8"]
+
+authors = [
+    { name = "Matalya" }
+]
+
+license = "GPL-3.0-only"
+license-files = ["LICENSE"]
+
+keywords = [
+    "programming-language",
+    "interpreter",
+    "static-typing",
+    "futhorc",
+    "runes",
+]
+
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Interpreters",
+]
+
+[project.urls]
+Homepage = "https://github.com/Matalya/futhorc"
+Repository = "https://github.com/Matalya/futhorc"
+Documentation = "https://github.com/Matalya/futhorc"
+Issues = "https://github.com/Matalya/futhorc/issues"
 
 [project.scripts]
 futhorc = "thorn:main"
@@ -23,5 +52,5 @@ py-modules = [
     "runtime",
     "module_system",
     "th_ast",
-    "Token"
+    "Token",
 ]

@@ -1,9 +1,9 @@
 import python "builtins" as builtins;
 import python "operator" as operator;
 
-File file = open("./examples/echoes_of_daisana.txt");
+File file = open(input("Input file path: "));
 str text = file.read();
-file.seek(0);
+file.close()
 dict(str, int) words = {};
 str acc = "";
 int counter = 0;
